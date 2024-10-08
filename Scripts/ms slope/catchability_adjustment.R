@@ -354,7 +354,8 @@ for (sp in spp_vect) {
   data_geostat2$ADJ_KG_HA<-data_geostat2$ADJ_WEIGHT_FREQ/data_geostat2$effort/1000
   
   #save data
-  saveRDS(data_geostat2,paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
+  #saveRDS(data_geostat2,paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
+  saveRDS(data_geostat2,paste0('Data/data_processed/',sp,'/data_geostat_slope_adj.rds'))
   
   #plot
   p <- ggplot() +
@@ -371,9 +372,8 @@ for (sp in spp_vect) {
     theme_minimal() +
     labs(title = sp) + 
     labs(title = sp,x='observed CPUE kgha',y='adjusted CPUE kgha')
-  print(p)
   plots[[sp]]<-p  
 }
 
-#multiplot (WHERE IS THE SECOND PLOT OBJECT?)
+#multiplot of all species cpue ratio by haul
 cowplot::plot_grid(plotlist = plots,nrow=2)
