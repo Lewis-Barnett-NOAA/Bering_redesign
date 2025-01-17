@@ -137,16 +137,48 @@ aggregate(SPECIES_CODE ~ SIZE_BIN +scientific_name,data_sratio,FUN=length)
 
 #get mean
 data_sratio<-subset(data_sratio,s12<100)
-data_sratio1<-aggregate(s12 ~ SIZE_BIN +scientific_name,data_sratio,FUN=mean)
+
+# Custom function to calculate mean, 90th, and 10th percentiles
+custom_summary <- function(x) {
+  c(
+    mean = mean(x, na.rm = TRUE), 
+    p90 = quantile(x, 0.9, na.rm = TRUE), 
+    p10 = quantile(x, 0.1, na.rm = TRUE)
+  )
+}
+
+# Apply the custom function using aggregate
+data_sratio_summary <- aggregate(
+  s12 ~ SIZE_BIN + scientific_name,
+  data = data_sratio,
+  FUN = function(x) unlist(custom_summary(x))
+)
+
+# Transform the result to a more usable format
+data_sratio_summary <- do.call(data.frame, data_sratio_summary)
+
+# Rename the columns for clarity
+names(data_sratio_summary) <- c("SIZE_BIN", "scientific_name", "mean", "p90", "p10")
+
+# View the result
+print(data_sratio_summary)
 
 #plot
 ggplot()+
   #geom_point(data=data_sratio,aes(x=SIZE_BIN,y=s12))+
-  geom_boxplot(data=data_sratio1,aes(x=SIZE_BIN,y=s12,group=SIZE_BIN))+
+  geom_point(data=data_sratio_summary,aes(x=SIZE_BIN,y=mean,group=SIZE_BIN))+
+  geom_point(data=data_sratio_summary,aes(x=SIZE_BIN,y=p90,group=SIZE_BIN),color='red')+
+  geom_point(data=data_sratio_summary,aes(x=SIZE_BIN,y=p10,group=SIZE_BIN),color='blue')+
   facet_wrap(~scientific_name)
 
+#plot
+#ggplot()+
+#  #geom_point(data=data_sratio,aes(x=SIZE_BIN,y=s12))+
+#  geom_point(data=data_sratio1,aes(x=SIZE_BIN,y=s12,group=SIZE_BIN))+
+#  facet_wrap(~scientific_name)
+
 #to convert cm to mm
-data_sratio1$LENGTH<-data_sratio1$SIZE_BIN*10
+data_sratio_summary$LENGTH<-data_sratio_summary$SIZE_BIN*10
 
 #data input 
 coef_wl<-expand.grid('spp'=spp_code1$scientific_name,
@@ -245,9 +277,11 @@ length_bss$WEIGHT<-NA
 
 #add weight
 length_bss$SR<-NA
+length_bss$SR90<-NA
+length_bss$SR10<-NA
 
 #data s12
-data_sratio2<-data_sratio1[,c('s12','scientific_name','LENGTH')]
+data_sratio2<-data_sratio_summary[,c('mean','p90','p10','scientific_name','LENGTH')]
 
 #loop over combinations
 for (r in 1:nrow(length_bss)) {
@@ -287,20 +321,40 @@ for (r in 1:nrow(length_bss)) {
   length_bss[r,'WEIGHT'] <- exp(coef_wl1$log_a + coef_wl1$b * log(l))
   
   if (sp %in% unique(data_sratio3$scientific_name) & l %in% data_sratio3$LENGTH) {
-    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==l),'s12']
+    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==l),'mean']
+    sr90<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==l),'p90']
+    sr10<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==l),'p10']
     length_bss[r,'SR'] <-sr
+    length_bss[r,'SR90'] <-sr90
+    length_bss[r,'SR10'] <-sr10
   } else if (sp %in% unique(data_sratio3$scientific_name) & (l+5) %in% data_sratio3$LENGTH) { #some species have different bins (X5 instead of X0)
-    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l+5)),'s12']
+    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l+5)),'mean']
+    sr90<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l+5)),'p90']
+    sr10<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l+5)),'p10']
     length_bss[r,'SR'] <-sr
+    length_bss[r,'SR90'] <-sr90
+    length_bss[r,'SR10'] <-sr10
   } else if (sp %in% unique(data_sratio3$scientific_name) & (l-5) %in% data_sratio3$LENGTH) { #some species have different bins (X5 instead of X0)
-    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l-5)),'s12']
+    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l-5)),'mean']
+    sr90<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l-5)),'p90']
+    sr10<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==(l-5)),'p10']
     length_bss[r,'SR'] <-sr
+    length_bss[r,'SR90'] <-sr90
+    length_bss[r,'SR10'] <-sr10
   } else if (sp %in% unique(data_sratio3$scientific_name) & l < min(data_sratio3$LENGTH)) { #if smaller than min, then get SR of min length
-    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==min(data_sratio3$LENGTH)),'s12']
+    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==min(data_sratio3$LENGTH)),'mean']
+    sr90<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==min(data_sratio3$LENGTH)),'p90']
+    sr10<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==min(data_sratio3$LENGTH)),'p10']
     length_bss[r,'SR'] <-sr
+    length_bss[r,'SR90'] <-sr90
+    length_bss[r,'SR10'] <-sr10
   } else if (sp %in% unique(data_sratio3$scientific_name) & l > max(data_sratio3$LENGTH)) { #if bigger than min, then get SR of max length
-    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==max(data_sratio3$LENGTH)),'s12']
+    sr<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==max(data_sratio3$LENGTH)),'mean']
+    sr90<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==max(data_sratio3$LENGTH)),'p90']
+    sr10<-data_sratio3[which(data_sratio3$scientific_name==sp & data_sratio3$LENGTH==max(data_sratio3$LENGTH)),'p10']
     length_bss[r,'SR'] <-sr
+    length_bss[r,'SR90'] <-sr90
+    length_bss[r,'SR10'] <-sr10
   } else {
     next
   }
@@ -323,10 +377,14 @@ length_bss$FREQ_EXP<-length_bss$FREQUENCY*length_bss$NUMBER_FISH/length_bss$FREQ
 
 #Adjusted frequency (frequency * SR)
 length_bss$FREQ_ADJ<-length_bss$FREQ_EXP/length_bss$SR
+length_bss$FREQ_ADJ90<-length_bss$FREQ_EXP/length_bss$SR90
+length_bss$FREQ_ADJ10<-length_bss$FREQ_EXP/length_bss$SR10
 length_bss$WEIGHT_FREQ<-length_bss$WEIGHT*length_bss$FREQ_EXP
 
 #Adjusted frequency over weight to get adjusted WEIGHT
 length_bss$ADJ_WEIGHT_FREQ<-length_bss$FREQ_ADJ*length_bss$WEIGHT
+length_bss$ADJ_WEIGHT_FREQ90<-length_bss$FREQ_ADJ90*length_bss$WEIGHT
+length_bss$ADJ_WEIGHT_FREQ10<-length_bss$FREQ_ADJ10*length_bss$WEIGHT
 
 # Filter out non-finite values
 length_bss_clean <- length_bss[is.finite(length_bss$SR), ]
@@ -336,7 +394,7 @@ ggplot() +
   geom_boxplot(data = length_bss_clean, aes(x = scientific_name, y = SR))
 
 #weight by species for each haul
-wl<-aggregate(cbind(WEIGHT_FREQ,ADJ_WEIGHT_FREQ) ~ scientific_name + YEAR + HAULJOIN,length_bss,FUN=sum)
+wl<-aggregate(cbind(WEIGHT_FREQ,ADJ_WEIGHT_FREQ,ADJ_WEIGHT_FREQ90,ADJ_WEIGHT_FREQ10) ~ scientific_name + YEAR + HAULJOIN,length_bss,FUN=sum)
 
 #total per year
 wl1<-aggregate(cbind(WEIGHT_FREQ,ADJ_WEIGHT_FREQ) ~ scientific_name + YEAR ,length_bss,FUN=sum)
@@ -385,7 +443,7 @@ for (sp in spp_vect) {
   #unique(wl$HAULJOIN)
   
   #weigth adjusted SR
-  wl1<-subset(wl,scientific_name==sp)[,c('scientific_name' ,'HAULJOIN' , 'ADJ_WEIGHT_FREQ')]
+  wl1<-subset(wl,scientific_name==sp)[,c('scientific_name' ,'HAULJOIN' , 'ADJ_WEIGHT_FREQ', 'ADJ_WEIGHT_FREQ90', 'ADJ_WEIGHT_FREQ10')]
   
   #merge
   names(data_geostat1);names(wl1)
@@ -394,10 +452,15 @@ for (sp in spp_vect) {
   
   #convert grams to kg/ha
   data_geostat2$ADJ_KG_HA<-data_geostat2$ADJ_WEIGHT_FREQ/data_geostat2$effort/1000
+  data_geostat2$ADJ_KG_HA90<-data_geostat2$ADJ_WEIGHT_FREQ90/data_geostat2$effort/1000
+  data_geostat2$ADJ_KG_HA10<-data_geostat2$ADJ_WEIGHT_FREQ10/data_geostat2$effort/1000
   
   #if bathyraja because of adjustments
   if (sp=='Bathyraja aleutica') {
     data_geostat2$ADJ_KG_HA<-data_geostat2$ADJ_KG_HA/1000
+    data_geostat2$ADJ_KG_HA90<-data_geostat2$ADJ_KG_HA90/1000
+    data_geostat2$ADJ_KG_HA10<-data_geostat2$ADJ_KG_HA10/1000
+    
   }
   
   #save data
