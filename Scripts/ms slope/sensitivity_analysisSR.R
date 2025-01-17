@@ -148,30 +148,23 @@ ind_list<-list()
 
 for (sp in unique(data_sratio1$scientific_name)) {
   
-  #sp<-unique(data_sratio1$scientific_name)[1]
+  sp<-unique(data_sratio1$scientific_name)[1]
   
   cat(paste('################',sp,'####################\n'))
-  
-  #subset species
-  data_sratio2<-subset(data_sratio1,scientific_name==sp)
 
-  #select SR 90 and 10 CI
-  sr90<-quantile(data_sratio2$s12,0.90)
-  sr10<-quantile(data_sratio2$s12,0.10)
-  
   #apply SR to data_geostat
-  data_geostat<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
-  data_geostat1<-subset(data_geostat,survey_name=='Eastern Bering Sea Slope Bottom Trawl Survey')
+  data_geostat1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
+  #data_geostat1<-subset(data_geostat,survey_name=='Eastern Bering Sea Slope Bottom Trawl Survey')
 
-  #convert grams to kg/ha
-  data_geostat1$ADJ_KG_HA10<-data_geostat1$cpue_kgha*sr10
-  data_geostat1$ADJ_KG_HA90<-data_geostat1$cpue_kgha*sr90
-  
-  #if bathyraja because of adjustments
-  if (sp=='Bathyraja aleutica') {
-    data_geostat1$ADJ_KG_HA10<-data_geostat1$ADJ_KG_HA10/1000
-    data_geostat1$ADJ_KG_HA90<-data_geostat1$ADJ_KG_HA90/1000
-  }
+  # #convert grams to kg/ha
+  # data_geostat1$ADJ_KG_HA10<-data_geostat1$cpue_kgha*sr10
+  # data_geostat1$ADJ_KG_HA90<-data_geostat1$cpue_kgha*sr90
+  # 
+  # #if bathyraja because of adjustments
+  # if (sp=='Bathyraja aleutica') {
+  #   data_geostat1$ADJ_KG_HA10<-data_geostat1$ADJ_KG_HA10/1000
+  #   data_geostat1$ADJ_KG_HA90<-data_geostat1$ADJ_KG_HA90/1000
+  # }
   
   #create df
   df_ind<-data.frame('yrs'=2002:2016)
