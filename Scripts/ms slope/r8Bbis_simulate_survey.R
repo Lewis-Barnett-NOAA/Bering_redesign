@@ -182,7 +182,7 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   for (r in regime) {
   
   #r<-regime[1]  
-  cat(paste0('########## ',s,' - ',r,'##########\n'))    
+  cat(paste0('########## ',s,' - ',r,' ##########\n'))    
   #scn_allocations
   load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
   
@@ -229,18 +229,24 @@ samp_df21<-samp_df21[grepl("SBS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp',"Depth_dummy",'varTemp_dummy'))
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
 samp_df21$scn <- factor(samp_df21$scn, levels = unique(samp_df21$scn[order(samp_df21$strat_var,samp_df21$type)]))
+samp_df21$scn1 <- paste0(samp_df21$region,'\n',samp_df21$strat_var)
+unique(samp_df21$scn1)
+samp_df21[which(is.na(samp_df21$strat_var)),]
+
+samp_df21$scn1 <- factor(samp_df21$scn1, levels = unique(samp_df21$scn1[order(samp_df21$strat_var,samp_df21$type)]))
 
 #plot 1slope
-ggplot(data=samp_df21)+
+psbs1<-
+ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('number of sampling stations in SLOPE')+
-  theme_minimal()+
+  geom_boxplot(aes(x=scn1,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
+  scale_y_continuous('sampling effort in the SBS\n(n sampling stations)')+
+  theme_bw()+
   theme(axis.title.x = element_blank())+
   scale_color_manual(values = c('all'='black',
                                 'warm'='red',
@@ -251,11 +257,12 @@ ggplot(data=samp_df21)+
                         labels=c('spatially-balanced','random'),name='allocation')
 
 #plot 2slope
-ggplot(data=samp_df21)+
+psbs2<-
+ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn,y=value/sbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('number of sampling stations / km2   in SLOPE',limits = c(0,0.001))+
-  theme_minimal()+
+  geom_boxplot(aes(x=scn1,y=value/sbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
+  scale_y_continuous('sampling effort per area in the SBS\n(n sampling stations / km2)')+ #limits = c(0,0.001)
+  theme_bw()+
   theme(axis.title.x = element_blank())+
   scale_color_manual(values = c('all'='black',
                                 'warm'='red',
@@ -273,19 +280,25 @@ samp_df21<-samp_df21[grepl("NBS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp',"Depth_dummy",'varTemp_dummy'))
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
 samp_df21$scn <- factor(samp_df21$scn, levels = unique(samp_df21$scn[order(samp_df21$strat_var,samp_df21$type)]))
+samp_df21$scn1 <- paste0(samp_df21$region,'\n',samp_df21$strat_var)
+unique(samp_df21$scn1)
+samp_df21[which(is.na(samp_df21$strat_var)),]
+
+samp_df21$scn1 <- factor(samp_df21$scn1, levels = unique(samp_df21$scn1[order(samp_df21$strat_var,samp_df21$type)]))
 
 #plot 1nbs
-ggplot(data=samp_df21)+
+pnbs1<-
+ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('number of sampling stations in NBS')+
-  theme_minimal()+
-    scale_y_continuous(limits = c(0,180))+
+  geom_boxplot(aes(x=scn1,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
+  scale_y_continuous('sampling effort in the NBS\n(n sampling stations)')+
+  theme_bw()+
+  #scale_y_continuous(limits = c(0,180))+
 
   theme(axis.title.x = element_blank())+
   scale_color_manual(values = c('all'='black',
@@ -297,11 +310,13 @@ ggplot(data=samp_df21)+
                         labels=c('spatially-balanced','random'),name='allocation')
 
 #plot 2nbs
-ggplot(data=samp_df21)+
+pnbs2<-
+ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn,y=value/nbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('number of sampling stations / km2   in NBS',limits = c(0,0.001))+
-  theme_minimal()+
+  geom_boxplot(aes(x=scn1,y=value/nbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
+  scale_y_continuous('sampling effort per area in the NBS\n(n sampling stations / km2)',
+                     labels = scales::label_number(accuracy = 0.0001))+ #,limits = c(0,0.001)
+  theme_bw()+
   theme(axis.title.x = element_blank())+
   scale_color_manual(values = c('all'='black',
                                 'warm'='red',
@@ -311,6 +326,61 @@ ggplot(data=samp_df21)+
                                    'NBS_rand'='dashed'),
                         labels=c('spatially-balanced','random'),name='allocation')
 
+
+cowplot::plot_grid(psbs1,pnbs1,ncol=1)
+
+# Increase legend size
+psbs1 <- psbs1 + 
+  theme(
+    legend.title = element_text(size = 14),  # Increase legend title size
+    legend.text = element_text(size = 12),   # Increase legend text size
+    legend.key.size = unit(1.5, "lines")     # Increase legend key size (symbol size)
+  )
+
+pnbs1 <- pnbs1 + 
+  theme(
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(1.5, "lines")
+  )
+
+
+library(cowplot)
+
+# Extract the legend from one of the plots
+shared_legend <- get_legend(
+  psbs1 + theme(legend.position = "right")
+)
+
+# Combine plots and the shared legend
+final_plot <- plot_grid(
+  plot_grid(pnbs1 + theme(legend.position = "none"),
+            psbs1 + theme(legend.position = "none"),
+            ncol = 1,
+            align = 'v'),
+  shared_legend,
+  ncol = 2,
+  rel_widths = c(0.8, 0.2) # Adjust the width ratio for the plots and the legend
+)
+
+ragg::agg_png(paste0('./figures slope/sampling_effort.png'), width = 9, height = 7, units = "in", res = 300)
+final_plot
+dev.off()
+
+# Combine plots and the shared legend
+final_plot <- plot_grid(
+  plot_grid(pnbs2 + theme(legend.position = "none"),
+            psbs2 + theme(legend.position = "none"),
+            ncol = 1,
+            align = 'v'),
+  shared_legend,
+  ncol = 2,
+  rel_widths = c(0.8, 0.2) # Adjust the width ratio for the plots and the legend
+)
+
+ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 9, height = 7, units = "in", res = 300)
+final_plot
+dev.off()
 
 ################
 # HISTORICAL SURVEY
@@ -341,6 +411,9 @@ n_sim_hist<-100
 for (sim in 1:n_sim_hist) {
   
   #sim<-1
+  
+  #cat(paste0('########## ',sim,' ##########\n'))    
+  
   
   # Convert 0 to '001'
   sim_fol <- sprintf("%03d", sim)
