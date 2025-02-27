@@ -289,7 +289,7 @@ for (sim in sims) {
 
 #save simulated index
 save(ind2,file = './output slope//estimated_index_hist.RData') #ind2
-#load('./output slope/estimated_index_hist.RData')
+load('./output slope/estimated_index_hist.RData')
 
 #aggregate df to get mean, q95 and q5 for each group (sp, year, sampling scenario and approach)
 df<-aggregate(index ~ spp + year + scn + approach + regime,ind2,FUN = function(x) c(mean = mean(x), q95 = quantile(x,probs=0.95) , q5 = quantile(x,probs=0.05)) )
@@ -407,18 +407,26 @@ true_ind<-data.frame(matrix(NA,nrow = length(yrs),ncol = length(spp)))
 rownames(true_ind)<-yrs
 colnames(true_ind)<-c(spp)
 
+#array true ind
+true_ind<-
+array(dim=c(length(yrs),5,length(spp)),
+      dimnames = list(yrs,c('year','EBS','EBS+NBS','EBS+BSS','EBS+NBS+BSS'),spp))
+
 #loop over species stock to extract the true index
 for (sp in spp) {
   
-  # sp<-spp[18]
+   #sp<-spp[18]
   
   if (sp %in% names(ind_ebsnbs)) {
     
     #get index ebs nbs
     ind_ebsnbs1<-drop_units(ind_ebsnbs[[sp]]$index[,as.character(yrs),1])
-
+    ind_nbs1<-drop_units(ind_ebsnbs[[sp]]$index[,as.character(yrs),2])
+    ind_ebs1<-drop_units(ind_ebsnbs[[sp]]$index[,as.character(yrs),3])
   } else {
     ind_ebsnbs1<-rep(0,length(yrs))
+    ind_nbs1<-rep(0,length(yrs))
+    ind_ebs1<-rep(0,length(yrs))
   }
   
   if (sp %in% names(ind_slope)) {
@@ -435,20 +443,28 @@ for (sp in spp) {
   }
 
   #sum bio from ebsnbs and slope
-  ind<-ind_ebsnbs1+ind_slope2
-  
+  ebsnbsbss<-ind_ebsnbs1+ind_slope2
+  ebsbss<-ind_ebs1+ind_slope2
+    
   #append total index
-  true_ind[,sp]<-ind
-  
+  true_ind[,'EBS',sp]<-ind_ebs1
+  true_ind[,'EBS+NBS',sp]<-ind_ebsnbs1
+  true_ind[,'EBS+BSS',sp]<-ebsbss
+  true_ind[,'EBS+NBS+BSS',sp]<-ebsnbsbss
+  true_ind[,'year',sp]<-c(2002:2016)
 }
 
-true_ind[c(9,15),'Sebastes melanostictus']<-NA
+true_ind[c(9,15),,'Sebastes melanostictus']<-NA
+
+#save true ind
+save(true_ind,file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  
 
 #arrange true index data
-true_ind$year<-as.character(yrs)
 true_ind1<-reshape2::melt(true_ind,id.vars='year')
-names(true_ind1)<-c('year','spp','value')
-unique(true_ind1$spp)
+true_ind1 <- melt(true_ind, varnames = c("year", "region", "spp"), value.name = "value")
+
+true_ind1<-subset(true_ind1,region!='year')
+
 true_ind1<-true_ind1[which(true_ind1$spp %in% df_spp1$spp),]
 true_ind1<-merge(true_ind1,df_spp1,by='spp')
 true_ind1$year<-as.integer(true_ind1$year)
@@ -473,80 +489,111 @@ df$approach <- factor(df$approach, levels = c("sb", "rand"))
 # true_ind1<-subset(true_ind1,common %in% unique(df$common)[!grepl("_EBSNBS", as.character(unique(df$common)))])
 
 #to adjust y axis limits
-df$value<-df$index[,'q95']/1000
+df$value<-df$index[,'mean']/1000
 y_scale<-aggregate(value ~ common, df,max)
-y_scale$scale<-y_scale$value+y_scale$value*0.2
-y_scale$text<-y_scale$value+y_scale$value*0.15
+y_scale$scale<-y_scale$value+y_scale$value*0.25
+y_scale$text<-y_scale$value+y_scale$value*0.20
 y_scale$apr<-'sys'
 y_scale$year<-2010
 y_scale$scn<-'scn1'
 
 #Our transformation function
-scaleFUN <- function(x) sprintf("%.2f", x)
+scaleFUN <- function(x) sprintf("%.3f", x)
 
 #check
 df[which(df$spp=='Sebastes melanostictus'),]
-true_ind1[which(true_ind1$spp=='Sebastes melanostictus'),]
+#true_ind1[which(true_ind1$spp=='Sebastes melanostictus'),]
+
+#samp_df
+df<-merge(df,samp_df[,c("type","region","strat_var","samp_scn")],by.x='scn',by.y='samp_scn',all.x=TRUE)
+df<-subset(df,scn %in% paste0('scn',1:16))
+
+#save true ind
+save(df,file = paste0("./output slope//design_based_EBSNBSBSS.RData"))  
+
+palette <- RColorBrewer::brewer.pal(12, "Paired") # Max size for 'Paired' is 12
+palette <- colorRampPalette(palette)(16) # Extend to 16 discrete colors
+
+levels(df$region)<-c("EBS","EBS+NBS","EBS+BSS","EBS+NBS+BSS")
+
+y_scale[11,'text']<-77000
+y_scale[11,'scale']<-80000
 
 #plot abundance index for each sampling design
 p<-
-  ggplot() +
-  geom_line(data=df, aes(x=year, y=index[,'mean']/1000000000, color=scn, group=interaction(scn, approach, common,regime), linetype=approach), linewidth=1.5, alpha=0.7) +
-    geom_point(data=true_ind1, aes(x=year, y=value/1000000000, group=common, shape=dummy), fill='black', color='black', size=1) +
-  labs(y=expression('MT ('* 10^6 * ' tons)'), x='') +
-  # scale_fill_manual(values=c('scn1'='#9B59B6','scn2'='#3498DB','scn3'='#1ABC9C','scnbase'='#696778'),
-  #                   labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'), name='stratification') +
-  # scale_color_manual(values=c('scn1'='#9B59B6','scn2'='#3498DB','scn3'='#1ABC9C','scnbase'='#696778'),
-  #                    labels = c('existing','opt depth','opt varSBT','opt depth + varSBT'), name='stratification') +
-  # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8),
-  #                    labels = c('existing' ,'depth','var temp','depth + var temp'), name='stratification') +
-  theme_bw() +
-  scale_linetype_manual(values = c('sb'='dashed', 'rand'='solid'),
-                        labels=c('balanced random','random'),
-                        name='station allocation') +
-  scale_shape_manual(values=c('true index'=16), name='') +
-  #scale_x_continuous(expand=c(0,0),
-  #                   breaks = c(2002,2004,2008,2010,2012,2014,2016),
-  #                   minor_breaks = setdiff(2002:2016,c(2002,2004,2008,2010,2012,2014,2016))) +
-  scale_y_continuous(expand = c(0,0), limits = c(0,NA), labels=scaleFUN) +
-  theme(panel.grid.minor = element_line(linetype=2, color='grey90'),
-        legend.key.width = unit(2.5, "lines"),
-        legend.key.size = unit(20, 'points'),
-        legend.direction = 'vertical',
-        legend.text = element_text(size=12),
-        legend.title = element_text(size=12),
-        legend.spacing = unit(1, "cm"),
-        legend.box.spacing = unit(0.01, "cm"),
+    ggplot() +
+    geom_line(data=df, aes(x=year, y=index[,'mean']/1000000000, color=region, group=interaction(scn, approach, common,regime), 
+                           linetype=approach), linewidth=0.7, alpha=0.5) +
+    geom_point(data=true_ind1, aes(x=year, y=value/1000000000, group=common, shape=region,fill=region), 
+               color='black', size=2) +
+    labs(y=expression('MT ('* 10^6 * ' tons)'), x='') +
+    # scale_fill_manual(values=c('scn1'='#9B59B6','scn2'='#3498DB','scn3'='#1ABC9C','scnbase'='#696778'),
+    #                   labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'), name='stratification') +
+      scale_color_manual(values = c('EBS' = '#d62728',   # Blue
+                                    'EBS+NBS' = '#1f77b4',  # Purple
+                                    'EBS+BSS' = '#2ca02c',  # Green
+                                    'EBS+NBS+BSS' = '#9467bd'),  # Red
+                         name = 'design-based')+    # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8),
+    #                    labels = c('existing' ,'depth','var temp','depth + var temp'), name='stratification') +
+    theme_bw() +
+    scale_linetype_manual(values = c('sb'='dashed', 'rand'='solid'),
+                          labels=c('balanced random','random'),
+                          name='station allocation') +
+    scale_shape_manual(values = c('EBS' = 0,   # Blue
+                                  'EBS+NBS' =1,  # Purple
+                                  'EBS+BSS' = 3,  # Green
+                                  'EBS+NBS+BSS' =4)
+                       ,name='model-based') +
+      scale_fill_manual(values = c('EBS' = '#d62728',   # Blue
+                                    'EBS+NBS' = '#1f77b4',  # Purple
+                                    'EBS+BSS' = '#2ca02c',  # Green
+                                    'EBS+NBS+BSS' = '#9467bd'),  # Red
+                         name = 'model-based')+    # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8),
+      
+    #scale_color_manual(values=palette)+
+    #scale_x_continuous(expand=c(0,0),
+    #                   breaks = c(2002,2004,2008,2010,2012,2014,2016),
+    #                   minor_breaks = setdiff(2002:2016,c(2002,2004,2008,2010,2012,2014,2016))) +
+    scale_y_continuous(expand = c(0,0), limits = c(0,NA), labels=scaleFUN) +
+    expand_limits(y = 0) +
+    geom_text(data=y_scale, aes(label = common, y = text/1000000), x = Inf, vjust = 'inward', hjust = 1.1, size=4, lineheight = 0.8) +
+    geom_text(data=df, aes(label = label), x = 1984, y = Inf, vjust = 1.5, size=5) +
+      theme(
+        legend.box = 'horizontal',  # Stack legends on top of each other
+        legend.direction = 'vertical',  # Each legend’s elements are horizontal
+        legend.position = c(0.8, 0.075),  # Justify the legend to the right
+        legend.justification = 'center',  # Ensure it’s centered vertically
+        legend.title = element_text(size = 11, hjust = 0.5),  # Title font size and centering
+        legend.text = element_text(size = 10, color = "black"),  # Text size and color
+        legend.title.align = 0.5,  # Center the legend titles
+        legend.spacing = unit(0.2, "cm"),  # Reduce space between legend elements
+        legend.box.spacing = unit(0.2, "cm"),  # Reduce space between stacked legends
+        legend.background = element_blank(),  # No background color for the legend
         strip.background = element_blank(),
-        legend.background = element_blank(),
-        legend.box = 'horizontal',
-        legend.position = 'bottom',
-        strip.text = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text = element_text(size = 10)) +
-  expand_limits(y = 0) +
-  geom_text(data=y_scale, aes(label = common, y = text/1000000), x = Inf, vjust = 'inward', hjust = 1.1, size=4, lineheight = 0.8) +
-  geom_text(data=df, aes(label = label), x = 1984, y = Inf, vjust = 1.5, size=5) +
-  guides(
-    fill = guide_legend(nrow=1, order = 1, override.aes = list(size=4)),
-    color = guide_legend(nrow=1, order = 1, override.aes = list(size=4, linewidth=1.2)), # Adjust linewidth here
-    linetype = guide_legend(nrow=1, order = 2, override.aes = list(linewidth=1.2)), # Adjust linewidth here
-    shape = guide_legend(nrow=1, order = 3, override.aes = list(size=4))
-  ) +
-  geom_blank(data=y_scale, aes(x=year, y=scale/1000000, fill=scn, group=interaction(scn, apr))) +
-  facet_wrap(~common, scales='free_y', dir='h', nrow = 5)
+        strip.text = element_blank(),legend.spacing.y = unit(0.1,'cm'),legend.key.spacing.y = unit(0.1,'cm'),
+        #legend.justification = "center",
+        axis.title.x = element_blank()
+      ) +
+      guides(
+        color = guide_legend(order = 1, title.position = "top", override.aes = list(linewidth = 1)),
+        linetype = guide_legend(order = 3, title.position = "top", override.aes = list(linewidth = 0.6, keywidth = 2, keyheight = 1.5)),
+        shape = guide_legend(order = 2, title.position = "top", override.aes = list(size = 3)),
+        fill = guide_legend(order = 2, title.position = "top", override.aes = list(size = 3))
+      )+
+    geom_blank(data=y_scale, aes(x=year, y=scale/1000000, fill=scn, group=interaction(scn, apr))) +
+    facet_wrap(~common, scales='free_y', dir='h', nrow = 5)
 
 
 #save index plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices.tiff'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_ind_EBSNBSBSS.tiff'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
-names(true_ind1)[3]<-'true_ind'
-df2<-(merge(df,true_ind1,by=c('spp','common','year','label')))
+names(true_ind1)[4]<-'true_index'
+df2<-(merge(df,true_ind1,by=c('spp','common','year','label','region')))
 
 
-df2$diff<-(df2$index[,'mean']-(df2$true_ind))/(df2$true_ind)
+df2$diff<-(df2$index[,'mean']-(df2$true_index))/(df2$true_index)
 
 #to adjust y axis limits
 df2$value<-df2$diff
@@ -627,96 +674,219 @@ y_scale$scn<-'scn1'
 #dev.off()
 
 ######################
-# HISTORICAL CV
+# TRUE CV - HISTORICAL CV
 ######################
 
+  EBS_cells<-15181:53464
+  BSS_cells<-53465:56505
+  NBS_cells<-1:15180
+  
 #get CV for each replicate, approach and sampling scenario
 #CV are calculated on the script #13 as, 
 ### CV <- sqrt(STRS_var) / STRS_mean 
 ### STRS_var<-sum(strs_var, by=year) ### strs_var<-var*area²/samples ### var<-var(CPUE)
 ### STRS_mean<-sum(index_strata, by=year) ### index_strata<-mean_strata*area ### mean_strata<-mean(CPUE)
 
-#dataframe to store estimated indices
-cv2<-data.frame(matrix(NA,nrow = 0,ncol = 8))
-names(cv2)<-c('spp','year','approach','sur','scn','regime','cv','sim')
 
-#list of files (100 files, one for each simulated data)
-files<-list.files('./output slope//ms_sim_survey_hist/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
+#get the true index for each simulated data
+  
+  #store HIST simulated data
+  load(file = paste0('./output slope//species/ms_sim_dens_all.RData'))  #sim_dens1
+  
+  #df to store results
+  true_ind<-array(dim=c(length(spp),length(yrs),4,100),
+                  dimnames = list(spp,yrs,c('EBS','EBS+BSS','EBS+NBS','EBS+NBS+BSS'),1:100))
+  
+  #loop over species and crab stock to extract the true index
+  for (sim in dimnames(sim_dens1)[[4]]) {
+    
+    #sim<-1
+    
+    # Print progress
+    cat(paste0('##### sim ', sim, '\n'))
+    
+    #get dens for species and yrs and sim
+    dens<-sim_dens1[,spp,as.character(yrs),sim]
+    
+    for (region in c('EBS','EBS+BSS','EBS+NBS','EBS+NBS+BSS')) {
+        
+        #region<-'EBS+BSS';y='2016'
+          
+        if (region=='EBS') {
+          cells<-EBS_cells
+        } else if (region=='EBS+BSS') {
+          cells<-c(EBS_cells,BSS_cells)
+        } else if (region=='EBS+NBS') {
+          cells<-c(EBS_cells,NBS_cells)
+        } else if (region=='EBS+BSS+NBS') {
+          cells<-c(EBS_cells,BSS_cells,NBS_cells)
+        }      
+        
+        dens1<-colSums(dens[cells,,])
+        
+        
+        true_ind[,,region,sim]<-dens1
+        
+          
+    }
+    
+    #true_ind[,sp]<-drop_units(dens_index_hist_OM[[sp]]$index[,as.character(yrs),1])
+    
+  }
+  
+  #save true ind
+  save(true_ind,file = paste0("./output slope/true_ind_hist.RData"))  
+  load(file = paste0("./output slope/true_ind_hist.RData"))  
+  
+  #as.data.frame
+  #add scn based on region
+  true_ind1 <- as.data.frame.table(true_ind)
+  names(true_ind1)<-c('spp','year','region','sim','true_ind')
+  dim(true_ind1)
+  
+  #save simulated index
+  load('./output slope/estimated_index_hist.RData') #ind2
+  library(data.table)
+  setDT(ind2)  # Convert ind2 to data.table if it's not already
+  # Compute the standard deviation for each group
+  sd2 <- ind2[, .(sd = sd(index, na.rm = TRUE)), by = .(spp, year, scn, approach, regime, sim)]
+  head(sd2)
+  
+  #dim(sd)
+  dim(sd2)
+  
+  # Assuming 'samp_df' contains 'scn' and 'region'
+  # And 'sd2' contains 'scn' that should match with 'samp_df'
+  
+  # Merge 'sd2' with 'samp_df' to add the 'region' column to 'sd2'
+  #setDT(sd2)  # Ensure sd2 is a data.table
+  setDT(samp_df)  # Ensure samp_df is a data.table
+  
+  # Perform the merge based on 'scn' column
+  sd3 <- merge(sd2, samp_df[, .(samp_scn, region)], by.x = "scn",by.y='samp_scn', all.x = TRUE)
+  
+  # Replace "SBS" with "BSS" in the 'region' column of sd2
+  sd3[, region := gsub("SBS", "BSS", region)]
+  
+  # View the merged data
+  print(sd3)
+  
+  aggregate(true_ind ~ spp + region,true_ind1,FUN=mean)
+  
+  #set sim integer for merging
+  true_ind1$sim<-as.integer(true_ind1$sim)
+  sd3$year<-gsub('y','',sd3$year)
+  
+  # Merge
+  true_ind2 <- merge(sd3,true_ind1,  by = c("spp", "year",'region','sim'), all.x = TRUE)
+  
+  # View the merged data
+  dim(true_ind2);dim(sd3)
+  
+  true_ind2$true_cv<-true_ind2$sd/true_ind2$true_ind
+  
+  true_ind3<-na.omit(true_ind2)
+  true_ind3$true_cv<-true_ind3$true_cv/10
+  
+  ggplot()+
+    geom_boxplot(data=subset(true_ind3,spp %in% sel_spp),
+                 aes(x=scn,y=true_cv,color=scn))+
+    facet_wrap(~spp)+
+    scale_y_continuous(breaks = c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3))
+  
+  save(true_ind3,file = './output slope//estimated_cvtrue.RData')
+  load(file = './output slope//estimated_cvtrue.RData')
+  unique(true_ind3[, .(scn, region)])
+  
+  ######################
+  # ESTIMATED CV - HISTORICAL CV
+  ######################
+  
+  library(data.table)
 
+  ## Define column names
+  col_names <- c('spp', 'year', 'approach', 'sur', 'scn', 'regime', 'cv_sim')
 
-#loop over simulated data - files  
-for (sim in 1:100) {
-  
-  #sim<-1
-  
-  #print
-  cat(paste0('##### ',' sim', sim))
-  
-  #load file  
-  load(files[sim])
-  
-  #get estimated CV for groundfish
-  cv<-index_hist[,'CV_sim',,,,,]
-  
-  #array to dataframe
-  cv<-as.data.frame.table(cv)
+  # Get list of files
+  files <- list.files('./output slope/ms_sim_survey_hist/', pattern = 'index_hist', recursive = TRUE, full.names = TRUE)
 
-  #combine and add year and simulated dataset
-  cv1<-cv 
-  names(cv1)<-c('spp','year','approach','sur','scn','regime','cv')
-  cv1$year<-gsub('y','',cv1$year)
-  cv1$sim<-sim
-  
-  #append
-  cv2<-rbind(cv2,cv1)
-  
-  #remove object
-  rm(index_hist)
-}
+  # Process all files using lapply and combine results efficiently
+  cv2 <- rbindlist(lapply(seq_along(files), function(sim) {
 
-setDT(cv2)
-#cv2[spp==sp & scn==iscn & approach==apr & sim==1 & sur==su]
+    # Print progress
+    cat(paste0('##### sim ', sim, '\n'))
 
-#save cv sim data  
+    #sim<-1
+    
+    # Load data
+    env <- new.env()
+    load(files[sim], envir = env)  # Load into an environment
+    index_hist <- env$index_hist   # Extract the expected object
+
+    # Ensure index_hist exists
+    if (!exists("index_hist", envir = env)) {
+      warning(paste("index_hist not found in", files[sim]))
+      return(NULL)
+    }
+
+    # Convert to data.table
+    sd <- as.data.frame.table(index_hist[, c('CV_sim'), , , , , ])
+    setDT(sd)
+
+    # Rename columns
+    if (ncol(sd) >= 7) {
+      setnames(sd, old = names(sd), new = col_names[1:7])
+    } else {
+      warning(paste("Unexpected number of columns in", files[sim]))
+      return(NULL)
+    }
+
+    # # Aggregate
+    # sd1 <- aggregate(cv_sim ~ spp + year + approach + scn + regime, data = sd, FUN = mean)
+    # 
+    # # Convert back to data.table before using :=
+    # setDT(sd1)
+
+    # Add simulation ID
+    sd[, sim := sim]
+
+    return(sd)
+
+  }), fill = TRUE)  # Use fill = TRUE to handle missing columns if needed
+ 
+#save  
 save(cv2,file = './output slope//estimated_cvsim_hist.RData')
 load(file = './output slope//estimated_cvsim_hist.RData')
-#mean(cv2[which(cv2$spp == "Boreogadus saida" & cv2$scn == "scnbase"),'cv'])
-#mean(cv2[which(cv2$spp == "Boreogadus saida" & cv2$scn != "scnbase"),'cv'])
+unique(cv2[, .(scn, region)])
 
-# means<-aggregate(cv ~ spp + scn + approach + regime,cv2,FUN = function(x) c(mean = mean(x)) )
-# #means<-means[which(means$scn!='scnbase_bis'),]
-# means[order(means$spp),]
-# means$opt<-ifelse(means$scn=='scnbase',FALSE,TRUE)
-# means_opt<-aggregate(cv ~ spp + opt,means,FUN = function(x) c(mean = mean(x)) )
-# means_opt<-cbind(means_opt[1:20,],'cv_opt'=means_opt[21:40,'cv'])
-# means_opt$opt_better<-ifelse(means_opt$cv_opt<means_opt$cv,TRUE,FALSE)
-# 
-# means_opt1<-merge(means_opt,df_spp1,by='spp')
-# #means_opt1<-subset(means_opt1,common %in% unique(means_opt1$common)[!grepl("_EBSNBS", as.character(unique(means_opt1$common)))])
-# means_opt1<-means_opt1[,-2]
-# means_opt2<-
-#   data.frame('common'=gsub('\n',' ',means_opt1$common),
-#              'cv_existing'=round(means_opt1$cv,digits = 3),
-#              'cv_optimized'=round(means_opt1$cv_opt,digits = 3),
-#              'cv_optimized<cv_existing'=means_opt1$opt_better)
-# 
-# summary(means_opt2)
-
-#if DT
-#mean(c(cv2[cv2$spp == "Boreogadus saida" & cv2$scn == "scnbase",])$mean)
+#year
+cv2$year<-gsub('y','',cv2$year)
 
 #year to number
 cv2$year<-as.numeric(as.character(cv2$year))
+true_ind3$year<-as.numeric(true_ind3$year)
 
-#aggregate df to get mean, q95 and q5 for each group (year, sampling scenario and approach)
-df<-aggregate(cv ~ spp + year + scn + approach + regime,cv2,FUN = function(x) c(mean = mean(x), q95 = quantile(x,probs=0.95) , q5 = quantile(x,probs=0.05)) )
-colnames(df$cv)<-c('mean','q95','q5')
+setDT(samp_df)
+samp_df$region<-gsub('SBS','BSS',samp_df$region)
+samp_df$strat_var<-gsub('varTemp','varSBT',samp_df$strat_var)
+samp_df$strat_var<-gsub('Depth','depth',samp_df$strat_var)
+samp_df_sub <- samp_df[, .(region, samp_scn, strat_var)]  # Subset relevant columns
 
-#sort factors for plotting purposes
-#df$scn<-factor(df$scn,
-#               levels = c('scnbase','scnbase_bis','scn3','scn2','scn1'))
+# Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
+cv2 <- merge(cv2, samp_df_sub, by.x = c('scn'), by.y = c('samp_scn'), all.x = TRUE)
+unique(cv2[, .(scn, region)])
+
+
+# Perform the merge based on the common columns
+cv3 <- merge(cv2, true_ind3, by = c("spp", "year", "scn", "approach", "regime",'sim','region'), all.x = TRUE)
+unique(cv3[, .(scn, region)])
+
+#save  
+save(cv3,file = './output slope//estimated_cvs.RData')
+
 #df<-df[which(df$spp %in% df_spp1$spp),]
-df<-merge(df,df_spp1,by='spp')
+df<-merge(cv2,df_spp1,by='spp')
+
 #df$approach<-factor(df$approach,levels=c('sys','sb','rand'))
 
 #define year as numeric
@@ -733,7 +903,7 @@ df1$scn_label<-paste0(df1$region,'\n',df1$strat_var)
 #df1$scn<-factor(df1$scn,levels=c('scnbase','scnbase_bis',paste0('scn',3:1)))
 
 #rename column and remove EBSNBS crabs and existing bis sampling design
-df1$value<-df1$cv[,'mean']
+df1$value<-df1$cv_sim
 # df1<-subset(df1,scn!='scnbase_bis')
 # unique(df$common)
 # df1<-subset(df1,common %in% unique(df1$common)[!grepl("_EBSNBS", as.character(unique(df1$common)))])
@@ -755,696 +925,791 @@ df1$scn_label<-factor(df1$scn_label,levels=c("EBS\nDepth","EBS+NBS\nDepth","EBS+
                                              "EBS+SBS\nvarTemp_dummy","EBS+NBS+SBS\nvarTemp_dummy"))
                                              
     
-#plot estimated CV for each sampling design
+# #plot estimated CV for each sampling design
+# #p<-
+#   ggplot()+
+#     geom_boxplot(data =subset(df1, spp %in% sel_spp),
+#                  aes(x = scn_label, y = value, color = regime,
+#                      group = interaction(scn_label, approach, spp, regime),linetype = approach), fill='grey90',
+#                  lwd = 0.6, alpha = 0.8, outlier.alpha = 0.3, outlier.size = 1.2)+
+#     labs(y=expression(widehat(CV)),x='')+
+#     theme_bw()+ 
+#     facet_wrap(~common,scales='free_y')+#scales = list(y = list(breaks = pretty(range(df1$value), n = 5))))+ #dir='h',ncol = 2
+#     scale_linetype_manual(values = c('sb'='solid',
+#                                      'rand'='dashed'),
+#                           label=c('balanced random','random'),
+#                           name='station allocation')+
+#     scale_color_manual(values = c('all'='black','cold' = 'darkblue', 'warm' = 'darkred')) +
+#     scale_y_continuous(expand = c(0,0),limits = c(0,NA))+ #expand = c(NA,0.1),limits = c(0,NA)
+#     geom_vline(xintercept = 4.5, color = 'grey70', linetype = 'dashed') +
+#     theme(
+#       panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+#       legend.key.width = unit(1, "lines"),
+#       legend.key.size = unit(30, 'points'),
+#       legend.text = element_text(size = 11),
+#       legend.title = element_text(size = 12),
+#       legend.spacing.y = unit(10, "cm"),       # Vertical spacing between legend items
+#       legend.spacing = unit(10, "cm"),         # Spacing between legend sections
+#       legend.box.spacing = unit(0.5, "cm"),
+#       strip.background = element_blank(),
+#           #legend.box = 'horizontal',
+#           panel.spacing.x = unit(0.5, "lines"), panel.spacing.y = unit(1, "lines"),
+#           #panel.spacing = unit(10, "lines"), # Increase vertical space between facets
+#           legend.position = 'none',
+#           strip.text = element_blank(),
+#           axis.title.x = element_blank(),
+#           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+#           axis.text = element_text(size = 10)) +
+#     expand_limits(y = 0)+
+#     #geom_vline(
+#     #xintercept = c(4.5, 8.5, 10.5), # Adjust based on the x-axis positions of groups
+#     #linetype = "dashed", color = "grey70", linewidth = 0.5)+
+#     geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+#     geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+#     
+# #save plot
+# ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv_box.png'), width = 12, height = 6, units = "in", res = 300)
+# #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+# p
+# dev.off()
+
+# Create a new combined variable in your data
+df1$combined_label <- paste(df1$approach, df1$regime, sep = " - ")
+# #sort factors just in case
+df1$combined_label<-factor(df1$combined_label,levels=c('rand - all' ,
+                                                       'sb - all' ,
+                                                       'rand - cold' ,
+                                                       'sb - cold' ,
+                                                       'rand - warm' ,
+                                                       'sb - warm' ) )
+
+# Subset the data
+df_sub <- df1[df1$spp %in% sel_spp & 
+                df1$scn_label %in% unique(df1$scn_label)[grep('dummy', unique(df1$scn_label), invert = TRUE)], ]
+
+# Compute mean and standard deviation while keeping 'common' and 'strat_var'
+df_summary <- aggregate(value ~ region + combined_label + scn_label + approach + spp + 
+                          regime + common + strat_var, 
+                        data = df_sub, 
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
+
+# Convert matrix columns to separate numeric columns
+df_summary$mean_value <- df_summary$value[, "mean"]
+df_summary$sd_value <- df_summary$value[, "sd"]
+df_summary$value <- NULL  # Remove old column
+
+df_summary$region1<-gsub('+','\n',df_summary$region)
+levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+
+library(ggh4x)
+
 p<-
-  ggplot()+
-    geom_boxplot(data = subset(df1, spp %in% sel_spp),
-                 aes(x = scn_label, y = value, fill = scn_label, color = regime,
-                     group = interaction(scn_label, approach, spp, regime), linetype = approach),
-                 lwd = 0.6, alpha = 0.8, outlier.alpha = 0.3, outlier.size = 1.2)+
-    labs(y=expression(widehat(CV)),x='')+
-    theme_bw()+ 
-    facet_wrap(~common,scales='free_y')+#scales = list(y = list(breaks = pretty(range(df1$value), n = 5))))+ #dir='h',ncol = 2
-    scale_linetype_manual(values = c('sb'='solid',
-                                     'rand'='dashed'),
-                          label=c('balanced random','random'),
-                          name='station allocation')+
-    scale_color_manual(values = c('all'='black','cold' = 'darkblue', 'warm' = 'darkred')) +
-    scale_y_continuous(expand = c(0,0),limits = c(0,NA))+ #expand = c(NA,0.1),limits = c(0,NA)
-    theme(panel.grid.minor = element_line(linetype=2, color='grey90'),
-          legend.key.width = unit(2.5, "lines"),
-          legend.key.size = unit(20, 'points'),
-          #legend.direction = 'vertical',
-          legend.text = element_text(size=12),
-          legend.title = element_text(size=12),
-          legend.spacing = unit(1, "cm"),
-          legend.box.spacing = unit(0.01, "cm"),
-          strip.background = element_blank(),
-          legend.background = element_blank(),
-          #legend.box = 'horizontal',
-          panel.spacing = unit(10, "lines"), # Increase vertical space between facets
-          legend.position = 'none',
-          strip.text = element_blank(),
-          axis.title.x = element_blank(),
-          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-          axis.text = element_text(size = 10)) +
-    expand_limits(y = 0)+
-    geom_vline(
-    xintercept = c(4.5, 8.5, 10.5), # Adjust based on the x-axis positions of groups
-    linetype = "dashed", color = "grey70", linewidth = 0.5)+
-    geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-    geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
-    
+ggplot(df_summary) +
+  
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_value - sd_value, ymax = mean_value + sd_value, 
+                    group = interaction(scn_label, approach, spp, regime)),
+                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
+                 group = interaction(scn_label, approach, spp, regime), 
+                 shape = combined_label), 
+             size = 3, position = position_dodge(width = 0.9), color = "black") + 
+  labs(y = expression(widehat(CV)), x = '') +
+  theme_bw() + 
+  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  
+  scale_fill_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  
+  scale_linetype_manual(values = c('rand - all' = 'solid',
+                                   'sb - all' = 'dashed',
+                                   'rand - cold' = 'solid',
+                                   'sb - cold' = 'dashed',
+                                   'rand - warm' = 'solid',
+                                   'sb - warm' = 'dashed'),
+                        label = c('random\nstatic',
+                                  'balanced random\nstatic',
+                                  'random\ndynamic cold',
+                                  'balanced random\ndynamic cold',
+                                  'random\ndynamic warm',
+                                  'balanced random\ndynamic warm'),
+                        name = "sampling allocation\nregime approach") +
+  
+  scale_shape_manual(values = c('rand - all' = 21,
+                                'sb - all' = 24,
+                                'rand - cold' = 21,
+                                'sb - cold' = 24,
+                                'rand - warm' = 21,
+                                'sb - warm' = 24),
+                     label = c('random\nstatic',
+                               'balanced random\nstatic',
+                               'random\ndynamic cold',
+                               'balanced random\ndynamic cold',
+                               'random\ndynamic warm',
+                               'balanced random\ndynamic warm'),
+                     name = "sampling allocation\nregime approach") +
+  
+  scale_y_continuous(expand = c(0, 0), limits = c(0, NA)) +
+  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  theme(
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(30, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(10, "cm"),
+    legend.spacing = unit(10, "cm"),
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.y = unit(1, "lines"),
+    strip.text = element_blank(),
+    axis.title.x = element_blank(),
+    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10))+
+  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+
+
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv_box.png'), width = 13, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv1.png'), width = 16, height = 8, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
+
+
+
+#######################
+#
+# RRMSE classic CVtrue CVsim
+#
+############################
+
+#LOAD
+load(file = './output slope//estimated_cvs.RData') #cv3
+
+# Calculate squared difference
+cv3[, sqrtdiff := (cv_sim - true_cv)^2]
+
+# Aggregate data using data.table
+cv4 <- cv3[, .(mean_sqrtdiff = mean(sqrtdiff), mean_cv_sim = mean(cv_sim)), 
+           by = .(spp, year, scn, approach, regime, sim,region)]
+
+# rrmse
+cv4[, rrmse := sqrt(mean_sqrtdiff) / mean_cv_sim]
+cv5<-na.omit(cv4)
+
+ggplot()+
+  geom_boxplot(data=cv5,aes(x=scn,y=rrmse))+
+  facet_wrap(~spp,scales='free_y')
+
+#save
+save(cv5,file = './output slope//estimated_rrmse.RData') #cv5
+
+df1<-as.data.frame(cv5)
+# Create a new combined variable in your data
+df1$combined_label <- paste(df1$approach, df1$regime, sep = " - ")
+# #sort factors just in case
+df1$combined_label<-factor(df1$combined_label,levels=c('rand - all' ,
+                                                       'sb - all' ,
+                                                       'rand - cold' ,
+                                                       'sb - cold' ,
+                                                       'rand - warm' ,
+                                                       'sb - warm' ) )
+
+# Subset the data
+df_sub <- df1[df1$spp %in% sel_spp & 
+                df1$scn %in% paste0('scn',1:16), ]
+
+ dim(df_sub)
+ setDT(df_sub)
+ setDT(samp_df)
+ samp_df$region<-gsub('SBS','BSS',samp_df$region)
+ samp_df$strat_var<-gsub('varTemp','varSBT',samp_df$strat_var)
+ samp_df$strat_var<-gsub('Depth','depth',samp_df$strat_var)
+ samp_df_sub <- samp_df[, .(region, samp_scn, strat_var)]  # Subset relevant columns
+
+# Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
+df_sub <- merge(df_sub, samp_df_sub, by.x = c('scn','region'), by.y = c('samp_scn','region'), all.x = TRUE)
+
+
+# Compute mean and standard deviation while keeping 'common' and 'strat_var'
+df_summary <- aggregate(rrmse ~ region + combined_label  + approach + spp + 
+                          regime  + strat_var, 
+                        data = df_sub, 
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
+
+# Convert matrix columns to separate numeric columns
+df_summary$mean_value <- df_summary$rrmse[, "mean"]
+df_summary$sd_value <- df_summary$rrmse[, "sd"]
+df_summary$value <- NULL  # Remove old column
+
+df_summary$region1<-gsub('+','\n',df_summary$region)
+levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+
+#label scn
+df_summary$scn_label<-paste0(df_summary$region,'\n',df_summary$strat_var)
+
+df_summary$common <- df_spp$common[match(df_summary$spp, df_spp$spp)]
+library(ggh4x)
+df_summary$mean_sd<-df_summary$mean_value+df_summary$sd_value
+
+#for geom_blank(0 and adjust scale)
+y_scale<-aggregate(mean_sd ~ common, subset(df_summary, spp %in% sel_spp),max)
+y_scale$scale<-y_scale$mean_sd+y_scale$mean_sd*0.2
+y_scale$text<-y_scale$mean_sd+y_scale$mean_sd*0.17
+y_scale$apr<-'sb'
+y_scale$scn<-'scn1'
+y_scale$year<-2022
+y_scale$scn_label<-'EBS\nvarTemp'
+
+p<-
+  ggplot(df_summary) +
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = pmax(mean_value - sd_value,0.001), ymax = mean_value + sd_value, 
+                    group = interaction(approach, spp, regime)),
+                width = 0.3, position = position_dodge(width = 0.8), color = "black") + 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
+                 group = interaction(approach, spp, regime), 
+                 shape = combined_label), 
+             size = 3, position = position_dodge(width = 0.8), color = "black") + 
+  labs(y = 'RRMSE of CV', x = '') +
+  theme_bw() + 
+  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  
+  scale_fill_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  
+  scale_linetype_manual(values = c('rand - all' = 'solid',
+                                   'sb - all' = 'dashed',
+                                   'rand - cold' = 'solid',
+                                   'sb - cold' = 'dashed',
+                                   'rand - warm' = 'solid',
+                                   'sb - warm' = 'dashed'),
+                        label = c('random\nstatic',
+                                  'balanced random\nstatic',
+                                  'random\ndynamic cold',
+                                  'balanced random\ndynamic cold',
+                                  'random\ndynamic warm',
+                                  'balanced random\ndynamic warm'),
+                        name = "sampling allocation\nregime approach") +
+  
+  scale_shape_manual(values = c('rand - all' = 21,
+                                'sb - all' = 24,
+                                'rand - cold' = 21,
+                                'sb - cold' = 24,
+                                'rand - warm' = 21,
+                                'sb - warm' = 24),
+                     label = c('random\nstatic',
+                               'balanced random\nstatic',
+                               'random\ndynamic cold',
+                               'balanced random\ndynamic cold',
+                               'random\ndynamic warm',
+                               'balanced random\ndynamic warm'),
+                     name = "sampling allocation\nregime approach") +
+  
+    scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA))+
+  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  theme(
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(30, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(10, "cm"),
+    legend.spacing = unit(10, "cm"),
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.y = unit(1, "lines"),
+    strip.text = element_blank(),
+    axis.title.x = element_blank(),
+    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10))+
+  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+
+#save plot
+ragg::agg_png(paste0('./figures slope/rrmse_cv.png'), width = 16, height = 8, units = "in", res = 300)
+#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+p
+dev.off()
+
+#######################
+#
+# CV ratio
+#
+############################
+
+#LOAD
+load(file = './output slope//estimated_cvs.RData') #cv3
+
+#merge samp data
+setDT(samp_df)
+samp_df$region<-gsub('SBS','BSS',samp_df$region)
+samp_df$strat_var<-gsub('varTemp','varSBT',samp_df$strat_var)
+samp_df<-samp_df[, .(region,strat_var,samp_scn)]
+
+# Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
+cv3 <- merge(cv3, samp_df, by.x = c('scn','region','strat_var'), by.y = c('samp_scn','region','strat_var'), all.x = TRUE)
+  
+# Aggregate data using data.table
+cv33 <- cv3[, .(cv_ebs = mean(cv_sim)), 
+                 by = .(spp, year, scn, approach, regime, sim,region,strat_var)]
+x<-na.omit(cv33)
+unique(x[, .( region)])
+
+#filter cvEBS
+cv3ebs <- cv3[region == "EBS" ]
+cv3ebs<-na.omit(cv3ebs)
+unique(cv3ebs[, .(scn)])
+
+# # Select specific columns, 
+cv3ebs <- cv3ebs[, .(region,strat_var,approach,spp,regime,cv_sim,sim,year)]
+
+# Aggregate data using data.table
+cv3ebs <- cv3ebs[, .(cv_ebs = mean(cv_sim)), 
+           by = .(spp, year, strat_var, approach, regime, sim)]
+
+# Merge by the specified columns
+cv4ebs <- merge(cv3, cv3ebs, 
+                    by = c("spp", "year", "approach", "regime", "sim",'strat_var'), 
+                    all.x = TRUE)  # Use all=TRUE for a full join (keeps unmatched rows)
+
+#log ratio
+cv4ebs$ratio<-log(cv4ebs$cv_sim/cv4ebs$cv_ebs)
+
+###################################
+#save
+save(cv4ebs,file = './output slope//estimated_cvratio.RData') #cv4ebs
+load(file = './output slope//estimated_cvratio.RData')
+
+# Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
+cv5ebs <-cv4ebs
+#cv5ebs <- merge(cv4ebs, samp_df_sub, by.x = c('scn','region','strat_var'), by.y = c('samp_scn','region','strat_var'), all.x = TRUE)
+
+# Compute mean and standard deviation while keeping 'common' and 'strat_var'
+df_summary <- cv5ebs[, .(
+  mean_ratio = mean(ratio, na.rm = TRUE),
+  sd_ratio = sd(ratio, na.rm = TRUE)
+), by = .(region, approach, spp, scn, regime, strat_var)]
+unique(df_summary[, .(scn, region)])
+
+df_summary$region1<-gsub('+','\n',df_summary$region)
+levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+
+#label scn
+df_summary$scn_label<-paste0(df_summary$region,'\n',df_summary$strat_var)
+
+df_summary$common <- df_spp$common[match(df_summary$spp, df_spp$spp)]
+library(ggh4x)
+df_summary$mean_sd<-df_summary$mean_ratio+df_summary$sd_ratio
+
+# Create a new combined variable in your data
+df_summary$combined_label <- paste(df_summary$approach, df_summary$regime, sep = " - ")
+# #sort factors just in case
+df_summary$combined_label<-factor(df_summary$combined_label,levels=c('rand - all' ,
+                                                       'sb - all' ,
+                                                       'rand - cold' ,
+                                                       'sb - cold' ,
+                                                       'rand - warm' ,
+                                                       'sb - warm' ) )
+
+#for geom_blank(0 and adjust scale)
+y_scale <- aggregate(mean_sd ~ common, subset(df_summary, spp %in% sel_spp), max)
+y_scale$scale<-y_scale$mean_sd+y_scale$mean_sd*0.22
+y_scale$text<-y_scale$mean_sd+y_scale$mean_sd*0.19
+y_scale$apr<-'sb'
+y_scale$scn<-'scn1'
+y_scale$year<-2022
+y_scale$scn_label<-'EBS\nvarTemp'
+
+p<-
+  ggplot(na.omit(subset(df_summary,spp %in% sel_spp & region !='EBS'))) +
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_ratio - sd_ratio, ymax = mean_ratio + sd_ratio, 
+                    group = interaction(approach, spp, regime)),
+                width = 0.3, position = position_dodge(width = 0.8), color = "black") + 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_ratio, fill = combined_label, 
+                 group = interaction(approach, spp, regime), 
+                 shape = combined_label), 
+             size = 4, position = position_dodge(width = 0.8), color = "black") + 
+  labs(y = expression(log(widehat(CV)/widehat(CV)[EBS])), x = '') +   
+  theme_bw() + 
+  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  
+  scale_fill_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  
+  scale_linetype_manual(values = c('rand - all' = 'solid',
+                                   'sb - all' = 'dashed',
+                                   'rand - cold' = 'solid',
+                                   'sb - cold' = 'dashed',
+                                   'rand - warm' = 'solid',
+                                   'sb - warm' = 'dashed'),
+                        label = c('random\nstatic',
+                                  'balanced random\nstatic',
+                                  'random\ndynamic cold',
+                                  'balanced random\ndynamic cold',
+                                  'random\ndynamic warm',
+                                  'balanced random\ndynamic warm'),
+                        name = "sampling allocation\nregime approach") +
+  
+  scale_shape_manual(values = c('rand - all' = 21,
+                                'sb - all' = 24,
+                                'rand - cold' = 21,
+                                'sb - cold' = 24,
+                                'rand - warm' = 21,
+                                'sb - warm' = 24),
+                     label = c('random\nstatic',
+                               'balanced random\nstatic',
+                               'random\ndynamic cold',
+                               'balanced random\ndynamic cold',
+                               'random\ndynamic warm',
+                               'balanced random\ndynamic warm'),
+                     name = "sampling allocation\nregime approach") +
+  
+    scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(NA,NA))+
+    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  theme(
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(30, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(10, "cm"),
+    legend.spacing = unit(10, "cm"),
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.y = unit(1, "lines"),
+    strip.text = element_blank(),
+    axis.title.x = element_blank(),
+    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10))+
+  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+
+
+#save plot
+ragg::agg_png(paste0('./figures slope/logcvratio.png'), width = 16, height = 8, units = "in", res = 300)
+#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+p
+dev.off()
+
+
+
+######################
+# RRMSE of CV - RRMSE is relative to the CV of EBS to evaluate the added value of expanding north or deep
+######################
+
+
+#get the estimated CV time series for each replicate, sampling scenario and approach
+load(file = './output slope//estimated_cvsim_hist.RData')
+
+# Remove rows with NA in the cv_ebs column
+cv2 <- cv2[!is.na(cv2$cv), ]
+
+#year to number
+cv2$year<-as.numeric(as.character(cv2$year))
+
+#scn with EBS
+scn_ebs<-subset(samp_df,region=='EBS')[,'samp_scn']
+scn_nonebs<-subset(samp_df,region!='EBS')[,'samp_scn']
+
+# Add a new column cv_ebs based on the 'EBS' regime
+#cv2$cv_ebs <- ifelse(cv2$regime == 'EBS', cv2$cv, NA)
+
+#get sampg df1 
+samp_df1<-samp_df[,c("type","region","strat_var","samp_scn")]
+
+#cv2 with sampf scn info
+head(cv2)
+head(samp_df)
+
+cv22<-merge(cv2,samp_df1,by.x='scn',by.y='samp_scn')
+
+#subset ebs cv2
+cv3<-subset(cv22,scn %in% scn_ebs)
+names(cv3)[7]<-'cv_ebs'
+cv3<-cv3[,c('spp','year','approach','sur','regime','cv_ebs','sim','type','strat_var')]
+cv4<-(merge(cv22,cv3,by=c('spp','year','approach','sur','regime','sim','type','strat_var'),all.x=TRUE))
+dim(cv22)
+head(cv4)
+
+#cvsim-cvebs^2
+#calculate RRMSE
+cv4$sqdiffcv<-(cv4$cv-cv4$cv_ebs)^2
+cv_mean<-aggregate(cv_ebs ~ spp + year + scn + approach + sim + regime + region + strat_var ,cv4,FUN = mean)
+names(cv_mean)[9]<-'cv_ebs_mean'
+head(cv_mean)
+cv_mean<-cv_mean[,c('spp','year','approach','regime','sim','strat_var','cv_ebs_mean')]
+
+#remove scn with only ebs (because is 0)
+cv5<-subset(cv4,scn %in% scn_nonebs )
+head(cv5)
+
+#merge mean cv_ebs
+cv5$rel_diff<-(cv5$cv_ebs-cv5$cv)/cv5$cv_ebs
+cv5$ratio<-cv5$cv_ebs/cv5$cv
+save(cv5,file = './output slope//estimated_rel_diff.RData')
+load('./output slope//estimated_rel_diff.RData')
+
+#sum
+cv6<-aggregate(sqdiffcv ~ spp + year + approach + regime + sim + type + strat_var + scn + region,cv5,FUN=sum )
+head(cv6)
+names(cv6)[ncol(cv6)]<-'sum_sqdiffcv'
+cv6$sum_sqdiffcv<-cv6$sum_sqdiffcv/100
+
+#merge mean cv_ebs
+cv7<-merge(cv6,cv_mean,by=c('spp','year','approach','regime','sim','strat_var'))
+cv7$rrmse<-cv7$sum_sqdiffcv/cv7$cv_ebs_mean
+
+head(cv7)
+save(cv7,file = './output slope//estimated_rrmse.RData')
+load('./output slope//estimated_rrmse.RData')
+#label scn
+cv7$scn_label<-paste0(cv7$region,'\n',cv7$strat_var)
+
+# Add 'common' column to df based on matching 'spp' with df_spp
+cv7$common <- df_spp$common[match(cv7$spp, df_spp$spp)]
+
+# #sort factors just in case
+cv7$scn_label<-factor(cv7$scn_label,levels=c("EBS+NBS\nDepth","EBS+SBS\nDepth","EBS+NBS+SBS\nDepth",
+                                             "EBS+NBS\nvarTemp","EBS+SBS\nvarTemp","EBS+NBS+SBS\nvarTemp",
+                                             "EBS+SBS\nDepth_dummy","EBS+NBS+SBS\nDepth_dummy",
+                                             "EBS+SBS\nvarTemp_dummy","EBS+NBS+SBS\nvarTemp_dummy"))
+
+#for geom_blank(0 and adjust scale)
+y_scale<-aggregate(rrmse ~ common, subset(cv7, spp %in% sel_spp),max)
+y_scale$scale<- 0.06#y_scale$rrmse * 0.5
+y_scale$text<-0.06#y_scale$rrmse * 0.4
+y_scale$apr<-'sb'
+y_scale$scn<-'scn1'
+y_scale$year<-2022
+y_scale$scn_label<-'EBS+NBS\nvarTemp'
+
+# Create a new combined variable in your data
+cv7$combined_label <- paste(cv7$approach, cv7$regime, sep = " - ")
+# #sort factors just in case
+cv7$combined_label<-factor(cv7$combined_label,levels=c('rand - all' ,
+                                                       'sb - all' ,
+                                                       'rand - cold' ,
+                                                       'sb - cold' ,
+                                                       'rand - warm' ,
+                                                       'sb - warm' ) )
 
 #plot estimated CV for each sampling design without dummy ones (for the manuscript)
 p<-
   ggplot()+
-  geom_boxplot(data = subset(df1, spp %in% sel_spp & scn_label %in% unique(df1$scn_label)[grep('dummy', unique(df1$scn_label), invert = TRUE)]),
-               aes(x = scn_label, y = value, fill = scn_label, color = regime,
-                   group = interaction(scn_label, approach, spp, regime), linetype = approach),
-               lwd = 0.6, alpha = 0.8, outlier.alpha = 0.3, outlier.size = 1.2)+
-  labs(y=expression(widehat(CV)),x='')+
+  geom_boxplot(data = subset(cv7, spp %in% sel_spp ), #& scn_label %in% unique(df1$scn_label)[grep('dummy', unique(df1$scn_label), invert = TRUE)]
+               aes(x = scn_label, y = rrmse, fill = scn_label, color = combined_label,
+                   group = interaction(scn_label, approach, spp, regime), linetype = combined_label), fill='grey90',
+               lwd = 0.6, alpha = 0.8, outlier.shape = NA)+
+  geom_vline(xintercept = 3.5, color = 'grey70', linetype = 'dashed') +
+  labs(y='RRMSE',x='')+
   theme_bw()+ 
   facet_wrap(~common,scales='free_y')+#scales = list(y = list(breaks = pretty(range(df1$value), n = 5))))+ #dir='h',ncol = 2
-  scale_linetype_manual(values = c('sb'='solid',
-                                   'rand'='dashed'),
-                        label=c('balanced random','random'),
-                        name='station allocation')+
-  scale_color_manual(values = c('all'='black','cold' = 'darkblue', 'warm' = 'darkred')) +
-  scale_y_continuous(expand = c(0,0),limits = c(0,NA))+ #expand = c(NA,0.1),limits = c(0,NA)
-  theme(panel.grid.minor = element_line(linetype=2, color='grey90'),
-        legend.key.width = unit(2.5, "lines"),
-        legend.key.size = unit(20, 'points'),
-        #legend.direction = 'vertical',
-        legend.text = element_text(size=12),
-        legend.title = element_text(size=12),
-        legend.spacing = unit(1, "cm"),
-        legend.box.spacing = unit(0.01, "cm"),
-        strip.background = element_blank(),
-        legend.background = element_blank(),
-        #legend.box = 'horizontal',
-        legend.position = 'none',
-        strip.text = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text = element_text(size = 10)) +
-  expand_limits(y = 0)+
-  geom_vline(
-    xintercept = c(4.5), # Adjust based on the x-axis positions of groups
-    linetype = "dashed", color = "grey70", linewidth = 0.5)+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+    scale_color_manual(values = c(
+      'rand - all' = 'black',
+      'sb - all' = 'black',
+      'rand - cold' = 'darkblue',
+      'sb - cold' = 'darkblue',
+      'rand - warm' = 'darkred',
+      'sb - warm' = 'darkred'), label=c('random\nstatic',
+                                        'balanced random\nstatic',
+                                        'random\ndynamic normal-cold',
+                                        'balanced random\ndynamic normal-cold',
+                                        'random\ndynamic warm',
+                                        'balanced random\ndynamic warm'),
+      name = "sampling allocations\nregime approach") +
+    scale_linetype_manual(values = c('rand - all' = 'solid',
+                                     'sb - all' = 'dashed',
+                                     'rand - cold' = 'solid',
+                                     'sb - cold' = 'dashed',
+                                     'rand - warm' = 'solid',
+                                     'sb - warm' = 'dashed'), label=c('random\nstatic',
+                                                                      'balanced random\nstatic',
+                                                                      'random\ndynamic normal-cold',
+                                                                      'balanced random\ndynamic normal-cold',
+                                                                      'random\ndynamic warm',
+                                                                      'balanced random\ndynamic warm'),
+                          name = "sampling allocations\nregime approach")+
+  scale_y_continuous(expand = c(0,0),limits = c(0,0.06))+ #expand = c(NA,0.1),
+  theme(
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(30, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(10, "cm"),       # Vertical spacing between legend items
+    legend.spacing = unit(10, "cm"),         # Spacing between legend sections
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+      panel.spacing.x = unit(0.5, "lines"), 
+      panel.spacing.y = unit(1, "lines"),
+      strip.text = element_blank(),
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+      axis.text = element_text(size = 10)) +
+    geom_text(data = subset(y_scale, common %in% sel_spp_com), 
+              aes(label = common, y = text), x = Inf, vjust = 1.7, hjust = 1.1, size = 4, lineheight = 0.8) +
+    geom_blank(data = subset(y_scale, spp %in% sel_spp_com), 
+               aes(x = scn_label, y = scale, fill = scn_label, group = interaction(scn_label, apr)))
   
-#save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv_box_nodummy.png'), width = 13, height = 8, units = "in", res = 300)
-#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
-p
-dev.off()
-
-######################
-# RRMSE of CV
-######################
-
-#get the estimated CV time series for each replicate, sampling scenario and approach
-load(file = './output/estimated_cvsim_hist.RData') #cv2 by sim, sur and scn
-
-#year to character
-cv2$year<-as.character(cv2$year)
-summary(cv2)
-
-#rename
-names(cv2)[6]<-'cvsim'
-#cv2[spp==sp & scn==iscn & approach==apr & sim==si & sur==su]
-
-#get estimated index SD for each survey across years, sampling scenario and approach
-#index_sd by sim, and scn
-load('./output/estimated_index_hist.RData') #ind2
-summary(ind2)
-index_sd<-aggregate(index ~ spp + year + scn + approach + sim,ind2,FUN = function(x) c(sd = sd(x)))
-#summary(index_sd)
-#summary(index_sd[which(index_sd$approach=='sys' & index_sd$scn=='scnbase_bis'),])
-names(index_sd)[6]<-'index_sd'
-
-#data.table to fasten the merging process
-setDT(cv2)
-View(cv2[spp==sp & scn==iscn & approach==apr & sim==si & sur==su])
-setDT(index_sd)
-
-#estimated df by merge cvsim with estindex_sd
-dim(cv2)
-est_df<-merge(cv2,index_sd,by=c('spp','year','scn','approach','sim'),all.x=TRUE)
-dim(est_df)
-
-#get true ind
-load('./output/true_ind_hist.RData') #true_ind
-
-#true index reshape
-true_ind2<-reshape2::melt(true_ind,id.vars='year')
-names(true_ind2)[c(2,3)]<-c('spp','true_ind')
-setDT(true_ind2)
-
-#merge estimated df with true index
-all_df<-merge(est_df,true_ind2,by=c('spp','year'),all.x=TRUE)
-dim(all_df)
-
-#CV true
-all_df$cvtrue<-all_df$index_sd/all_df$true_ind
-
-#check
-all_df[order(all_df$cvtrue, decreasing = TRUE),]  
-all_df[which(all_df$approach=='sys' & all_df$scn=='scnbase'),]
-
-
-#calculate RRMSE
-all_df$sqdiffcv<-(all_df$cvsim-all_df$cvtrue)^2
-all_df1<-all_df[, .(mean_sqdiffcv = mean(sqdiffcv,na.rm=FALSE),mean_cvsim=mean(cvsim,na.rm=FALSE),mean_cvtrue=mean(cvtrue,na.rm=FALSE)), by = .(spp,scn,approach,sim,year)]
-
-###################
-# Spearman rank correlation CVsim - CVtrue
-###################
-
-for (sp in unique(all_df$spp)[10:20]) {
+  #save plot
+  ragg::agg_png(paste0('./figures slope/rrmse_nodummy.png'), width = 10, height = 7, units = "in", res = 300)
+  #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+  p
+  dev.off()
   
-  #df to store results
-  corr_df<-data.frame(matrix(NA,nrow = 0,ncol = 7))
-  names(corr_df)<-c('spp','scn','approach','sim','sur','pvalue','rho')
+  #label scn
+  cv5$scn_label<-paste0(cv5$region,'\n',cv5$strat_var)
   
-  for (iscn in unique(all_df$scn)[1:4]) {
-    for (apr in unique(all_df$approach)) {
-      for (si in unique(all_df$sim)) {
-        for (su in unique(all_df$sur)) {
-          
-          #sp<-unique(all_df$spp)[1];iscn<-unique(all_df$scn)[4];apr<-unique(all_df$approach)[1];si<-unique(all_df$sim)[1];su<-unique(all_df$sur)[1]
-          
-          cat(paste(sp,' - ',iscn,' - ',apr,' - ',si,' - ',su,'\n'))
-          #View(all_df[spp==sp & scn==iscn & approach==apr & sim==si & sur==su])
-          
-          #subset
-          iall_df<-all_df1[spp==sp & scn==iscn & approach==apr & sim==si]
-          
-          # Spearman's rank correlation analysis
-          correlation_result <- cor.test(iall_df$mean_cvsim,iall_df$mean_cvtrue, method = "spearman")
-          
-          # Print the correlation coefficient
-          #cat("Spearman's rank correlation coefficient:", correlation_result$estimate, "\n")
-          
-          # Print the p-value
-          #cat("p-value:", correlation_result$p.value, "\n")
-          
-          #idf
-          idf<-data.frame('spp'=paste0(sp),
-                          'scn'=paste0(iscn),
-                          'approach'=paste0(apr),
-                          'sim'=si,
-                          'sur'=su,
-                          'pvalue'=round(correlation_result$p.value,digits = 3),
-                          'rho'=round(correlation_result$estimate[1],digits = 3))
-          
-          
-          #append results
-          corr_df<-rbind(corr_df,idf)
-          
-          
-          # Print a summary of the test
-          # cat("\nTest summary:\n")
-          # print(correlation_result)        
-          
-          # A value close to 1 indicates a strong positive correlation, suggesting high consistency in the ranking of estimated CVs relative to true CVs across the years.
-          # A value close to -1 indicates a strong negative correlation, suggesting an inverse relationship between the ranking of estimated CVs and true CVs across the years.
-          # A value close to 0 suggests no significant correlation, indicating inconsistency in the ranking of estimated CVs relative to true CVs across the years.
-          
-        }
-      }
-    }
-  }
+  # Add 'common' column to df based on matching 'spp' with df_spp
+  cv5$common <- df_spp$common[match(cv5$spp, df_spp$spp)]
   
-  save(corr_df,file = paste0('./output/full_spearman_',sp,'.RData'))
+  # #sort factors just in case
+  cv5$scn_label<-factor(cv5$scn_label,levels=c("EBS+NBS\nDepth","EBS+SBS\nDepth","EBS+NBS+SBS\nDepth",
+                                               "EBS+NBS\nvarTemp","EBS+SBS\nvarTemp","EBS+NBS+SBS\nvarTemp",
+                                               "EBS+SBS\nDepth_dummy","EBS+NBS+SBS\nDepth_dummy",
+                                               "EBS+SBS\nvarTemp_dummy","EBS+NBS+SBS\nvarTemp_dummy"))
   
-}
+  #inverse
+  cv5$ratio<-1/cv5$ratio
+  
+  #for geom_blank(0 and adjust scale)
+  y_scale<-aggregate(ratio ~ common, subset(cv5, spp %in% sel_spp),max)
+  y_scale$scale<-1.9
+  y_scale$text<-1.9
+  y_scale$apr<-'sb'
+  y_scale$scn<-'scn1'
+  y_scale$year<-2022
+  y_scale$scn_label<-'EBS+NBS\nvarTemp'
+  
+  # Create a new combined variable in your data
+  cv5$combined_label <- paste(cv5$approach, cv5$regime, sep = " - ")
+  # #sort factors just in case
+  cv5$combined_label<-factor(cv5$combined_label,levels=c('rand - all' ,
+                                                         'sb - all' ,
+                                                         'rand - cold' ,
+                                                         'sb - cold' ,
+                                                         'rand - warm' ,
+                                                         'sb - warm' ) )
+  p<-
+  ggplot() +
+    geom_hline(yintercept = 1) +
+    geom_boxplot(data = subset(cv5, spp %in% sel_spp & scn_label %in% unique(cv5$scn_label)[grep('dummy', unique(cv5$scn_label), invert = TRUE)]),
+                 aes(x = scn_label, y = ratio, color = combined_label, 
+                     group = interaction(scn_label, approach, spp, regime), 
+                     linetype = combined_label),fill='grey90', 
+                 lwd = 0.6, alpha = 0.8, outlier.alpha = 0.3, outlier.size = 1.2, outlier.shape = NA) +
+    geom_vline(xintercept = 3.5, color = 'grey70', linetype = 'dashed') +
+    labs(y = expression(widehat(CV)/widehat(CV)[EBS]), x = '') +   
+    theme_bw() +  
+    facet_wrap(~common, scales = 'free_y') +
+    scale_color_manual(values = c(
+      'rand - all' = 'black',
+      'sb - all' = 'black',
+      'rand - cold' = 'darkblue',
+      'sb - cold' = 'darkblue',
+      'rand - warm' = 'darkred',
+      'sb - warm' = 'darkred'), label=c('random\nstatic',
+                                        'balanced random\nstatic',
+                                        'random\ndynamic normal-cold',
+                                        'balanced random\ndynamic normal-cold',
+                                        'random\ndynamic warm',
+                                        'balanced random\ndynamic warm'),
+      name = "sampling allocations\nregime approach"
+      ) +
+    scale_linetype_manual(values = c('rand - all' = 'solid',
+                                      'sb - all' = 'dashed',
+                                     'rand - cold' = 'solid',
+                                       'sb - cold' = 'dashed',
+                                       'rand - warm' = 'solid',
+                                       'sb - warm' = 'dashed'), label=c('random\nstatic',
+                                                                        'balanced random\nstatic',
+                                                                        'random\ndynamic normal-cold',
+                                                                        'balanced random\ndynamic normal-cold',
+                                                                        'random\ndynamic warm',
+                                                                        'balanced random\ndynamic warm'),
+                          name = "sampling allocations\nregime approach")+
+    scale_y_continuous(expand = c(0, 0), limits = c(0.25, 1.9)) +
+    theme(
+      panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+      legend.key.width = unit(1, "lines"),
+      legend.key.size = unit(30, 'points'),
+      legend.text = element_text(size = 11),
+      legend.title = element_text(size = 12),
+      legend.spacing.y = unit(10, "cm"),       # Vertical spacing between legend items
+      legend.spacing = unit(10, "cm"),         # Spacing between legend sections
+      legend.box.spacing = unit(0.5, "cm"),
+      strip.background = element_blank(),
+      legend.background = element_blank(),
+      panel.spacing.x = unit(0.5, "lines"), 
+      panel.spacing.y = unit(1, "lines"),
+      strip.text = element_blank(),
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+      axis.text = element_text(size = 10)) +
+    geom_text(data = subset(y_scale, common %in% sel_spp_com), 
+              aes(label = common, y = text), x = Inf, vjust = 1.7, hjust = 1.1, size = 4, lineheight = 0.8) +
+    geom_blank(data = subset(y_scale, spp %in% sel_spp_com), 
+               aes(x = scn_label, y = scale, fill = scn_label, group = interaction(scn_label, apr)))
+  
+  #save plot
+  ragg::agg_png(paste0('./figures slope/ratio_cv.png'), width = 10, height = 7, units = "in", res = 300)
+  #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+  p
+  dev.off()
+  
+#cv5$rel_diff<-(cv5$cv_ebs-cv5$cv)/cv5$cv_ebs
+#the further from 0 the more difference between ebs and expansion
+#the negative is that the expansion provided a less accurate estimate
+#the positive is that the ebs provided a less accurate estimate
 
-#corr_df<-corr_df[which(corr_df$spp!='Boreogadus saida'),]
-#save(corr_df,file = './output/full_spearman_1-8.RData')
-
-files_list<-list.files('./output/',pattern = 'full_spearman',full.names = TRUE)
-
-data_list <- lapply(files_list, function(file) {
-  load(file)
-  return(get("corr_df")) # Change "your_data_object_name" to the actual name of your data object in each .RData file
-})
-
-combined_data <- do.call(rbind, data_list)
-
-#combined_data[which(combined_data$scn=='scnbase' & combined_data$approach=='sys'),]
-
-
-library(dplyr)
-
-# Calculate mean for groups on multiple categories
-means <- combined_data %>%
-  group_by(spp, scn, approach) %>%
-  summarise(mean_value = mean(rho))
-
-# Calculate percentage of values above a threshold
-#threshold <- 0  # set your threshold here
-percent_above_threshold <- combined_data %>%
-  group_by(spp, scn, approach) %>%
-  summarise(count_above_threshold = sum(pvalue > 0.05),
-            count = n(),
-            above_threshold = mean(pvalue > 0.05) * 100)
-percent_above_threshold$percent<-percent_above_threshold$count_above_threshold/percent_above_threshold$count*100
-corr_df[which(corr_df$spp=='Hippoglossoides robustus' & corr_df$approach=='rand'),]
-
-
-percent_above_threshold0 <- combined_data %>%
-  group_by(approach, scn, spp) %>%
-  summarise(#count_above_threshold = sum(pvalue > 0.05,na.rm = TRUE),
-    #count = n(),
-    mean_rho = mean(rho,na.rm = TRUE),
-    percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
-
-write.csv(percent_above_threshold0, file = "./tables/spearman_all.csv", row.names = FALSE)
-
-spp_cr<-c(
-  'Chionoecetes opilio',
-  'Paralithodes platypus',
-  'Paralithodes camtschaticus',
-  'Chionoecetes bairdi')
-
-spp2<-setdiff(df_spp1$spp,spp_cr)
-
-percent_above_threshold00<-percent_above_threshold0[which(percent_above_threshold0$spp %in% spp2),]
-percent_above_threshold000<-merge(percent_above_threshold00,df_spp1,by='spp')
-percent_above_threshold000$scn<-factor(percent_above_threshold000$scn)
-levels(percent_above_threshold000$scn)<-rev(c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'))
-percent_above_threshold000$approach<-factor(percent_above_threshold000$approach)
-levels(percent_above_threshold000$approach)<-rev(c('systematic','balanced random','random'))
-percent_above_threshold000$common<-gsub('\n',' ',percent_above_threshold000$common)
-
-write.csv(percent_above_threshold000, file = "./tables/spearman_all1.csv", row.names = FALSE)
-
-df$scn<-factor(df$scn,
-               levels = c('scnbase','scnbase_bis','scn3','scn2','scn1'))
-
-percent_above_threshold1 <- combined_data %>%
-  group_by(approach) %>%
-  summarise(#count_above_threshold = sum(pvalue > 0.05,na.rm = TRUE),
-    #count = n(),
-    mean_rho = mean(rho,na.rm = TRUE),
-    percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
-
-write.csv(percent_above_threshold1, file = "./tables/spearman_approach.csv", row.names = FALSE)
-
-
-percent_above_threshold2 <- combined_data %>%
-  group_by(scn) %>%
-  summarise(#count_above_threshold = sum(pvalue > 0.05,na.rm = TRUE),
-    #count = n(),
-    mean_rho = mean(rho,na.rm = TRUE),
-    percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
-
-write.csv(percent_above_threshold2, file = "./tables/spearman_scn.csv", row.names = FALSE)
-
-
-percent_above_threshold3 <- combined_data %>%
-  group_by(spp) %>%
-  summarise(#count_above_threshold = sum(pvalue > 0.05,na.rm = TRUE),
-    #count = n(),
-    mean_rho = mean(rho,na.rm = TRUE),
-    percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
-
-write.csv(percent_above_threshold3, file = "./tables/spearman_spp.csv", row.names = FALSE)
-
-percent_above_threshold4 <- combined_data %>%
-  group_by(scn,approach) %>%
-  summarise(#count_above_threshold = sum(pvalue > 0.05,na.rm = TRUE),
-    #count = n(),
-    mean_rho = mean(rho,na.rm = TRUE),
-    percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
-
-write.csv(percent_above_threshold4, file = "./tables/spearman_design.csv", row.names = FALSE)
-
-###################
-# contiunuation RRMSE
-###################
-
-all_df1$sqrtmean_sqdiffcv<-sqrt(all_df1$mean_sqdiffcv)
-all_df1$rrmse<-all_df1$sqrtmean_sqdiffcv/all_df1$mean_cvsim
-
-#remove 3sd of rrmse
-all_df1<-all_df1[which(all_df1$rrmse <= mean(all_df1$rrmse)+3*sd(all_df1$rrmse)),]
-all_df2<-all_df1[which(all_df1$spp %in% df_spp1$spp),]
-all_df2[which(all_df2$approach=='sys' & all_df2$scn=='scnbase'),]
-
-#select species and sort 
-all_df2<-merge(all_df2,df_spp1,by='spp')
-all_df2$scn<-factor(all_df2$scn,levels=c('scnbase','scnbase_bis',paste0('scn',3:1)))
-all_df2$approach<-factor(all_df2$approach,levels=c('sys','sb','rand'))
-
-#save rrmse
-df3<-all_df2
-save(df3,file = './output/rrmse_cv_hist.RData')
-load('./output/rrmse_cv_hist.RData')
-#remove existing bis design and EBSNBS spp
-df3<-subset(df3,scn!='scnbase_bis')
-df3<-subset(df3,common %in% unique(df3$common)[!grepl("_EBSNBS", as.character(unique(df3$common)))])
-
-#for label purposes
-y_scale<-aggregate(rrmse ~ spp+common+label, df3,max)
-y_scale$scale<-y_scale$rrmse+y_scale$rrmse*0.25
-y_scale$text<-y_scale$rrmse+y_scale$rrmse*0.20
-y_scale$apr<-'sys'
-y_scale$scn<-'scn1'
-y_scale$year<-2022
-
-#sort by common name
-df3$common<-factor(df3$common,levels=c(df_spp1$common))
-y_scale$common<-factor(y_scale$common,levels=c(df_spp1$common))
-
-#plot
-p<-
-  ggplot()+
-  geom_boxplot(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach,spp),linetype=approach),lwd=0.6,alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+
-  #stat_summary(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach,spp),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.3)+
-  scale_fill_manual(values=c('scn1'='#9B59B6','scn2'='#3498DB','scn3'='#1ABC9C','scnbase'='#696778'),
-                    labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-  #scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-  #                   labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-  # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-  #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-  theme_bw()+ 
-  scale_linetype_manual(values = c('sys'='solid',
-                                   'sb'='dashed',
-                                   'rand'='dotted'),
-                        label=c('systematic','balanced random','random'),
-                        name='station allocation')+
-  scale_shape_manual(values=c('true index'=21),name='')+
-  scale_y_continuous(expand = c(NA,0.1),limits = c(0,NA),breaks = c(0,0.5,1,1.5))+ #expand = c(NA,0.1),limits = c(0,NA)
-  #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-  theme(panel.grid.minor = element_line(linetype=2, color='grey90'),
-        legend.key.width = unit(2.5, "lines"),
-        legend.key.size = unit(20, 'points'),
-        legend.direction = 'vertical',
-        legend.text = element_text(size=12),
-        legend.title = element_text(size=12),
-        legend.spacing = unit(1, "cm"),
-        legend.box.spacing = unit(0.01, "cm"),
-        strip.background = element_blank(),
-        legend.background = element_blank(),
-        legend.box = 'horizontal',
-        legend.position = 'bottom',
-        strip.text = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.text = element_text(size = 10)) +
-  guides(
-    fill = guide_legend(nrow=1, order = 1, override.aes = list(size=4)),
-    color = guide_legend(nrow=1, order = 1, override.aes = list(size=4)), # Adjust linewidth here
-    linetype = guide_legend(nrow=1, order = 2, override.aes = list()), # Adjust linewidth here
-    shape = 'none') +  #facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)  geom_blank(data=y_scale,aes(x=year,y=scale,fill=scn,group =interaction(scn,apr)))
-  expand_limits(y = 0)+
-  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 'inward', hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_text(data=df3,aes(label = paste0(label,'        ')),x = 'scnbase', y = Inf, vjust = 1.5,size=5) + #,fontface='italic'
-  geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))+
-  facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-  expand_limits(y = 0)+
-  labs(y=expression('RRMSE of '*widehat(CV)),x='')#+
-#guides(fill=guide_legend(nrow=1,order=1),color=guide_legend(nrow=1,order=1),linetype=guide_legend(nrow=1,order = 2))#+
-
-#geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
-
-#save plot
-ragg::agg_png(paste0('./figures/ms_hist_rrmse_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
-p
-dev.off()
-
-#plot all spp together
-p<-
-  ggplot()+
-  geom_boxplot(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach),linetype=approach),lwd=0.8,alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+ #x=reorder(scn,value)
-  #stat_summary(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.3)+
-  labs(y='RRMSE of CV',x='')+
-  scale_fill_manual(values=c('scn1'='#9B59B6','scn2'='#3498DB','scn3'='#1ABC9C','scnbase'='#696778'),
-                    labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-  # scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-  #                    labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-  # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-  #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-  theme_bw()+ 
-  #facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-  scale_linetype_manual(values = c('sys'='solid',
-                                   'sb'='dashed',
-                                   'rand'='dotted'),
-                        label=c('systematic','balanced random','random'),
-                        name='station allocation')+
-  scale_shape_manual(values=c('true index'=21),name='')+
-  scale_y_continuous(labels=function(x) sprintf('%.2f',x),expand = c(NA,0.1),limits = c(0,1.7))+ #expand = c(NA,0.1),limits = c(0,NA)
-  #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-  theme(panel.grid.minor = element_line(linetype=2,color='grey90'),#strip.background = element_rect(fill='white'),
-        legend.position=c(0.722,0.898),legend.key.size = unit(12, 'points'),legend.text = element_text(size=9), #legend.position=c(.85,.19)
-        legend.title = element_text(size=10),legend.spacing.y = unit(0.05, "cm"),legend.box.spacing =  unit(0.01, "cm"), #,strip.text = element_text(size=12)
-        strip.background = element_blank(),legend.box.background = element_rect(color='black'),legend.direction = 'vertical',legend.box = 'horizontal',legend.background = element_blank(),
-        strip.text = element_blank(),axis.text.x = element_blank(),axis.title.x = element_blank())+ #axis.text.x = element_text(angle=90,vjust=0.5),
-  expand_limits(y = 0)+
-  #geom_text(data=df1,aes(label = common),x = Inf, y = Inf, hjust = 1.1, vjust = 1.5,size=4) + #,fontface='italic'
-  #  geom_text(data=df1,aes(label = common),x = Inf, y = -Inf, hjust = 1.1, vjust = -0.8,size=4) + #,fontface='italic'
-  guides(fill=guide_legend(ncol=1,order=1,override.aes = list(lwd=0.5)),linetype=guide_legend(ncol=1,order = 2,override.aes = list(lwd=0.5)))#+
-#facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)
-#geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
-
-#save plot210notio
-ragg::agg_png(paste0('./figures/ms_hist_indices_rrmse_box_allsp_v5.png'), width = 6, height = 5, units = "in", res = 300)
-p
-dev.off()
-
-# ######################
-# # BIAS of CV
-# ######################
-# 
-# 
-# df1$bias<-(df1$cvsim-df1$cvtrue)/df1$cvtrue
-# 
-# #get the estimated CV time series for each replicate, sampling scenario and approach
-# load(file = './output/estimated_cvsim_hist.RData') #cv2
-# #cv2[approach=='sb' & scn=='scnbase' & spp=='Limanda aspera' & year=='2019' & sim=='1']
-# 
-# #year to character
-# cv2$year<-as.character(cv2$year)
-# summary(cv2)
-# 
-# #rename
-# names(cv2)[6]<-'cvsim'
-# 
-# #get estimated index SD for each survey across years, sampling scenario and approach
-# load('./output/estimated_index_hist.RData') #ind2
-# summary(ind2)
-# index_sd<-aggregate(index ~ spp + year + scn + approach + sim,ind2,FUN = function(x) c(sd = sd(x)))
-# summary(index_sd)
-# summary(index_sd[which(index_sd$approach=='sys' & index_sd$scn=='scnbase_bis'),])
-# 
-# #get true ind
-# load('./output/true_ind_hist.RData') #ind2
-# 
-# #true index reshape
-# true_ind2<-reshape2::melt(true_ind,id.vars='year')
-# names(true_ind2)[2]<-'spp'
-# 
-# #merge sd and true index
-# df<-merge(index_sd,true_ind2,by=c('year','spp'))
-# df$cvtrue<-df$index/df$value
-# names(df)[6:7]<-c('indsim','indtrue')
-# df[which(df$approach=='sys' & df$scn=='scnbase'),]
-# 
-# #year to character
-# df$year<-as.character(df$year)
-# 
-# #use datatable to fasten the process
-# data.table::setDT(df)
-# data.table::setDT(cv2)
-# #cv2<-data.table(cv2)
-# 
-# dim(cv2)
-# df1<-merge(cv2,df,by=c('spp','scn','approach','sim','year'),all.x=TRUE,allow.cartesian=TRUE)
-# #dim(df)
-# dim(df1)
-# 
-# df1$sqdiffcv<-(df1$cvsim-df1$cvtrue)^2
-# df1$diffcv<-(df1$cvsim-df1$cvtrue)
-# df1[which(df1$approach=='sys' & df1$scn=='scnbase'),]
-# 
-# df2<-df1[, .(mean_sqdiffcv = mean(sqdiffcv,na.rm=FALSE),cvtrue = cvtrue,mean_diffcv = mean(diffcv,na.rm=FALSE),mean_cvsim=mean(cvsim,na.rm=FALSE),mean_cvtrue=mean(cvtrue,na.rm=FALSE)), by = .(spp,scn,approach,sim,year)]
-# df2$sqrtmean_sqdiffcv<-sqrt(df2$mean_sqdiffcv)
-# df2$rrmse<-df2$sqrtmean_sqdiffcv/df2$mean_cvsim
-# df2$df2$mean_diffcv/df2$cvtrue
-# 
-# 
-# #remove 3sd of rrmse
-# df2<-df2[which(df2$rrmse <= mean(df2$rrmse)+3*sd(df2$rrmse)),]
-# df3<-df2[which(df2$spp %in% df_spp1$spp),]
-# 
-# #select species and sort 
-# df3<-merge(df3,df_spp1,by='spp')
-# df3$scn<-factor(df3$scn,levels=c('scnbase','scnbase_bis',paste0('scn',3:1)))
-# df3$approach<-factor(df3$approach,levels=c('sys','sb','rand'))
-# 
-# save(df3,file = './output/rrmse_cv_hist.RData')
-# 
-# y_scale<-aggregate(rrmse ~ spp+common+label, df3,max)
-# y_scale$scale<-y_scale$rrmse+y_scale$rrmse*0.2
-# y_scale$text<-y_scale$rrmse+y_scale$rrmse*0.15
-# y_scale$apr<-'sys'
-# y_scale$scn<-'scn1'
-# y_scale$year<-2022
-# 
-# 
-# 
-# 
-# 
-# #get the estimated CV time series for each replicate, sampling scenario and approach
-# #load(file = './output/estimated_cvsim_hist.RData') #cv2
-# #true cv
-# 
-# 
-# 
-# #load(file = './output/rrmse_cv_hist.RData') #df3
-# 
-# df3$cvbias<-df3$mean_cvsim-df3$mean_cvtrue
-#   df3$rbias<-100*(df3$cvbias/df3$mean_cvtrue)
-# 
-# y_scale<-aggregate(rbias ~ spp+common+label, df3,max)
-# y_scale$scale<-y_scale$rbias+y_scale$rbias*0.2
-# y_scale$text<-y_scale$rbias+y_scale$rbias*0.15
-# y_scale$apr<-'sys'
-# y_scale$scn<-'scn1'
-# y_scale$year<-2022
-# y_scale$common<-factor(y_scale$common,levels=c(df_spp1$common))
-# 
-# #plot
-# # #p<-
-# #   ggplot()+
-# #   geom_boxplot(data=df3,aes(x=scn,y=rbias,fill=scn,group =interaction(scn,approach,spp),linetype=approach),alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+ #x=reorder(scn,value)
-# #   stat_summary(data=df3,aes(x=scn,y=rbias,fill=scn,group =interaction(scn,approach,spp),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.3)+
-# #   scale_fill_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-# #                     labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-# #   scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-# #                      labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-# #   # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-# #   #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-# #   theme_bw()+ 
-# #   scale_linetype_manual(values = c('sys'='solid',
-# #                                    'sb'='dashed',
-# #                                    'rand'='dotted'),
-# #                         label=c('systematic','balanced random','random'),
-# #                         name='station allocation')+
-# #   scale_shape_manual(values=c('true index'=21),name='')+
-# #   scale_y_continuous(labels=function(x) sprintf('%.2f',x),expand = c(NA,0.1),limits = c(0,NA))+ #expand = c(NA,0.1),limits = c(0,NA)
-# #   #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-# #   theme(panel.grid.minor = element_line(linetype=2,color='grey90',),#strip.background = element_rect(fill='white'),
-# #         legend.key.size = unit(12, 'points'),legend.direction = 'vertical',legend.text = element_text(size=9),axis.text.x = element_blank(), #legend.position=c(.85,.19)
-# #         legend.title = element_text(size=10),legend.spacing.x = unit(0.05, "cm"),legend.box.spacing =  unit(0.01, "cm"), #,strip.text = element_text(size=12)
-# #         strip.background = element_blank(),legend.background = element_blank(),legend.box = 'vertical',legend.position = 'right',#legend.justification = 'right',legend.position='bottom',#legend.position=c(.84,.05),
-# #         strip.text = element_blank(),axis.title.x = element_blank())+ #axis.text.x = element_text(angle=90,vjust=0.5),
-# #   expand_limits(y = 0)+
-# #   geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 'inward', hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-# #   geom_text(data=df3,aes(label = paste0(label,'      ')),x = 'scnbase', y = Inf, vjust = 1.5,size=5) + #,fontface='italic'
-# #   geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))+
-# #   facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-# #   expand_limits(y = 0)+
-# #   labs(y='% rbias of CV',x='')+
-# #   guides(fill=guide_legend(ncol=1,order=1),color=guide_legend(ncol=1,order=1),linetype=guide_legend(ncol=1,order = 2))#+
-# 
-# 
-#   #plot
-#   p<-
-#     ggplot()+
-#     geom_boxplot(data=df3,aes(x=scn,y=rbias,fill=scn,group =interaction(scn,approach,spp),linetype=approach),lwd=0.6,alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+
-#     #stat_summary(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach,spp),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.3)+
-#     scale_fill_manual(values=c('scn1'='#3498DB','scn2'='#1ABC9C','scn3'='#9B59B6','scnbase'='#474554'),
-#                       labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#     #scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-#     #                   labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#     # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-#     #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-#     theme_bw()+ 
-#     scale_linetype_manual(values = c('sys'='solid',
-#                                      'sb'='dashed',
-#                                      'rand'='dotted'),
-#                           label=c('systematic','balanced random','random'),
-#                           name='station allocation')+
-#     scale_shape_manual(values=c('true index'=21),name='')+
-#     scale_y_continuous(labels=function(x) sprintf('%.2f',x))+ #expand = c(NA,0.1),limits = c(0,NA)
-#     #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-#     theme(panel.grid.minor = element_line(linetype=2,color='grey90',),#strip.background = element_rect(fill='white'),
-#           legend.key.size = unit(12, 'points'),legend.direction = 'vertical',legend.text = element_text(size=9),axis.text.x = element_blank(), #legend.position=c(.85,.19)
-#           legend.title = element_text(size=10),legend.spacing.x = unit(0.05, "cm"),legend.box.spacing =  unit(0.01, "cm"), #,strip.text = element_text(size=12)
-#           strip.background = element_blank(),legend.background = element_blank(),legend.box = 'vertical',legend.position = 'right',#legend.justification = 'right',legend.position='bottom',#legend.position=c(.84,.05),
-#           strip.text = element_blank(),axis.title.x = element_blank())+ #axis.text.x = element_text(angle=90,vjust=0.5),
-#     expand_limits(y = 0)+
-#     geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 'inward', hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-#     geom_text(data=df3,aes(label = paste0(label,'      ')),x = 'scnbase', y = Inf, vjust = 1.5,size=5) + #,fontface='italic'
-#     geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))+
-#     facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-#     expand_limits(y = 0)+
-#     labs(y='% rbias of CV',x='')+
-#     guides(fill=guide_legend(ncol=1,order=1),color=guide_legend(ncol=1,order=1),linetype=guide_legend(ncol=1,order = 2))#+
-#   
-#   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
-#   
-#   
-#   ragg::agg_png(paste0('./figures/ms_hist_bias_cv_box_v3.png'), width = 13, height = 8, units = "in", res = 300)
-#   p
-#   dev.off()
-#   
-#   
-#   #p<-
-#     ggplot()+
-#     geom_boxplot(data=df3,aes(x=scn,y=rbias,fill=scn,group =interaction(scn,approach),linetype=approach),lwd=0.8,alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+ #x=reorder(scn,value)
-#     #stat_summary(data=df3,aes(x=scn,y=rrmse,fill=scn,group =interaction(scn,approach),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.3)+
-#     labs(y='% rbias of CV',x='')+
-#     scale_fill_manual(values=c('scn1'='#3498DB','scn2'='#1ABC9C','scn3'='#9B59B6','scnbase'='#474554'),
-#                       labels = c('existing' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#     # scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-#     #                    labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#     # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-#     #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-#     theme_bw()+ 
-#     #facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-#     scale_linetype_manual(values = c('sys'='solid',
-#                                      'sb'='dashed',
-#                                      'rand'='dotted'),
-#                           label=c('systematic','balanced random','random'),
-#                           name='station allocation')+
-#     scale_shape_manual(values=c('true index'=21),name='')+
-#     scale_y_continuous(labels=function(x) sprintf('%.2f',x))+ #expand = c(NA,0.1),limits = c(0,NA)
-#     #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-#     theme(panel.grid.minor = element_line(linetype=2,color='grey90'),#strip.background = element_rect(fill='white'),
-#           legend.position=c(0.722,0.898),legend.key.size = unit(12, 'points'),legend.text = element_text(size=9), #legend.position=c(.85,.19)
-#           legend.title = element_text(size=10),legend.spacing.y = unit(0.05, "cm"),legend.box.spacing =  unit(0.01, "cm"), #,strip.text = element_text(size=12)
-#           strip.background = element_blank(),legend.box.background = element_rect(color='black'),legend.direction = 'vertical',legend.box = 'horizontal',legend.background = element_blank(),
-#           strip.text = element_blank(),axis.text.x = element_blank(),axis.title.x = element_blank())+ #axis.text.x = element_text(angle=90,vjust=0.5),
-#     expand_limits(y = 0)+
-#     #geom_text(data=df1,aes(label = common),x = Inf, y = Inf, hjust = 1.1, vjust = 1.5,size=4) + #,fontface='italic'
-#     #  geom_text(data=df1,aes(label = common),x = Inf, y = -Inf, hjust = 1.1, vjust = -0.8,size=4) + #,fontface='italic'
-#     guides(fill=guide_legend(ncol=1,order=1,override.aes = list(lwd=0.5)),linetype=guide_legend(ncol=1,order = 2,override.aes = list(lwd=0.5)))#+
-#   #facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)
-#   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
-#   
-#   # geom_boxplot(data=df1,aes(x=scn,y=value,fill=scn,group =interaction(scn,approach),linetype=approach),lwd=0.8,alpha=1,outlier.alpha = 0.3,outlier.size = 1.2,outlier.stroke = 0)+ #x=reorder(scn,value)
-#   #   #stat_summary(data=df1,aes(x=scn,y=value,fill=scn,group =interaction(scn,approach),linetype=approach),alpha=1,position = position_dodge(),geom = "crossbar", fun = "median", linetype = "solid", width = .7,linewidth=0.4)+
-#   #   labs(y='CV',x='')+
-#   #   scale_fill_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-#   #                     labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#   #   # scale_color_manual(values=c('scnbase'='#474554','scnbase_bis'='#878787','scn3'='#8db6c3','scn2'='#679bc3','scn1'='#4b7a99'),
-#   #   #                    labels = c('existing','existing w/o corner' ,'opt depth','opt varSBT','opt depth + varSBT'),name='stratification')+
-#   #   # scale_alpha_manual(values = c('scn1'=1,'scn2'=1,'scn3'=1,'scnbase'=0.8,'scnbase_bis'=1),
-#   #   #                    labels = c('existing','existing w/o corner' ,'depth','var temp','depth + var temp'),name='stratification')+
-#   #   theme_bw()+ 
-#   #   #facet_wrap(~common,scales='free_y',dir='h',nrow = 5)+
-#   #   scale_linetype_manual(values = c('sys'='solid',
-#   #                                    'sb'='dashed',
-#   #                                    'rand'='dotted'),
-#   #                         label=c('systematic','balanced random','random'),
-#   #                         name='station allocation')+
-#   #   scale_shape_manual(values=c('true index'=21),name='')+
-#   #   scale_y_continuous(labels=function(x) sprintf('%.2f',x),expand = c(NA,0.1),limits = c(0,0.9))+ #expand = c(NA,0.1),limits = c(0,NA)
-#   #   #                    limits =  c(0, max(df$index[,'mean']/1000) + mean(df$index[,'mean'])/10000))+
-#   #   theme(panel.grid.minor = element_line(linetype=2,color='grey90'),#strip.background = element_rect(fill='white'),
-#   #         legend.position=c(0.721,0.881),legend.key.size = unit(12, 'points'),legend.text = element_text(size=9), #legend.position=c(.85,.19)
-#   #         legend.title = element_text(size=10),legend.spacing.y = unit(0.05, "cm"),legend.box.spacing =  unit(0.01, "cm"), #,strip.text = element_text(size=12)
-#   #         strip.background = element_blank(),legend.box.background = element_rect(color='black'),legend.direction = 'vertical',legend.box = 'horizontal',legend.background = element_blank(),
-#   #         strip.text = element_blank(),axis.text.x = element_blank(),axis.title.x = element_blank())+ #axis.text.x = element_text(angle=90,vjust=0.5),
-#   #   expand_limits(y = 0)+
-#   #   #geom_text(data=df1,aes(label = common),x = Inf, y = Inf, hjust = 1.1, vjust = 1.5,size=4) + #,fontface='italic'
-#   #   #  geom_text(data=df1,aes(label = common),x = Inf, y = -Inf, hjust = 1.1, vjust = -0.8,size=4) + #,fontface='italic'
-#   #   guides(fill=guide_legend(ncol=1,order=1,override.aes = list(lwd=0.5)),linetype=guide_legend(ncol=1,order = 2,override.aes = list(lwd=0.5)))#+
-#   # #facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)
-#   # #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
-#   
-#   #save plot210notio
-#   ragg::agg_png(paste0('./figures/ms_hist_indices_bias_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
-#   p
-#   dev.off()
+#there are more room to provided less accurate estimates when expanding the survey
+#mean relative difference showed not too much difference on the accuracy of abundance index when including expanded areas
+#each species represents a particular case. The case of the greenland turbot where expanding to the north is less accurate but not for the slope
+      
+  
