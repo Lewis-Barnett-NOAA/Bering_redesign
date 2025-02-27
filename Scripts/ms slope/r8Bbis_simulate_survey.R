@@ -113,7 +113,7 @@ dim(grid_ebs)
 load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_slp<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982')
 dim(grid_slp)
-dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
+dim(grid_slp[which(grid_slp$depthGEBCO<=400),])
 ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
@@ -125,13 +125,13 @@ colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
-                          data.frame(bering_sea_slope_grid,region='SBS')))
+                          data.frame(bering_sea_slope_grid,region='BSS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
 
 nbs_km2<-sum(as.data.frame(northern_bering_sea_grid)$Area_in_survey_km2)
 ebs_km2<-sum(as.data.frame(eastern_bering_sea_grid)$Area_in_survey_km2)
-sbs_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'SBS'),'Area_in_survey_km2']) #adjust area sbs to represent <400km
+BSS_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'BSS'),'Area_in_survey_km2']) #adjust area BSS to represent <400km
 
 ###################################
 # Sampling designs (from script #11) 
@@ -139,15 +139,15 @@ sbs_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'SBS'),'Are
 
 #sampling scenarios
 samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
-                     strat_var=c('varTemp','Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
+                     region=c('EBS','EBS+NBS','EBS+BSS','EBS+NBS+BSS'),
+                     strat_var=c('varSBT','depth'), #,'varSBT_forced','depth_forced' #LonE and combinations
                      target_var=c('sumDensity'), #,'sqsumDensity'
                      n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
                      n_strata=c(10),
                      domain=1) #c(5,10,15)
 
 #samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("SBS", region))
+samp_slope <- subset(samp_df, grepl("BSS", region))
 samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
 
 #add with dummy approach
@@ -162,8 +162,8 @@ samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
 n_sur<-100
 
-region_cells<-data.frame(matrix(NA,nrow = 0,ncol = length(c('NBS_sb','EBS_sb','SBS_sb','NBS_rand','EBS_rand','SBS_rand','samp','strat_var','type','region','regime','sur'))))
-colnames(region_cells)<-c('NBS_sb','EBS_sb','SBS_sb','NBS_rand','EBS_rand','SBS_rand','samp','strat_var','type','region','regime','sur')
+region_cells<-data.frame(matrix(NA,nrow = 0,ncol = length(c('NBS_sb','EBS_sb','BSS_sb','NBS_rand','EBS_rand','BSS_rand','samp','strat_var','type','region','regime','sur'))))
+colnames(region_cells)<-c('NBS_sb','EBS_sb','BSS_sb','NBS_rand','EBS_rand','BSS_rand','samp','strat_var','type','region','regime','sur')
 
 for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   
@@ -199,10 +199,10 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
     isur<-
       data.frame('NBS_sb'=nrow(sb_cell[which(sb_cell$cell<= 15180),]),
                  'EBS_sb'=nrow(sb_cell[which(sb_cell$cell<= 53464 & sb_cell$cell>= 15181),]),
-                 'SBS_sb'=nrow(sb_cell[which(sb_cell$cell>= 53465),]),
+                 'BSS_sb'=nrow(sb_cell[which(sb_cell$cell>= 53465),]),
                  'NBS_rand'=nrow(rand_cell[which(rand_cell$cell<= 15180),]),
                  'EBS_rand'=nrow(rand_cell[which(rand_cell$cell<= 53464 & rand_cell$cell>= 15181),]),
-                 'SBS_rand'=nrow(rand_cell[which(rand_cell$cell>= 53465),]),
+                 'BSS_rand'=nrow(rand_cell[which(rand_cell$cell>= 53465),]),
                  'samp'=samp_df[s,'samp_scn'],
                  'strat_var'=samp_df[s,'strat_var'],
                  'type'=samp_df[s,'type'],
@@ -223,13 +223,14 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
 #####################
 
 #for SLOPE
-samp_df2<-subset(region_cells,region %in% c("EBS+SBS",'EBS+NBS+SBS'))
+samp_df2<-subset(region_cells,region %in% c("EBS+BSS",'EBS+NBS+BSS'))
 samp_df21<-reshape2::melt(samp_df2,id.vars=c(names(samp_df2)[7:12]))
-samp_df21<-samp_df21[grepl("SBS", samp_df21$variable), ]
+samp_df21<-samp_df21[grepl("BSS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp',"Depth_dummy",'varTemp_dummy'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('depth','varSBT',"depth_dummy",'varSBT_dummy'))
+levels(samp_df21$strat_var)<-c('depth','varSBT',"depth_dummy",'varSBT_dummy')
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
@@ -240,47 +241,134 @@ samp_df21[which(is.na(samp_df21$strat_var)),]
 
 samp_df21$scn1 <- factor(samp_df21$scn1, levels = unique(samp_df21$scn1[order(samp_df21$strat_var,samp_df21$type)]))
 
-#plot 1slope
-psbs1<-
-ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn1,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('sampling effort in the SBS\n(n sampling stations)')+
-  theme_bw()+
-  theme(axis.title.x = element_blank())+
-  scale_color_manual(values = c('all'='black',
-                                'warm'='red',
-                                'cold'='blue'),
-                     labels=c('static','warm','cold'),name='regime')+
-  scale_linetype_manual(values = c('SBS_sb'='solid',
-                                   'SBS_rand'='dashed'),
-                        labels=c('spatially-balanced','random'),name='allocation')
+# Create a new combined variable in your data
+samp_df21$combined_label <- paste(sub("^[^_]*_", "", samp_df21$variable), samp_df21$regime, sep = " - ")
+# #sort factors just in case
+samp_df21$combined_label<-factor(samp_df21$combined_label,levels=c('rand - all' ,
+                                                       'sb - all' ,
+                                                       'rand - cold' ,
+                                                       'sb - cold' ,
+                                                       'rand - warm' ,
+                                                       'sb - warm' ) )
+
+
+library(ggh4x)
+
+
+# Subset the data
+df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
+
+# Compute mean and standard deviation while keeping 'common' and 'strat_var'
+df_summary <- aggregate(value ~ region + combined_label + scn1 + 
+                          regime + strat_var, 
+                        data = df_sub, 
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
+
+# Convert matrix columns to separate numeric columns
+df_summary$mean_value <- df_summary$value[, "mean"]
+df_summary$sd_value <- df_summary$value[, "sd"]
+df_summary$value <- NULL  # Remove old column
+
+df_summary$region1<-gsub('+','\n',df_summary$region)
+#levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
 #plot 2slope
-psbs2<-
-ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
+pBSS2<-
+ggplot(data=df_summary)+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn1,y=value/sbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('sampling effort per area in the SBS\n(n sampling stations / km2)')+ #limits = c(0,0.001)
+  #geom_boxplot(aes(x=scn1,y=mean_value/BSS_km2*1000,fill=combined_label,linetype=combined_label),color='black',alpha=0.7,position=position_dodge(width=0.9))+ # fill='grey90'
+  scale_y_continuous(expression(atop("sampling effort in the " * bold("BSS"), "(sampling stations/1,000 km²)")),
+                     labels = scales::label_number(accuracy = 0.1),
+                     limits = c(0, NA),
+                     expand = expansion(mult = c(0, 0.1)))+
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = (mean_value - sd_value)/BSS_km2*1000, ymax = (mean_value + sd_value)/BSS_km2*1000, 
+                    group = interaction(scn1, regime,combined_label)),
+                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_value/BSS_km2*1000, fill = combined_label, 
+                 group = interaction(scn1, regime,combined_label), 
+                 shape = combined_label), 
+             size = 3, position = position_dodge(width = 0.9), color = "black") + 
+  
+  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
+  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme_bw()+
   theme(axis.title.x = element_blank())+
-  scale_color_manual(values = c('all'='black',
-                                'warm'='red',
-                                'cold'='blue'),
-                     labels=c('static','warm','cold'),name='regime')+
-  scale_linetype_manual(values = c('SBS_sb'='solid',
-                                   'SBS_rand'='dashed'),
-                        labels=c('spatially-balanced','random'),name='allocation')
+  #geom_vline(xintercept = 2.5, color = 'grey70', linetype = 'dashed') +
+  scale_fill_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  
+  scale_linetype_manual(values = c('rand - all' = 'solid',
+                                   'sb - all' = 'dashed',
+                                   'rand - cold' = 'solid',
+                                   'sb - cold' = 'dashed',
+                                   'rand - warm' = 'solid',
+                                   'sb - warm' = 'dashed'),
+                        label = c('random\nstatic',
+                                  'balanced random\nstatic',
+                                  'random\ndynamic cold',
+                                  'balanced random\ndynamic cold',
+                                  'random\ndynamic warm',
+                                  'balanced random\ndynamic warm'),
+                        name = "sampling allocation\nregime approach") +
+  
+  scale_shape_manual(values = c('rand - all' = 21,
+                                'sb - all' = 24,
+                                'rand - cold' = 21,
+                                'sb - cold' = 24,
+                                'rand - warm' = 21,
+                                'sb - warm' = 24),
+                     label = c('random\nstatic',
+                               'balanced random\nstatic',
+                               'random\ndynamic cold',
+                               'balanced random\ndynamic cold',
+                               'random\ndynamic warm',
+                               'balanced random\ndynamic warm'),
+                     name = "sampling allocation\nregime approach") +
+  theme(
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(35, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(5, "cm"),       # Vertical spacing between legend items
+    legend.spacing = unit(5, "cm"),         # Spacing between legend sections
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.y = unit(0.7, "lines"),
+    strip.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10)) +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4)),  # Increase legend symbol size
+    fill = guide_legend(override.aes = list(size = 4))   # Ensure fill symbols are also enlarged
+  )
+
 
 
 #for NBS
-samp_df2<-subset(region_cells,region %in% c("EBS+NBS",'EBS+NBS+SBS'))
+samp_df2<-subset(region_cells,region %in% c("EBS+NBS",'EBS+NBS+BSS'))
 samp_df21<-reshape2::melt(samp_df2,id.vars=c(names(samp_df2)[7:12]))
 samp_df21<-samp_df21[grepl("NBS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth','varTemp',"Depth_dummy",'varTemp_dummy'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('depth','varSBT',"depth_dummy",'varSBT_dummy'))
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
@@ -291,94 +379,143 @@ samp_df21[which(is.na(samp_df21$strat_var)),]
 
 samp_df21$scn1 <- factor(samp_df21$scn1, levels = unique(samp_df21$scn1[order(samp_df21$strat_var,samp_df21$type)]))
 
-#plot 1nbs
-pnbs1<-
-ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn1,y=value,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('sampling effort in the NBS\n(n sampling stations)')+
-  theme_bw()+
-  #scale_y_continuous(limits = c(0,180))+
 
-  theme(axis.title.x = element_blank())+
-  scale_color_manual(values = c('all'='black',
-                                'warm'='red',
-                                'cold'='blue'),
-                     labels=c('static','warm','cold'),name='regime')+
-  scale_linetype_manual(values = c('NBS_sb'='solid',
-                                   'NBS_rand'='dashed'),
-                        labels=c('spatially-balanced','random'),name='allocation')
+# Create a new combined variable in your data
+samp_df21$combined_label <- paste(sub("^[^_]*_", "", samp_df21$variable), samp_df21$regime, sep = " - ")
+# #sort factors just in case
+samp_df21$combined_label<-factor(samp_df21$combined_label,levels=c('rand - all' ,
+                                                                   'sb - all' ,
+                                                                   'rand - cold' ,
+                                                                   'sb - cold' ,
+                                                                   'rand - warm' ,
+                                                                   'sb - warm' ) )
+
+
+# Subset the data
+df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
+
+# Compute mean and standard deviation while keeping 'common' and 'strat_var'
+df_summary <- aggregate(value ~ region + combined_label + scn1 + 
+                          regime + strat_var, 
+                        data = df_sub, 
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
+
+# Convert matrix columns to separate numeric columns
+df_summary$mean_value <- df_summary$value[, "mean"]
+df_summary$sd_value <- df_summary$value[, "sd"]
+df_summary$value <- NULL  # Remove old column
+
+df_summary$region1<-gsub('+','\n',df_summary$region)
+#levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+
 
 #plot 2nbs
 pnbs2<-
-ggplot(data=samp_df21[!grepl('dummy',samp_df21$scn1),])+
+ggplot(data=df_summary)+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  geom_boxplot(aes(x=scn1,y=value/nbs_km2,color=regime,linetype=variable),alpha=0.7,position=position_dodge(width=0.9))+
-  scale_y_continuous('sampling effort per area in the NBS\n(n sampling stations / km2)',
-                     labels = scales::label_number(accuracy = 0.0001))+ #,limits = c(0,0.001)
+  #geom_boxplot(aes(x=scn1,y=value/nbs_km2*1000,fill=combined_label,linetype=combined_label),alpha=0.7,position=position_dodge(width=0.9), color='black')+
+  scale_y_continuous(expression(atop("sampling effort in the " * bold("NBS"), "(sampling stations/1,000 km²)")),
+                     labels = scales::label_number(accuracy = 0.1),
+                     limits = c(0, NA),
+                     expand = expansion(mult = c(0, 0.1)))+
+geom_errorbar(aes(x = interaction(region,strat_var), ymin = (mean_value - sd_value)/nbs_km2*1000, ymax = (mean_value + sd_value)/nbs_km2*1000, 
+                    group = interaction(scn1, regime,combined_label)),
+                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_value/nbs_km2*1000, fill = combined_label, 
+                 group = interaction(scn1, regime,combined_label), 
+                 shape = combined_label), 
+             size = 3, position = position_dodge(width = 0.9), color = "black") + 
+  
+  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
+  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme_bw()+
   theme(axis.title.x = element_blank())+
-  scale_color_manual(values = c('all'='black',
-                                'warm'='red',
-                                'cold'='blue'),
-                     labels=c('static','warm','cold'),name='regime')+
-  scale_linetype_manual(values = c('NBS_sb'='solid',
-                                   'NBS_rand'='dashed'),
-                        labels=c('spatially-balanced','random'),name='allocation')
-
-
-cowplot::plot_grid(psbs1,pnbs1,ncol=1)
-
-# Increase legend size
-psbs1 <- psbs1 + 
+  #geom_vline(xintercept = 2.5, color = 'grey70', linetype = 'dashed') +
+  scale_fill_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  
+  scale_linetype_manual(values = c('rand - all' = 'solid',
+                                   'sb - all' = 'dashed',
+                                   'rand - cold' = 'solid',
+                                   'sb - cold' = 'dashed',
+                                   'rand - warm' = 'solid',
+                                   'sb - warm' = 'dashed'),
+                        label = c('random\nstatic',
+                                  'balanced random\nstatic',
+                                  'random\ndynamic cold',
+                                  'balanced random\ndynamic cold',
+                                  'random\ndynamic warm',
+                                  'balanced random\ndynamic warm'),
+                        name = "sampling allocation\nregime approach") +
+  
+  scale_shape_manual(values = c('rand - all' = 21,
+                                'sb - all' = 24,
+                                'rand - cold' = 21,
+                                'sb - cold' = 24,
+                                'rand - warm' = 21,
+                                'sb - warm' = 24),
+                     label = c('random\nstatic',
+                               'balanced random\nstatic',
+                               'random\ndynamic cold',
+                               'balanced random\ndynamic cold',
+                               'random\ndynamic warm',
+                               'balanced random\ndynamic warm'),
+                     name = "sampling allocation\nregime approach") +
   theme(
-    legend.title = element_text(size = 14),  # Increase legend title size
-    legend.text = element_text(size = 12),   # Increase legend text size
-    legend.key.size = unit(1.5, "lines")     # Increase legend key size (symbol size)
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    legend.key.width = unit(1, "lines"),
+    legend.key.size = unit(35, 'points'),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12),
+    legend.spacing.y = unit(5, "cm"),       # Vertical spacing between legend items
+    legend.spacing = unit(5, "cm"),         # Spacing between legend sections
+    legend.box.spacing = unit(0.5, "cm"),
+    strip.background = element_blank(),
+    legend.background = element_blank(),
+    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.y = unit(0.7, "lines"),
+    strip.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10)) +
+  guides(
+    shape = guide_legend(override.aes = list(size = 4)),  # Increase legend symbol size
+    fill = guide_legend(override.aes = list(size = 4))   # Ensure fill symbols are also enlarged
   )
 
-pnbs1 <- pnbs1 + 
-  theme(
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    legend.key.size = unit(1.5, "lines")
-  )
-
-
-library(cowplot)
 
 # Extract the legend from one of the plots
 shared_legend <- get_legend(
-  psbs1 + theme(legend.position = "right")
+  pnbs2 + theme(legend.position = "right")
 )
 
-# Combine plots and the shared legend
-final_plot <- plot_grid(
-  plot_grid(pnbs1 + theme(legend.position = "none"),
-            psbs1 + theme(legend.position = "none"),
-            ncol = 1,
-            align = 'v'),
-  shared_legend,
-  ncol = 2,
-  rel_widths = c(0.8, 0.2) # Adjust the width ratio for the plots and the legend
-)
-
-ragg::agg_png(paste0('./figures slope/sampling_effort.png'), width = 9, height = 7, units = "in", res = 300)
-final_plot
-dev.off()
 
 # Combine plots and the shared legend
-final_plot <- plot_grid(
+final_plot <- 
+plot_grid(
   plot_grid(pnbs2 + theme(legend.position = "none"),
-            psbs2 + theme(legend.position = "none"),
+            pBSS2 + theme(legend.position = "none"),
             ncol = 1,
             align = 'v'),
   shared_legend,
   ncol = 2,
-  rel_widths = c(0.8, 0.2) # Adjust the width ratio for the plots and the legend
+  rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 9, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 7, height = 6, units = "in", res = 300)
 final_plot
 dev.off()
 
@@ -458,8 +595,8 @@ for (sim in 1:n_sim_hist) {
         grid3<-subset(grid2,region %in% c('EBS'))
       } else if (samp_df[s,'region']=='EBS+NBS') {
         grid3<-subset(grid2,region %in% c('EBS','NBS'))
-      } else if (samp_df[s,'region']=='EBS+SBS') {
-        grid3<-subset(grid2,region %in% c('EBS','SBS'))
+      } else if (samp_df[s,'region']=='EBS+BSS') {
+        grid3<-subset(grid2,region %in% c('EBS','BSS'))
       } else {
         grid3<-grid2
       }
@@ -629,3 +766,9 @@ for (sim in 1:n_sim_hist) {
   save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist.RData'))  
 
 }
+
+
+load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist.RData'))   #index_hist
+index_hist[,,'y2003','rand',1,'scn4','cold']
+#samp_df
+
