@@ -182,50 +182,50 @@ agg_png(paste0('./figures slope/temperature_regime2.png'), width = 7, height = 4
 print(p)
 dev.off()
 
-# Define a custom color scale function
-custom_colors <- colorRampPalette(c("#1675ac", "white", "#cc1d1f"))
-
-ggplot() +
-  # Adding vertical rects per year, filled by temperature
-  geom_rect(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
-            aes(xmin = year - 0.5, xmax = year + 0.5, ymin = -Inf, ymax = Inf, 
-                fill = temp)) +
-  
-  # Adding horizontal dashed line for mean temperature
-  geom_hline(yintercept = mean(subset(temp_region1, region == 'all' & year %in% 1982:2022)[,'temp']), 
-             alpha = 0.5, linetype = 'dashed') +
-  
-  # Plotting the temperature time series for the 'all' region
-  geom_line(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
-            aes(x = year, y = temp, color = region)) +
-  geom_point(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
-             aes(x = year, y = temp, color = region)) +
-  
-  # Define the color gradient based on the temperature values
-  scale_fill_gradientn(colors = custom_colors(20), 
-                       name = "SBT (°C)") +
-  
-  # Manually setting the color of the line for 'all' region
-  scale_color_manual(values = c('all' = 'black'), 
-                     breaks = c('all'), 
-                     labels = c('Bering\nSea'), 
-                     name = '', guide = FALSE) +
-  
-  # Customizing x-axis with custom breaks and labels
-  scale_x_continuous(breaks = c(1985, 1990, 1995, 2000, bold_years, 2020), 
-                     minor_breaks = c(1982:2022), 
-                     labels = custom_labels, 
-                     limits = c(1982, 2022), 
-                     expand = c(0.01, 0)) +
-  
-  # Customizing theme elements
-  theme_bw() +
-  theme(axis.text.x = element_markdown(angle = 45, hjust = 1), 
-        axis.text.y = element_text(), 
-        text = element_text(size = 12)) +
-  
-  # Adding axis labels
-  labs(x = '', y = 'mean SBT')
+# # Define a custom color scale function
+# custom_colors <- colorRampPalette(c("#1675ac", "white", "#cc1d1f"))
+# 
+# ggplot() +
+#   # Adding vertical rects per year, filled by temperature
+#   geom_rect(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+#             aes(xmin = year - 0.5, xmax = year + 0.5, ymin = -Inf, ymax = Inf, 
+#                 fill = temp)) +
+#   
+#   # Adding horizontal dashed line for mean temperature
+#   geom_hline(yintercept = mean(subset(temp_region1, region == 'all' & year %in% 1982:2022)[,'temp']), 
+#              alpha = 0.5, linetype = 'dashed') +
+#   
+#   # Plotting the temperature time series for the 'all' region
+#   geom_line(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+#             aes(x = year, y = temp, color = region)) +
+#   geom_point(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+#              aes(x = year, y = temp, color = region)) +
+#   
+#   # Define the color gradient based on the temperature values
+#   scale_fill_gradientn(colors = custom_colors(20), 
+#                        name = "SBT (°C)") +
+#   
+#   # Manually setting the color of the line for 'all' region
+#   scale_color_manual(values = c('all' = 'black'), 
+#                      breaks = c('all'), 
+#                      labels = c('Bering\nSea'), 
+#                      name = '', guide = FALSE) +
+#   
+#   # Customizing x-axis with custom breaks and labels
+#   scale_x_continuous(breaks = c(1985, 1990, 1995, 2000, bold_years, 2020), 
+#                      minor_breaks = c(1982:2022), 
+#                      labels = custom_labels, 
+#                      limits = c(1982, 2022), 
+#                      expand = c(0.01, 0)) +
+#   
+#   # Customizing theme elements
+#   theme_bw() +
+#   theme(axis.text.x = element_markdown(angle = 45, hjust = 1), 
+#         axis.text.y = element_text(), 
+#         text = element_text(size = 12)) +
+#   
+#   # Adding axis labels
+#   labs(x = '', y = 'mean SBT')
 
 ###########################
 # DEPTH DISTRIBUTION OF OCCURRENCE
@@ -323,7 +323,7 @@ p <-
   scale_x_continuous(limits = c(0, 600),expand = c(0,0),breaks = c(100,300,500))+#,) +
   scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
                      labels = c("cold", "warm"),
-                     name = 'SBT Regime') +
+                     name = 'SBT regime') +
   #scale_y_continuous( )+
   theme_bw() +
   theme(strip.text = element_text(size = 12),
@@ -823,7 +823,7 @@ p <-
   # geom_errorbar code (if needed) +
   geom_point(aes(x = COG_depth, y = COG_lat, fill = mean_temp), shape = 21,size=3,color='transparent') + #color=rgb(0, 0, 0, alpha = 0.2),
   theme_bw() +
-  labs(x = 'bathymetrical COG (m)', y = 'latitudinal COG') +
+  labs(x = 'bathymetrical COG (m)', y = 'latitudinal COG (°)') +
   theme(
     aspect.ratio = 1,
     text = element_text(size = 12),

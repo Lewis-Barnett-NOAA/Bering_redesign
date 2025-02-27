@@ -857,7 +857,10 @@ y_scale$scn<-'scn1'
 #save  
 save(cv2,file = './output slope//estimated_cvsim_hist.RData')
 load(file = './output slope//estimated_cvsim_hist.RData')
-unique(cv2[, .(scn, region)])
+setDT(cv2)
+
+# Subset the data
+cv2 <- cv2[cv2$spp %in% sel_spp & cv2$scn %in% paste0('scn',1:16), ]
 
 #year
 cv2$year<-gsub('y','',cv2$year)
@@ -893,37 +896,34 @@ df<-merge(cv2,df_spp1,by='spp')
 df$year<-as.numeric(df$year)
 #df1<-df
 
-#merge results to sampling design table
-df1<-merge(df,samp_df,by.x='scn',by.y='samp_scn',all.x=TRUE)
-
 #label scn
-df1$scn_label<-paste0(df1$region,'\n',df1$strat_var)
+df$scn_label<-paste0(df$region,'\n',df$strat_var)
 
 #sort and corrections for plotting purposes
 #df1$scn<-factor(df1$scn,levels=c('scnbase','scnbase_bis',paste0('scn',3:1)))
 
 #rename column and remove EBSNBS crabs and existing bis sampling design
-df1$value<-df1$cv_sim
+df$value<-df$cv_sim
 # df1<-subset(df1,scn!='scnbase_bis')
 # unique(df$common)
 # df1<-subset(df1,common %in% unique(df1$common)[!grepl("_EBSNBS", as.character(unique(df1$common)))])
 #df1<-subset(df1, grepl("crab", common))
 
-#for geom_blank(0 and adjust scale)
-y_scale<-aggregate(value ~ common, subset(df1, spp %in% sel_spp),max)
-y_scale$scale<-y_scale$value+y_scale$value*0.2
-y_scale$text<-y_scale$value+y_scale$value*0.1
-y_scale$apr<-'sb'
-y_scale$scn<-'scn1'
-y_scale$year<-2022
-y_scale$scn_label<-'EBS\nvarTemp'
-
-# #sort factors just in case
-df1$scn_label<-factor(df1$scn_label,levels=c("EBS\nDepth","EBS+NBS\nDepth","EBS+SBS\nDepth","EBS+NBS+SBS\nDepth",
-                                             "EBS\nvarTemp","EBS+NBS\nvarTemp","EBS+SBS\nvarTemp","EBS+NBS+SBS\nvarTemp",
-                                             "EBS+SBS\nDepth_dummy","EBS+NBS+SBS\nDepth_dummy",
-                                             "EBS+SBS\nvarTemp_dummy","EBS+NBS+SBS\nvarTemp_dummy"))
-                                             
+# #for geom_blank(0 and adjust scale)
+# y_scale<-aggregate(value ~ common, subset(df1, spp %in% sel_spp),max)
+# y_scale$scale<-y_scale$value+y_scale$value*0.2
+# y_scale$text<-y_scale$value+y_scale$value*0.1
+# y_scale$apr<-'sb'
+# y_scale$scn<-'scn1'
+# y_scale$year<-2022
+# y_scale$scn_label<-'EBS\nvarTemp'
+# 
+# # #sort factors just in case
+# df$scn_label<-factor(df$scn_label,levels=c("EBS\nDepth","EBS+NBS\nDepth","EBS+SBS\nDepth","EBS+NBS+SBS\nDepth",
+#                                              "EBS\nvarTemp","EBS+NBS\nvarTemp","EBS+SBS\nvarTemp","EBS+NBS+SBS\nvarTemp",
+#                                              "EBS+SBS\nDepth_dummy","EBS+NBS+SBS\nDepth_dummy",
+#                                              "EBS+SBS\nvarTemp_dummy","EBS+NBS+SBS\nvarTemp_dummy"))
+#                                              
     
 # #plot estimated CV for each sampling design
 # #p<-
@@ -974,23 +974,19 @@ df1$scn_label<-factor(df1$scn_label,levels=c("EBS\nDepth","EBS+NBS\nDepth","EBS+
 # dev.off()
 
 # Create a new combined variable in your data
-df1$combined_label <- paste(df1$approach, df1$regime, sep = " - ")
+df$combined_label <- paste(df$approach, df$regime, sep = " - ")
 # #sort factors just in case
-df1$combined_label<-factor(df1$combined_label,levels=c('rand - all' ,
+df$combined_label<-factor(df$combined_label,levels=c('rand - all' ,
                                                        'sb - all' ,
                                                        'rand - cold' ,
                                                        'sb - cold' ,
                                                        'rand - warm' ,
                                                        'sb - warm' ) )
 
-# Subset the data
-df_sub <- df1[df1$spp %in% sel_spp & 
-                df1$scn_label %in% unique(df1$scn_label)[grep('dummy', unique(df1$scn_label), invert = TRUE)], ]
-
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
 df_summary <- aggregate(value ~ region + combined_label + scn_label + approach + spp + 
                           regime + common + strat_var, 
-                        data = df_sub, 
+                        data = df, 
                         FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
 
 # Convert matrix columns to separate numeric columns
@@ -1002,21 +998,30 @@ df_summary$region1<-gsub('+','\n',df_summary$region)
 levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
 df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
+#for geom_blank(0 and adjust scale)
+ y_scale<-aggregate((mean_value+sd_value) ~ common, subset(df_summary, spp %in% sel_spp),max)
+ y_scale$scale<-y_scale$`(mean_value + sd_value)`+y_scale$`(mean_value + sd_value)`*0.2
+ y_scale$text<-y_scale$`(mean_value + sd_value)`+y_scale$`(mean_value + sd_value)`*0.1
+ y_scale$apr<-'sb'
+ y_scale$scn<-'scn1'
+ y_scale$year<-2022
+ y_scale$scn_label<-'EBS\nvarTemp'
+
 library(ggh4x)
 
 p<-
 ggplot(df_summary) +
   
-  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_value - sd_value, ymax = mean_value + sd_value, 
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_value - sd_value, ymax = mean_value + sd_value, color = combined_label,
                     group = interaction(scn_label, approach, spp, regime)),
-                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
+                width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
   geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
                  group = interaction(scn_label, approach, spp, regime), 
                  shape = combined_label), 
-             size = 3, position = position_dodge(width = 0.9), color = "black") + 
+             size = 2, position = position_dodge(width = 0.9), color = "black") + 
   labs(y = expression(widehat(CV)), x = '') +
   theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
   
   scale_fill_manual(values = c(
     'rand - all' = 'grey30',
@@ -1025,6 +1030,20 @@ ggplot(df_summary) +
     'sb - cold' = '#1675ac',
     'rand - warm' = "#cc1d1f",
     'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\ndynamic cold',
+              'balanced random\ndynamic cold',
+              'random\ndynamic warm',
+              'balanced random\ndynamic warm'),
+    name = "sampling allocation\nregime approach") +
+  scale_color_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"),
     label = c('random\nstatic',
               'balanced random\nstatic',
               'random\ndynamic cold',
@@ -1061,7 +1080,7 @@ ggplot(df_summary) +
                                'balanced random\ndynamic warm'),
                      name = "sampling allocation\nregime approach") +
   
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
   scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
@@ -1080,12 +1099,17 @@ ggplot(df_summary) +
     axis.title.x = element_blank(),
     #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
     axis.text = element_text(size = 10))+
+  guides(
+    #shape = guide_legend(override.aes = list(size = 3)),
+    fill = guide_legend(override.aes = list(size = 3)),
+    #color = guide_legend(override.aes = list(size = 3))
+  )+
   geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
   geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv1.png'), width = 16, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv2.png'), width = 11, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -1179,84 +1203,104 @@ y_scale$scn_label<-'EBS\nvarTemp'
 
 p<-
   ggplot(df_summary) +
-  geom_errorbar(aes(x = interaction(region,strat_var), ymin = pmax(mean_value - sd_value,0.001), ymax = mean_value + sd_value, 
-                    group = interaction(approach, spp, regime)),
-                width = 0.3, position = position_dodge(width = 0.8), color = "black") + 
-  geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
-                 group = interaction(approach, spp, regime), 
-                 shape = combined_label), 
-             size = 3, position = position_dodge(width = 0.8), color = "black") + 
-  labs(y = 'RRMSE of CV', x = '') +
-  theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  #labs(y = 'RRMSE of CV', x = '') +
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = pmax(mean_value - sd_value,0.001), ymax = mean_value + sd_value, color = combined_label,
+                    group = interaction(scn_label, approach, spp, regime)),
+                width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
+    geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
+                   group = interaction(scn_label, approach, spp, regime), 
+                   shape = combined_label), 
+               size = 2, position = position_dodge(width = 0.9), color = "black") + 
+    labs(y = expression("RRMSE of " * widehat(CV)),y='')+
+    theme_bw() + 
+    facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
+    
+    scale_fill_manual(values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"), 
+      label = c('random\nstatic',
+                'balanced random\nstatic',
+                'random\ndynamic cold',
+                'balanced random\ndynamic cold',
+                'random\ndynamic warm',
+                'balanced random\ndynamic warm'),
+      name = "sampling allocation\nregime approach") +
+    scale_color_manual(values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"),
+      label = c('random\nstatic',
+                'balanced random\nstatic',
+                'random\ndynamic cold',
+                'balanced random\ndynamic cold',
+                'random\ndynamic warm',
+                'balanced random\ndynamic warm'),
+      name = "sampling allocation\nregime approach") +
+    
+    scale_linetype_manual(values = c('rand - all' = 'solid',
+                                     'sb - all' = 'dashed',
+                                     'rand - cold' = 'solid',
+                                     'sb - cold' = 'dashed',
+                                     'rand - warm' = 'solid',
+                                     'sb - warm' = 'dashed'),
+                          label = c('random\nstatic',
+                                    'balanced random\nstatic',
+                                    'random\ndynamic cold',
+                                    'balanced random\ndynamic cold',
+                                    'random\ndynamic warm',
+                                    'balanced random\ndynamic warm'),
+                          name = "sampling allocation\nregime approach") +
+    
+    scale_shape_manual(values = c('rand - all' = 21,
+                                  'sb - all' = 24,
+                                  'rand - cold' = 21,
+                                  'sb - cold' = 24,
+                                  'rand - warm' = 21,
+                                  'sb - warm' = 24),
+                       label = c('random\nstatic',
+                                 'balanced random\nstatic',
+                                 'random\ndynamic cold',
+                                 'balanced random\ndynamic cold',
+                                 'random\ndynamic warm',
+                                 'balanced random\ndynamic warm'),
+                       name = "sampling allocation\nregime approach") +
+    scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA),labels = scales::label_number(accuracy = 0.01))+
+    
+    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+    theme(
+      panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+      legend.key.width = unit(1, "lines"),
+      legend.key.size = unit(30, 'points'),
+      legend.text = element_text(size = 11),
+      legend.title = element_text(size = 12),
+      legend.spacing.y = unit(10, "cm"),
+      legend.spacing = unit(10, "cm"),
+      legend.box.spacing = unit(0.5, "cm"),
+      strip.background = element_blank(),
+      legend.background = element_blank(),
+      panel.spacing.x = unit(0.5, "lines"), 
+      panel.spacing.y = unit(1, "lines"),
+      strip.text = element_blank(),
+      axis.title.x = element_blank(),
+      #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+      axis.text = element_text(size = 10))+
+    guides(
+      #shape = guide_legend(override.aes = list(size = 3)),
+      fill = guide_legend(override.aes = list(size = 3)),
+      #color = guide_legend(override.aes = list(size = 3))
+    )+
+    geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+    geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
   
-  scale_fill_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    'rand - cold' = '#1675ac',
-    'sb - cold' = '#1675ac',
-    'rand - warm' = "#cc1d1f",
-    'sb - warm' = "#cc1d1f"), 
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\ndynamic cold',
-              'balanced random\ndynamic cold',
-              'random\ndynamic warm',
-              'balanced random\ndynamic warm'),
-    name = "sampling allocation\nregime approach") +
-  
-  scale_linetype_manual(values = c('rand - all' = 'solid',
-                                   'sb - all' = 'dashed',
-                                   'rand - cold' = 'solid',
-                                   'sb - cold' = 'dashed',
-                                   'rand - warm' = 'solid',
-                                   'sb - warm' = 'dashed'),
-                        label = c('random\nstatic',
-                                  'balanced random\nstatic',
-                                  'random\ndynamic cold',
-                                  'balanced random\ndynamic cold',
-                                  'random\ndynamic warm',
-                                  'balanced random\ndynamic warm'),
-                        name = "sampling allocation\nregime approach") +
-  
-  scale_shape_manual(values = c('rand - all' = 21,
-                                'sb - all' = 24,
-                                'rand - cold' = 21,
-                                'sb - cold' = 24,
-                                'rand - warm' = 21,
-                                'sb - warm' = 24),
-                     label = c('random\nstatic',
-                               'balanced random\nstatic',
-                               'random\ndynamic cold',
-                               'balanced random\ndynamic cold',
-                               'random\ndynamic warm',
-                               'balanced random\ndynamic warm'),
-                     name = "sampling allocation\nregime approach") +
-  
-    scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-  theme(
-    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
-    legend.key.width = unit(1, "lines"),
-    legend.key.size = unit(30, 'points'),
-    legend.text = element_text(size = 11),
-    legend.title = element_text(size = 12),
-    legend.spacing.y = unit(10, "cm"),
-    legend.spacing = unit(10, "cm"),
-    legend.box.spacing = unit(0.5, "cm"),
-    strip.background = element_blank(),
-    legend.background = element_blank(),
-    panel.spacing.x = unit(0.5, "lines"), 
-    panel.spacing.y = unit(1, "lines"),
-    strip.text = element_blank(),
-    axis.title.x = element_blank(),
-    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    axis.text = element_text(size = 10))+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
-
 #save plot
-ragg::agg_png(paste0('./figures slope/rrmse_cv.png'), width = 16, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/rrmse_cv1.png'), width = 11, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -1353,16 +1397,18 @@ y_scale$scn_label<-'EBS\nvarTemp'
 
 p<-
   ggplot(na.omit(subset(df_summary,spp %in% sel_spp & region !='EBS'))) +
-  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_ratio - sd_ratio, ymax = mean_ratio + sd_ratio, 
+    
+    geom_hline(yintercept = 0,linetype='dashed')+
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_ratio - sd_ratio, ymax = mean_ratio + sd_ratio, color = combined_label, 
                     group = interaction(approach, spp, regime)),
-                width = 0.3, position = position_dodge(width = 0.8), color = "black") + 
+                width = 0.3, position = position_dodge(width = 0.8),size=1,alpha=0.8) + 
   geom_point(aes(x = interaction(region,strat_var), y = mean_ratio, fill = combined_label, 
                  group = interaction(approach, spp, regime), 
                  shape = combined_label), 
-             size = 4, position = position_dodge(width = 0.8), color = "black") + 
+             size = 2, position = position_dodge(width = 0.8), color = "black") + 
   labs(y = expression(log(widehat(CV)/widehat(CV)[EBS])), x = '') +   
   theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'v') +
+  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
   
   scale_fill_manual(values = c(
     'rand - all' = 'grey30',
@@ -1378,6 +1424,20 @@ p<-
               'random\ndynamic warm',
               'balanced random\ndynamic warm'),
     name = "sampling allocation\nregime approach") +
+    scale_color_manual(values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"), 
+      label = c('random\nstatic',
+                'balanced random\nstatic',
+                'random\ndynamic cold',
+                'balanced random\ndynamic cold',
+                'random\ndynamic warm',
+                'balanced random\ndynamic warm'),
+      name = "sampling allocation\nregime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
                                    'sb - all' = 'dashed',
@@ -1408,6 +1468,13 @@ p<-
                      name = "sampling allocation\nregime approach") +
   
     scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(NA,NA))+
+  #scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA),labels = scales::label_number(accuracy = 0.01))+
+  guides(
+    #shape = guide_legend(override.aes = list(size = 3)),
+    fill = guide_legend(override.aes = list(size = 3)),
+    #color = guide_legend(override.aes = list(size = 3))
+  )+
+  
     scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
@@ -1431,7 +1498,7 @@ p<-
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/logcvratio.png'), width = 16, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio.png'), width = 11, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
