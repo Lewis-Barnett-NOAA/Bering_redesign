@@ -102,116 +102,13 @@ yrs<-sort(c(cyrs,wyrs))
 # check the slope model that converged
 #####################
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
-#spp<-gsub('/fit.RData','',fitfiles)
-df_conv<-data.frame(spp=c(spp))
-
-#prepare dataframe optimization
-df_conv$slope<-NA
-df_conv$slope_st<-NA
-df_conv$EBS_NBS<-NA
-
-for (sp in spp) {
-  
-  #sp<-spp[23]
-  
-  cat(paste0('#####  ',sp,'  #######\n'))
-  
-  #f<-fitfiles[1]
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
-    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
-  }
-  
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))==0) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
-  } else if (is.null(fit)) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
-  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$Report
-  }else{
-    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
-  }
-  
-  #non ST if nonconvergence in st
- # if ( df_conv[which(df_conv$spp==sp),'slope']!='There is no evidence that the model is not converged') {
-    
-    if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))!=0) {
-      load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
-    }
-    
-    if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))==0) {
-      df_conv[which(df_conv$spp==sp),'slope']<-'non convergence'
-    } else if (is.null(fit)) {
-      df_conv[which(df_conv$spp==sp),'slope']<-'non convergence'
-    } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-      df_conv[which(df_conv$spp==sp),'slope']<-fit$Report
-    }else{
-      df_conv[which(df_conv$spp==sp),'slope']<-fit$parameter_estimates$Convergence_check
-    }
-    
- # }
-  
-  
-  
-  #EBS+NBS fit
-  if (file.exists(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))) {
-    
-    #load fit file
-    load(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))
-    
-    #dimensions and check fit
-    #dim(fit$Report$D_gct) #53464
-    #check_fit(fit$parameter_estimates)
-    
-    if (is.null(fit)) {
-      df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
-    } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-      df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
-    }else{
-      df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
-    }
-    
-  } else {
-    
-    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
-    
-  }
-  
-}
-
-#write table
-write.csv(df_conv,'./tables/slope_ebsnbs_convspp.csv')
- 
-#ss<-read.csv(file = './tables/slope_ebsnbs_convspp.csv')
-df_conv<-read.csv('./tables/slope_ebsnbs_convspp.csv')
-
-spp_conv_slope<-c(
-      df_conv[which(df_conv$slope=='There is no evidence that the model is not converged'),'spp'])
-
-spp_conv_slope_st<-c(
-  df_conv[which(df_conv$slope_st=='There is no evidence that the model is not converged'),'spp'])
-
-spp_conv_slope_st1<-setdiff(spp_conv_slope,spp_conv_slope_st)
-
-for (spp_conv_slope_st1 in s) {
-  
-  #s<-spp_conv_slope_st1[6] #2,4,5
-  load(paste0('./slope EBS VAST/',s,'/fit_st.RData'))
-  print(check_fit(fit$parameter_estimates))
-}
-
-spp_conv_slope_st1 #species that we need to get the non_ST sloep structure
+df_conv<-read.csv('./tables/slope_conv.csv')
 
 spp_conv_ebsnbs<-c(
-  df_conv[which(df_conv$EBS_NBS=='There is no evidence that the model is not converged' ),'spp'])
+      df_conv[which(df_conv$EBS_NBS=='convergence'),'spp'])
 
-spp_both<-
-c(
-  df_conv[which(df_conv$EBS_NBS=='There is no evidence that the model is not converged' & df_conv$slope=='There is no evidence that the model is not converged'),'spp'])
-
-
-list.files('./output/species/',pattern = 'sim_dens_slope',recursive = TRUE)
-list.files('./output/species/',pattern = 'sim_dens.RData',recursive = TRUE)
+spp_conv_slope<-c(
+  df_conv[which(df_conv$slope_st=='convergence'),'spp'])
 
 spp_sim_dens_slope<-sub("\\/.*", "", list.files('./output/species/',pattern = 'sim_dens_slope',recursive = TRUE))
 spp_sim_dens_slope<-spp_sim_dens_slope[!grepl('sim_dens',spp_sim_dens_slope)]
@@ -282,9 +179,8 @@ ggplot()+
 
 
 #converged species by region
-spp_conv_ebsnbs<-df_conv[which(df_conv$EBS_NBS=='There is no evidence that the model is not converged'),'spp']
-spp_conv_slope<-df_conv[which(df_conv$slope=='There is no evidence that the model is not converged' | 
-                                df_conv$slope_st=='There is no evidence that the model is not converged'),'spp']
+spp_conv_ebsnbs<-df_conv[which(df_conv$EBS_NBS=='convergence'),'spp']
+spp_conv_slope<-df_conv[which(df_conv$slope_st=='convergence'),'spp']
 
 #years by region
 yrs_slope<-c(2002,2004,2008,2010,2012,2016)
@@ -310,7 +206,7 @@ true_index<-array(NA,
 #loop over species
 for (sp in spp) {
   
-  sp<-spp[2]
+  #sp<-spp[2]
   #sp<-'Anoplopoma fimbria'
   cat(paste('#######################',sp,'#######################\n'))
   
@@ -319,17 +215,10 @@ for (sp in spp) {
   
   if (sp %in% spp_conv_slope) {
     
-    #load slope fit
-    if (sp %in% spp_conv_slope_st1) {
-      
-      load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
-    } else {
-      
-      load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
-    }
     
+    #load model  
+    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
 
-    
     #get predicted densities for sp
     temp_dens_vals[,,sp] <- unlist(fit$Report$D_gct[, 1, as.character(yrs)]) #[kg/km2]
     
@@ -508,7 +397,7 @@ for (sp in spp) {
 
 save(dfst,file=paste0('./output slope/multisp_optimization_static_data_slope_st.RData'))
 save(dfdyn,file=paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
-load(file=paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
+#load(file=paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
 #load(file=paste0('./output/multisp_optimization_static_data_slope.RData'))
 
 

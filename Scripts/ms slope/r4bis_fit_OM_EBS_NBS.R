@@ -17,7 +17,7 @@ rm(list = ls(all.names = TRUE))
 gc() 
 
 #libraries from cran to call or install/load
-pack_cran<-c("splines",'dplyr')
+pack_cran<-c("splines",'dplyr','ggplot2')
 
 #install pacman to use p_load function - call library and if not installed, then install
 if (!('pacman' %in% installed.packages())) {
@@ -91,7 +91,7 @@ for (sp in spp) {
 #loop over species to fit models
 for (sp in spp) {
 
-sp<-spp[22]
+#sp<-spp[18]#17,18,20,21
 
 #print year to check progress
 cat(paste("\n","    ----- ", sp, " -----\n"))  
@@ -158,8 +158,12 @@ print(
     summarize(percentage_zeros = mean(Weight_kg == 0) * 100),n=41
 )
 
-library(ggplot2)
+#jump if all zeros
+if (all((percent_zeros$percentage_zeros)==100)) {
+  next
+}
 
+#plot
 ggplot()+
   geom_point(data = data_geostat,aes(x=Lon,y=Lat,color=Weight_kg))+
   facet_wrap(~Year)
@@ -251,7 +255,4 @@ if (!is.null(fit)) {
 gc()
 }
 
-load('./slope EBS VAST/Anoplopoma fimbria/fit.RData')
-
-read.delim('./slope EBS VAST/Anoplopoma fimbria/settings.txt')
 

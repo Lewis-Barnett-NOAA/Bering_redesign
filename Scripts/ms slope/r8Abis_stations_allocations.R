@@ -114,7 +114,7 @@ names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
-                          data.frame(bering_sea_slope_grid,region='SLP')))
+                          data.frame(bering_sea_slope_grid,region='SBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
 #add col and row number
@@ -151,14 +151,21 @@ dim(grid_ebs)
 # Sampling designs (from script #11) 
 ###################################
 
-# #sampling scenarios
+#sampling scenarios
 samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+SLOPE','EBS+NBS+SLOPE'),
+                     region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
                      strat_var=c('varTemp','Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
                      target_var=c('sumDensity'), #,'sqsumDensity'
                      n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
                      n_strata=c(10),
                      domain=1) #c(5,10,15)
+
+#samples slope to add dummy approach
+samp_slope <- subset(samp_df, grepl("SBS", region))
+samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
+
+#add with dummy approach
+samp_df<-rbind(samp_df,samp_slope)
 
 #add scenario number
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
@@ -217,7 +224,7 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     #r<-regime[1]
     
     #load results_optimization
-    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
     #load(file=paste0('./output slope/multisp_optimization_static_data.RData')) #df
     df<-df[,c("Lat",'Lon','cell')]
     
@@ -462,6 +469,6 @@ for (s in 1:nrow(samp_df)) { #sampling designs
   rm(dfrandom,dfspb,str_alloc,rand,spb)
   
   #store station allocations
-  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'_376.RData')) 
+  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
   }
 }

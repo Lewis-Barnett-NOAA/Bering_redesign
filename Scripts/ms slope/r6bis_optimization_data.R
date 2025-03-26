@@ -95,14 +95,14 @@ spp1<-c('Yellowfin sole',
 # convergenced spp
 ###############################
 
-df_conv<-read.csv('./tables/slope_ebsnbs_convspp.csv')
+df_conv<-read.csv('./tables/slope_conv.csv')
 
 # spp_conv_slope<-c(
 #   df_conv[which(df_conv$slope=='There is no evidence that the model is not converged'),'spp'],
 #   'Bathyraja aleutica')
 
 spp_conv_ebsnbs<-c(
-  df_conv[which(df_conv$EBS_NBS=='There is no evidence that the model is not converged'),'spp'])
+  df_conv[which(df_conv$EBS_NBS=='convergence'),'spp'])
 
 
 ###################################

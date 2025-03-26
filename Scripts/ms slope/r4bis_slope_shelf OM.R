@@ -9,6 +9,9 @@ rm(list = ls(all.names = TRUE))
 #free up memrory and report the memory usage
 gc() 
 
+#set seed
+set.seed(6)
+
 #libraries from cran to call or install/load
 pack_cran<-c("splines",'ggplot2','dplyr','doParallel')
 
@@ -73,14 +76,30 @@ spp<-c('Limanda aspera',
  
 splist<-list() 
  
+spp_vect<-c("Atheresthes evermanni","Atheresthes stomias",
+            "Gadus chalcogrammus","Gadus macrocephalus",
+            "Hippoglossoides elassodon","Reinhardtius hippoglossoides",
+            'Bathyraja aleutica')
+
+
 for (sp in spp) {
 
  #example
  #sp<-'Reinhardtius hippoglossoides'
  #sp<-'Atheresthes stomias'
- 
-#read data_geostat_temp file
-df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
+
+  #sp<-spp[1]
+   
+  
+  if (sp %in% spp_vect) {
+    df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
+    
+  } else {
+    
+    df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
+    df1<-cbind(df1,"ADJ_WEIGHT_FREQ"=NA,"ADJ_KG_HA"=NA)
+  }
+  
 
 #for slope data
 df11<-subset(df1,survey_name== "Eastern Bering Sea Slope Bottom Trawl Survey")
@@ -88,16 +107,16 @@ df11$survey_name[df11$survey_name == 'Eastern Bering Sea Slope Bottom Trawl Surv
 #yrs only for slope
 yrs<-unique(df11$year)
 
-#for shelf data
-df12<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey")
-df12$survey_name[df12$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- 'EBS shelf'
-
-#for shelf data deeper than 106 (3rd quartile)
-df13<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey" & depth_m>=100)
-df13$survey_name[df13$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- '>100 EBS shelf'
+# #for shelf data
+# df12<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey")
+# df12$survey_name[df12$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- 'EBS shelf'
+# 
+# #for shelf data deeper than 106 (3rd quartile)
+# df13<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey" & depth_m>=100)
+# df13$survey_name[df13$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- '>100 EBS shelf'
 
 #rbind region specific df
-df1<-rbind(df11,df12,df13)
+df1<-df11
 df1<-subset(df1, year %in% yrs)
 
 #store df
@@ -108,16 +127,20 @@ splist[[sp]]<-df1
 #rbind list dfs
 df2<-dplyr::bind_rows(splist, .id = "column_label")
 
+#check
+splist$`Gadus macrocephalus`
+splist$`Glyptocephalus zachirus`
+
 ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs", set.crs = "EPSG:3338")
 ebs_layers$survey.strata <- sf::st_transform(ebs_layers$survey.strata, crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")#'+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs')
 
 #plot colored deeper than 100 meters
-ggplot()+
-  geom_point(data=subset(df12,year==2016),aes(x=lon_start,y=lat_start,group=year))+
-  geom_point(data=subset(df11,year==2016),aes(x=lon_start,y=lat_start,group=year),col='blue',alpha=0.8)+
-  geom_sf(data=ebs_layers$survey.strata,fill = NA)+
-  geom_point(data=subset(df12,year==2016 & depth_m >100),aes(x=lon_start,y=lat_start,group=year),col='green',alpha=0.8)+
-  facet_wrap(~year)
+# ggplot()+
+#   geom_point(data=subset(df12,year==2016),aes(x=lon_start,y=lat_start,group=year))+
+#   geom_point(data=subset(df11,year==2016),aes(x=lon_start,y=lat_start,group=year),col='blue',alpha=0.8)+
+#   geom_sf(data=ebs_layers$survey.strata,fill = NA)+
+#   geom_point(data=subset(df12,year==2016 & depth_m >100),aes(x=lon_start,y=lat_start,group=year),col='green',alpha=0.8)+
+#   facet_wrap(~year)
 
 ##plot boxplot by region and species
 df2$survey_name <- factor(df2$survey_name, levels = c('EBS shelf','>100 EBS shelf','slope'))
@@ -125,19 +148,8 @@ ggplot()+
   geom_boxplot(data=df2,aes(x=as.factor(year),y=log(cpue_kgha+1),group=interaction(year,survey_name,scientific_name),color=survey_name))+
   facet_wrap(~scientific_name,scales='free',nrow=5)
 
-#df1<-readRDS(paste0('./data processed/',sp,'/data_geostat_temp.rds'))
-#select rows and rename
-df2<-df2[,c("lat_start","lon_start","year",'scientific_name','weight_kg','effort','depth_m','survey_name')]
-colnames(df2)<-c('Lat','Lon','Year','Species','CPUE_kg','Effort','Depth','Region')
-
-#data geostat
-df3<-subset(df2,Region %in%  c('slope'))
-yrs_region<-unique(df3$Year)
-df3<-df3[complete.cases(df3$CPUE_kg),]
-
-
 #selected species - remove spp without observations in the slope
-spp<-c(#'Limanda aspera',
+spp_slope<-c(#'Limanda aspera',
        'Gadus chalcogrammus',
        'Gadus macrocephalus',
        'Atheresthes stomias',
@@ -162,270 +174,213 @@ spp<-c(#'Limanda aspera',
        'Bathyraja aleutica')
 
 
-
+#number of simulations
 n_sim_hist<-100
+ 
+#fit with depth or CPE
+cov<-c('depth','cpe')[1]
 
+#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#spp<-gsub('/fit.RData','',fitfiles)
+df_conv<-data.frame(spp=c(spp))
 
-#array to store simulated densities/CPUE
-# sim_hist_dens_spp<-array(NA,
-#                          dim=c(nrow(bering_sea_slope_grid),length(yrs_region),n_sim_hist,length(spp)),
-#                          dimnames=list(1:nrow(bering_sea_slope_grid),unique(yrs_region),1:n_sim_hist,spp))
+#prepare dataframe optimization
+#df_conv$slope<-NA
+df_conv$slope_st<-NA
 
-
-for (sp in spp) { #[c(10,12:15)]
+#loop over species
+for (sp in spp_slope) { #[c(10,12:15)]
 
 #example
-#sp<-spp[1]  
-  
+#sp<-'Sebastolobus alascanus'
+#sp<-spp_slope[9]  
+#sp<-spp_slope[5]  
+
+cat(paste0('############### ',sp,' #########################\n'))
+
+#df1<-readRDS(paste0('./data processed/',sp,'/data_geostat_temp.rds'))
+#select rows and rename
+
 #filter by sp
-data_geostat<-subset(df3,Species==sp)
+df3<-subset(df2,scientific_name==sp)
+
+if (sp %in% spp_vect) {
+  
+  df3<-df3[,c("lat_start","lon_start","year",'scientific_name','ADJ_KG_HA','effort','depth_m','survey_name')]
+  colnames(df3)<-c('Lat','Lon','Year','Species','Cpue_kgha','Effort','Depth','Region')
+  
+} else {
+  
+  df3<-df3[,c("lat_start","lon_start","year",'scientific_name','cpue_kgha','effort','depth_m','survey_name')]
+  colnames(df3)<-c('Lat','Lon','Year','Species','Cpue_kgha','Effort','Depth','Region')
+  
+  
+}
+
+#get weight
+df3$Weight_kg<-df3$Cpue_kgha*df3$Effort
+
+#data geostat
+yrs_region<-unique(df3$Year)
+data_geostat<-df3[complete.cases(df3$Weight_kg),]
+
 if (fol_region=='slope EBS VAST') {
   data_geostat<-subset(data_geostat,Region=='slope')}
 
-#add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
+#ha to km2 ------ so kg/km2
+data_geostat$Effort<-data_geostat$Effort/100
 
-# load('./extrapolation grids/eastern_bering_sea_grid.rda')
-# head(eastern_bering_sea_grid)
-# dim(eastern_bering_sea_grid)
-# eastern_bering_sea_grid<-subset(as.data.frame(eastern_bering_sea_grid),Stratum %in% c(50,61))
+#get cpue
+data_geostat$CPUEkgkm<-data_geostat$Weight_kg/data_geostat$Effort
+
+#add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
 load('./extrapolation grids/bering_sea_slope_grid.rda')
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
-# if (fol_region=='slope EBS VAST') {
-#   grids<-bering_sea_slope_grid
-# } else {
-#   grids<-rbind(eastern_bering_sea_grid,bering_sea_slope_grid)  
-# }
-# 
-# names(grids)[3]<-'Area_km2'
-# grids
-
+#load grid per year for all EBS
 load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
-grid_ebs<-subset(grid.ebs_year,region=='EBSslope')
+grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year %in% 2002:2016) #yrs
 
-#grid with info
+#grid with info to get prediction on each cell of the SBS grid
 grids<-data.frame(Lat=grid_ebs$Lat,
                     Lon=grid_ebs$Lon,
                     Year=grid_ebs$Year,
                     Species=rep(sp,times=nrow(grid_ebs)),
-                    CPUE_kg=mean(data_geostat$CPUE_kg),
+                    Weight_kg=mean(data_geostat$CPUEkgkm),
+                    #Weight_kg=0,
                     Effort=grid_ebs$Area_in_survey_km2,
                     Depth=grid_ebs$DepthGEBCO,
                     #BotTemp=grid_ebs$Temp,
                     Region=grid_ebs$region,
+                    CPUEkgkm=mean(data_geostat$CPUEkgkm),
                     stringsAsFactors = T)
 
-grids<-subset(grids,Year %in% unique(data_geostat$Year))
+#grids<-subset(grids,Year %in% unique(data_geostat$Year))
 summary(grids)
-#ha to km2 ------ so kg/km2
-data_geostat$Effort<-data_geostat$Effort/100
-
-# 
+ 
 # #rbind grid and data_geostat to get prediction into grid values when simulating data
-data_geostat1<-rbind(data_geostat[,c("Lat","Lon","Year","Species","CPUE_kg","Effort","Depth","Region")],
+data_geostat1<-rbind(data_geostat[,c("Lat","Lon","Year","Species","Weight_kg","Effort","Depth","Region",'CPUEkgkm')],
                       grids)
 
-#data_geostat1<-rbind(data_geostat[,c("Lat","Lon","Year","Species","CPUE_kg","Effort","Depth","Region")])
+#scale depth
 data_geostat1$ScaleLogDepth<-scale(log(data_geostat1$Depth))
 
-#covariate data - filter by year and complete cases for env variables
-#covariate_data<-subset(df2,Year>=yrs_region[1] & Year<=yrs_region[2])
-covariate_data<-data_geostat1[complete.cases(data_geostat1[,c('Depth')]),]
-covariate_data$Year<-NA
-
-#to get predictions in locations but not influencing fit
-pred_TF <- rep(1, nrow(data_geostat1))
-pred_TF[1:nrow(data_geostat)] <- 0
-
-#create folder
-#dir.create(paste0('./',fol_region,'/',sp))
 #create folder to store results
 dir.create(paste(out_dir,fol_region,sp,sep='/'),
            showWarnings = FALSE)
 #save data
-save(data_geostat1, file = paste(out_dir,fol_region,sp,'data_geostat_temp.RData',sep='/'))
-##################
-#explore data
-
-# ggplot()+
-#   geom_point(data=subset(data_geostat1,CPUE_kg!=0),aes(x=Lon,y=Lat,size=CPUE_kg,fill=CPUE_kg),color='transparent',shape=21)+
-#   facet_wrap(~Year)+
-#   theme_bw()
-# 
-# 
-# # check percent of zeros
-# ggplot(data = data_geostat, aes(CPUE_kg)) + 
-#   geom_histogram(bins =20,
-#                  aes(y = after_stat(density))) +
-#   facet_wrap(~Year) +
-#   #scale_y_continuous(labels = scales::percent_format()) +
-#   theme_bw()
-
-
+save(data_geostat1, file = paste(out_dir,fol_region,sp,'data_geostat_temp_adj.RData',sep='/'))
 
 # Calculate the percentage of zeros for each group
 percent_zeros <- data_geostat %>%
   group_by(Year) %>%
-  summarize(percentage_zeros = mean(CPUE_kg == 0) * 100)
+  summarize(percentage_zeros = mean(Weight_kg == 0) * 100)
 
 # Print the results
 print(percent_zeros)
 
-
-###################
-
-#any year with 100%encounters or 0%encounters
-enc100<-ifelse(0 %in% percent_zeros$percentage_zeros,TRUE,FALSE)
-enc0<-ifelse(100 %in% percent_zeros$percentage_zeros,TRUE,FALSE)
-
-#set settings based on enc100
- if(enc100==TRUE){
-   obs <- c(2,3)
- }
- if(enc100==FALSE){
-   obs <- c(2,1)
- }
-#Specify observation model and config settings based on species encounter probability (i.e. presence of 100% or 0% encounter probability)
-if(enc0==TRUE){
-  rho_c <- c("Beta1"=1,"Beta2"=1,"Epsilon1"=1,"Epsilon2"=1)
-}
-if(enc0==FALSE){
-  rho_c <- c("Beta1"=0,"Beta2"=0,"Epsilon1"=0,"Epsilon2"=0)
-}
-
 #regions (predefined in VAST)
-if (fol_region=='slope EBS VAST') {
-  region<-'bering_sea_slope'#c("bering_sea_slope")
-} else{
-  region<-'User'  
+region<-'bering_sea_slope'#c("bering_sea_slope")
+
+#conditional on sp
+if (sp %in% c('Anoplopoma fimbria','Atheresthes stomias')) {
+  aniso<-FALSE
+} else {
+  aniso<-TRUE
 }
-#c("bering_sea_slope")
-#region<-'bering_sea_slope'#c("bering_sea_slope")
+
+#conditional on sp
+if (sp %in% c('Reinhardtius hippoglossoides','Bathyraja aleutica',"Hippoglossoides elassodon","Sebastes alutus","Sebastes melanostictus","Sebastolobus alascanus")) {
+  fieldconfig <- matrix( c(0,"IID",0,"Identity", 0,"IID",0,"Identity"), 
+                         ncol=2, 
+                         nrow=4, 
+                         dimnames=list(c("Omega","Epsilon","Beta","Epsilon_year"),c("Component_1","Component_2")))
+} else {
+  fieldconfig <- matrix( c("IID","IID",0,"Identity", "IID","IID",0,"Identity"), 
+                         ncol=2, 
+                         nrow=4, 
+                         dimnames=list(c("Omega","Epsilon","Beta","Epsilon_year"),c("Component_1","Component_2")))
+}
 
 #VAST model settings
-settings <- make_settings(n_x=knots,#knots, 
+settings <- make_settings(n_x=knots,
                           Region=region, #c("bering_sea_slope","eastern_bering_sea",'northern_bering_sea'
                           purpose="index2", 
                           bias.correct=FALSE,
                           knot_method='grid',
-                          use_anisotropy=FALSE, #TRUE
-                          #RhoConfig=rho_c, 
-                          #RhoConfig=rho_c,#c("Beta1"=0,"Beta2"=0,"Epsilon1"=0,"Epsilon2"=0), 
-                          #FieldConfig = matrix( c("IID","IID",'IID',"Identity","IID","IID",'IID',"Identity"), #c("IID","IID",0,"Identity", "IID","IID",0,"Identity"), 
-                          #                       ncol=2, 
-                          #                       nrow=4, 
-                          #                       dimnames=list(c("Omega","Epsilon","Beta","Epsilon_year"),c("Component_1","Component_2"))),
-                          #FieldConfig = c("Omega1"="IID", "Epsilon1"="IID", "Omega2"="IID", "Epsilon2"="IID"),
+                          use_anisotropy= aniso, #FALSE
+                          #FieldConfig = matrix( c(0,"IID",0,"Identity", 0,"IID",0,"Identity"), 
+                          FieldConfig = fieldconfig,
                           RhoConfig=c("Beta1"=2,"Beta2"=2,"Epsilon1"=4,"Epsilon2"=4),
                           Version = version,
                           #fine_scale=TRUE,
-                          ObsModel = obs,#c(2,1), #c(1,1) #biomass
+                          ObsModel = c(2,1),
                           max_cells = Inf,
                           Options = c("Calculate_Range" =  F, 
                                       "Calculate_effective_area" = F)) 
 
-# ####################
-# ####create region grid
-# ####################
-# 
-# library(sp) # 1.4.4
-# library(sf) # 0.9.6
-# 
-# ### Method 1: use a set of lat/lon coordinates which define the
-# ### outer edge of the region. For instance you might want to plot
-# ### your data and simply create a region that captures it. The
-# ### locator() function can be useful for this as shown
-# ### below. Here we use a subset of the Eastern Bering Sea.
-# 
-# ### Use this to draw points around your data
-# data_geostat_grid<-subset(data_geostat,Year==2016)
-# plot(data_geostat_grid$Lon, data_geostat_grid$Lat)
-# LL <- locator()
-# saveRDS(LL, 'extent_LL.rds')
-# 
-# ## Take a data.frame of coordinates in longitude/latitude that
-# ## define the outer limits of the region (the extent).
-# LL <- readRDS('extent_LL.rds')
-# region_extent <- data.frame(long=LL$x, lat=LL$y)
-# str(region_extent)
-# ## > 'data.frame':	42 obs. of  2 variables:
-# ## $ long: num  -166 -166 -165 -165 -164 ...
-# ## $ lat : num  53.9 54.1 54.2 54.6 55 ...
-# 
-# #### Turn it into a spatial polygon object
-# ## Need to duplicate a point so that it is connected
-# region_extent <- rbind(region_extent, region_extent[1,])
-# ## https://www.maths.lancs.ac.uk/~rowlings/Teaching/Sheffield2013/cheatsheet.html
-# poly <- Polygon(region_extent)
-# polys <- Polygons(list(poly), ID='all')
-# sps <- SpatialPolygons(list(polys))
-# ## I think the F_AREA could be dropped here
-# sps <- SpatialPolygonsDataFrame(sps, data.frame(Id=factor('all'), F_AREA=1, row.names='all'))
-# proj4string(sps)<- CRS("+proj=longlat +datum=WGS84")
-# sps <- spTransform(sps, CRS("+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "))
-# ### Get UTM zone for conversion to UTM projection
-# ## retrieves spatial bounding box from spatial data [,1] is
-# ## longitude
-# lon <- sum(bbox(sps)[1,])/2
-# ## convert decimal degrees to utm zone for average longitude, use
-# ## for new CRS
-# utmzone <- floor((lon + 180)/6)+1
-# crs_LL <- CRS('+proj=longlat +ellps=WGS84 +no_defs')
-# sps@proj4string <- crs_LL
-
+dim(data_geostat);dim(data_geostat1)
 
 #Kmeans_knots-200
 if (!file.exists(paste(out_dir,fol_region,sp,'Kmeans_knots-',knots,'.RData',sep='/')) ) {
   file.copy(paste(out_dir,fol_region,sp,'Kmeans_knots-',knots,'.RData',sep='/'),
             paste(out_dir,fol_region,sp,'Kmeans_knots-',knots,'.RData',sep='/'))}
 
-#formula and predictors settings for each model
-X1_formula<-' ~ bs(ScaleLogDepth, degree=2, intercept=FALSE)'
-X1config_cp = array( c(1,1), dim=c(1,1))
+#covariate data
+  if (cov=='depth') {
+    
+    #covariate data - filter by year and complete cases for env variables
+    covariate_data<-data_geostat1[complete.cases(data_geostat1[,c('Depth')]),]
+    covariate_data$Year<-NA #because depth is not variant over time
+    
+    #formula and predictors settings for each model
+    formula<-' ~ bs(ScaleLogDepth, degree=2, intercept=FALSE)'
+    X1config_cp = array( c(1,1), dim=c(1,1))
+  
+    #predictor settings
+    X2config_cp = X1config_cp
+    
+  } else if (cov=='cpe') {
+    
+    covariate_data <- data.frame(Year = c(coldpool:::cold_pool_index$YEAR, 2020),
+                                 Lat = mean(data_geostat1$Lat),
+                                 Lon = mean(data_geostat1$Lon),
+                                 cpe = c(cpe, 0))
+    
+    # Load covariates
+    formula <- ~ cpe
+    Xconfig_zcp <- array(2, dim=c(2,1,1) )
+    X1config_cp <- as.matrix(2)
+    X2config_cp <- as.matrix(2)
+  }
 
-#X1_formula<-' ~ 0'
-#X1config_cp = NULL
+#to get predictions in locations but not influencing fit
+pred_TF <- rep(1, nrow(data_geostat1))
+pred_TF[1:nrow(data_geostat)] <- 0
 
-#formula for positive catch rates equal to presence/absence
-X2_formula<-X1_formula
+if (sp %in% c("Hippoglossoides elassodon","Sebastes melanostictus","Sebastolobus alascanus")) {
+  steps<-5
+} else{
+  steps<-1
+}
 
-#predictor settings
-X2config_cp = X1config_cp
-#formula for positive catch rates equal to presence/absence
-X2_formula<-X1_formula
-
-#predictor settings
-X2config_cp = X1config_cp
-
-#modify settings to use 2 or 3 factors on the spatial and spatiotemporal variation
-# if (grepl('IID',m)) {
-#   settings$FieldConfig[c('Epsilon','Omega'),]<-'IID'
-# } else if (grepl('f2',m)) {
-#   settings$FieldConfig[c('Epsilon','Omega'),]<-2
-# } else if (grepl('f3',m)) {
-#   settings$FieldConfig[c('Epsilon','Omega'),]<-3
-# }
-st<-Sys.time()
-#fit model #### ADD TryCatch{(),}
-
-#names(data_geostat1)[5]<-'CPUE_kg'
-
+#fit
 fit <- tryCatch( {fit_model(settings=settings,
                             Lat_i=data_geostat1$Lat, 
                             Lon_i=data_geostat1$Lon,
                             t_i=data_geostat1$Year,
-                            b_i=data_geostat1$CPUE_kg,
+                            b_i=data_geostat1$Weight_kg,
                             c_iz = as.numeric(factor(data_geostat1$Species))-1,
                             a_i=data_geostat1$Effort,
                             input_grid=bering_sea_slope_grid,
                             getJointPrecision = TRUE,
                             test_fit=FALSE,
                             #create_strata_per_region = TRUE,  
-                            covariate_data = covariate_data[,c('Year',"Lat","Lon","ScaleLogDepth","Depth","CPUE_kg")], 
-                            X1_formula =  X1_formula,
-                            X2_formula = X2_formula, 
-                            newtonsteps = 1,
+                            covariate_data = covariate_data,
+                            X1_formula =  formula,
+                            X2_formula = formula, 
+                            newtonsteps = steps,
                             PredTF_i = pred_TF,
                             #X_gtp = X_gtp,
                             working_dir = paste(out_dir,fol_region,sp,'/',sep='/'))},
@@ -436,23 +391,18 @@ fit <- tryCatch( {fit_model(settings=settings,
                    # Choose a return value in case of error
                    return(NULL)
                  })
+  
+  check_fit(fit$parameter_estimates)
+  
+  #convergence
+  df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
+  
 
-  #drop_units(fit$Report$D_gct[,1,])
-
-  #check_fit(fit$parameter_estimates)
-  
-  if (class(fit)=='fit_model') {
-    
-    save(list = 'fit',file=paste(out_dir,fol_region,sp,'fit_st.RData',sep = '/'))}
-}
-  
-  
-  
-  
-  
-  
-  #load('./slope EBS VAST/Gadus chalcogrammus/fit.RData')
-  
+  # #save model if fit object complet
+  # if (class(fit)=='fit_model') {
+  #   
+  #   save(list = 'fit',file=paste(out_dir,fol_region,sp,'fit_st.RData',sep = '/'))}
+  # 
   #array to store simulated densities/CPUE
   sim_dens<-array(NA,
                   dim=c(nrow(bering_sea_slope_grid),length(unique(data_geostat1$Year)),n_sim_hist),
@@ -461,19 +411,20 @@ fit <- tryCatch( {fit_model(settings=settings,
   #create folder simulation data
   dir.create(paste0('./output/species/',sp,'/simulated historical data slope/'))
 
-
+  #save if fit model object complet
   if (class(fit)=='fit_model') {
     
     save(list = 'fit',file=paste(out_dir,fol_region,sp,'fit_st.RData',sep = '/'))
 
     #load('./slope EBS VAST/Anoplopoma fimbria/fit.RData')
     
+    #loop over simulations
     for (isim in 1:n_sim_hist) { #simulations
       
       #isim<-1
       
       #print simulation to check progress
-      cat(paste(" #############   Species", sp, match(sp,spp), 'out of',length(spp),  "  #############\n",
+      cat(paste(" #############   Species", sp, match(sp,spp_slope), 'out of',length(spp_slope),  "  #############\n",
                 " #############  historical simulation", isim, "of",n_sim_hist, " #############\n"))
       
       #simulate data from OM
@@ -485,11 +436,6 @@ fit <- tryCatch( {fit_model(settings=settings,
       sim_bio <-matrix(data = Sim1$b_i[pred_TF == 1], #kg
                        nrow = nrow(bering_sea_slope_grid),
                        ncol = length(unique(unique(data_geostat1$Year))))
-      
-      
-      # head(sim_bio)
-      # colSums(sim_bio)
-      # Sim1$Index_ctl
       
       #biomass (kg) to CPUE (kg/km2)
       sim_dens[,,isim]<-sim_bio/bering_sea_slope_grid$Area_in_survey_km2
@@ -506,6 +452,89 @@ fit <- tryCatch( {fit_model(settings=settings,
   #sim_hist_dens_spp[,,,sp]<-sim_dens
 }
 
+
+#####################
+# check the slope model that converged
+#####################
+
+#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#spp<-gsub('/fit.RData','',fitfiles)
+df_conv<-data.frame(spp=c(spp))
+
+#prepare dataframe optimization
+#df_conv$slope<-NA
+df_conv$slope_st<-NA
+df_conv$EBS_NBS<-NA
+
+for (sp in spp) {
+  
+  #sp<-spp[7]
+  
+  cat(paste0('#####  ',sp,'  #######\n'))
+  
+  #f<-fitfiles[1]
+  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+  }
+  
+  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
+  }
+  
+  #non ST if nonconvergence in st
+  # if ( df_conv[which(df_conv$spp==sp),'slope']!='There is no evidence that the model is not converged') {
+  
+  # if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))!=0) {
+  #   load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
+  # }
+  # 
+  # #EBS+NBS fit
+  # if (file.exists(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))) {
+  #   
+  #   #load fit file
+  #   load(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))
+  #   
+  #   #dimensions and check fit
+  #   #dim(fit$Report$D_gct) #53464
+  #   #check_fit(fit$parameter_estimates)
+  #   
+  #   if (is.null(fit)) {
+  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
+  #   } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
+  #   }else{
+  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
+  #   }
+  #   
+  # } else {
+  #   
+  #   df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
+    
+  }
+  
+
+
+#sort table by sci name
+df_conv<-df_conv[order(df_conv$spp),]
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x == "There is no evidence that the model is not converged", 
+                                                "convergence", x))
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x %in% c("The model is likely not converged",'Model is not converged'), 
+                                                "non-convergence", x))
+
+
+df_conv
+rownames(df_conv)<-NULL
+write.csv(df_conv,file=('./tables/slope_conv.csv'))
 #save 100 simulated historical densities for all species
 #save(sim_hist_dens_spp, file = paste0("./output/species/sim_hist_dens_spp.RData"))
 #save true densities and index for all species
@@ -523,11 +552,11 @@ n_sim<-100
 
 #array to store simulated densities/CPUE
 sim_dens1 <- array(NA,
-                   dim = c(nrow(bering_sea_slope_grid), length(spp), length(unique(data_geostat1$Year)), n_sim),
-                   dimnames = list(1:nrow(bering_sea_slope_grid), spp, sort(unique(data_geostat1$Year)), 1:n_sim))
+                   dim = c(nrow(bering_sea_slope_grid), length(spp), length(2002:2016), n_sim),
+                   dimnames = list(1:nrow(bering_sea_slope_grid), spp, sort(2002:2016), 1:n_sim))
 
 #parallel loop over spp
-foreach(sp = spp) %do% {
+foreach(sp = spp_slope) %do% {
   
   #sp<-spp[1]
   
@@ -535,9 +564,9 @@ foreach(sp = spp) %do% {
   load(paste0('./output/species/', sp, '/simulated historical data/sim_dens_slope.RData'))
   
   #parallel loop over years and simulations
-  foreach(y = yrs) %:%
+  foreach(y = 2002:2016) %:%
     foreach(sim = 1:n_sim) %do% {
-      #y<-'1982';sim<-'1'
+      #y<-'2002';sim<-'1'
       
       #store results
       sim_dens1[, sp, as.character(y), as.character(sim)] <- sim_dens[, as.character(y), as.character(sim)]
@@ -548,5 +577,31 @@ foreach(sp = spp) %do% {
 stopCluster(cl)
 
 #store HIST simulated data
-save(sim_dens1, file = paste0('./output/species/ms_sim_dens_slope.RData'))  
-#load(file = paste0('./output/species/ms_sim_dens_slope.RData'))
+save(sim_dens1, file = paste0('./output slope/species/ms_sim_dens_slope.RData'))  
+#load(file = paste0('./output slope//species/ms_sim_dens_slope.RData'))
+
+
+################################################
+# CHECK FIT DURING MODEL RUNS
+################################################
+
+
+
+# Create a table grob
+table_plot <- gridExtra::tableGrob(df_conv)
+
+# Plot the table
+grid.newpage()
+grid.draw(table_plot)
+
+#check sim
+#simulate data from OM
+Sim1 <- FishStatsUtils::simulate_data(fit = fit, #kg/km2
+                                      type = 1,
+                                      random_seed = 1)
+
+#select simulated data that belong to grid points
+sim_bio <-matrix(data = Sim1$b_i[pred_TF == 1], #kg
+                 nrow = nrow(bering_sea_slope_grid),
+                 ncol = length(unique(unique(data_geostat1$Year))))
+

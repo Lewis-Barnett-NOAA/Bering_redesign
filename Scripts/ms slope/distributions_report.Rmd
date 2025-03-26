@@ -112,11 +112,9 @@ The equation for the effective area occupied $EAO$ of a species is given by:
 
 $$ EAO = \frac{\text{total abundance}}{\text{mean density}}$$
 
-where: $depth_i$ is the depth of the $i$-th observation
-
 # Results
 
-Annual SBT values were extracted as the mean SBT value over cells from the ROMS Bering-10K model extrapolation grid. Annual mean SBT values were computed for multiple regions: EBS shelf, EBS slope, NBS and all (EBSshelf+EBSslope+NBS). We scaled annual SBT estimates to identify years warm and cold years as well as warm and cold periods. Identified cold and warm years were years with one standard deviation from the mean value. Cold and warm labeling was compared to previous temperature analysis in the area (Siple et al. unpublished) (2002-2005 warm; 2006-2013 cold; 2014:2022 warm)
+Annual SBT values were extracted as the mean SBT value over cells from the ROMS Bering-10K model extrapolation grid. Annual mean SBT values were computed for multiple regions: EBS shelf, EBS slope, NBS and all (EBSshelf+EBSslope+NBS). We scaled annual SBT estimates to identify years warm and cold years as well as warm and cold periods. Identified cold and warm years were years with one standard deviation from the mean value. Cold and warm labeling was compared to previous temperature analysis in the area (Nielsen *et al*., 2024) (2002-2005 warm; 2006-2013 cold; 2014:2022 warm)
 
 ```{r, fig.width=10, fig.height=6}
 
@@ -130,80 +128,70 @@ file_id <- "1WgzeMc47Al3zwtuz_oOL6V3H6mImSbYt"
 suppressMessages(
 drive_download(as_id(file_id),path = "./grid_EBS_NBS.RData",overwrite = TRUE))
 
-#file_url <- "https://drive.google.com/uc?export=download&id=FILE_ID"
-#download.file(file_url, destfile = "./grid_EBS_NBS.RData")
-
 #load file grid
 load('./grid_EBS_NBS.RData') #grid.ebs_year
+# Define a custom function to calculate mean and SD
+calc_stats <- function(x) {
+  c(mean = mean(x, na.rm = TRUE),
+    SD = sd(x, na.rm = TRUE))
+}
 
-#average SBT by region and year
-temp_region<-aggregate(Temp ~ Year + region,grid.ebs_year,FUN=mean)
-names(temp_region)<-c('year','region','temp')
+# Use aggregate to calculate statistics for Temp by Year and region
+temp_region <- aggregate(Temp ~ Year + region, data = grid.ebs_year, FUN = calc_stats)
 
-#get average SBT for all region (EBSshelf+NBS+EBSslope)
-alltemp<-aggregate(temp ~ year, temp_region,FUN=mean)
-alltemp$region<-'all'
-alltemp<-alltemp[,c("year","region","temp")]
+# Convert the output to a dataframe
+temp_region <- do.call(data.frame, temp_region)
+names(temp_region) <- c('year', 'region', 'mean_temp', 'SD')
 
-#rbind
-temp_region<-rbind(temp_region,alltemp)
+# Calculate the average for all regions
+alltemp <- aggregate(mean_temp ~ year, data = temp_region, FUN = mean)
+alltemp$region <- 'all'
+alltemp$SD <- aggregate(SD ~ year, data = temp_region, FUN = mean)$SD
+
+# Combine the datasets
+temp_region <- rbind(temp_region, alltemp)
 
 # Scaling values by group
-temp_region1 <- data.frame(temp_region %>%
-                             group_by(region) %>%
-                             mutate(scaledtemp = scale(temp)) %>%
-                             ungroup())
+temp_region1 <- temp_region %>%
+  group_by(region) %>%
+  mutate(scaledtemp = scale(mean_temp)) %>%
+  ungroup()
 
-#classify by cold/warm/normal years
+# Classify by cold/warm/normal years
 temp_region1$typeyear <- ifelse(temp_region1$scaledtemp > 1, 
                                 "warm", ifelse(temp_region1$scaledtemp < -1, 
                                                "cold", "normal"))
 
-#cold/warm years
-cyrs<-unique(temp_region1[which(temp_region1$typeyear == c('cold') & 
-                                  temp_region1$region=='all'),'year'])
-wyrs<-unique(temp_region1[which(temp_region1$typeyear == c('warm') & 
-                                 temp_region1$year %in% c(1982:2022) & 
-                                  temp_region1$region=='all'),'year'])
-
-# Define the years you want to bold
-bold_years <- c(2002, 2004, 2008, 2010, 2012, 2016)
-
-# Create custom labels function
-custom_labels <- function(x) {
-  sapply(x, function(year) {
-    if (year %in% bold_years) {
-      paste0("**", year, "**")
-    } else {
-      as.character(year)
-    }
-  })
-}
-
-#plot
+# Plot with SD
 print(
 ggplot() +
   geom_rect(aes(xmin = 2001.5, xmax = 2005.5, ymin = -Inf, ymax = Inf, fill = "red"), 
             alpha = 0.5) +
-  geom_rect(aes(xmin = 2013.5, xmax = 2022, ymin = -Inf, ymax = Inf, fill = "red"), 
+  geom_rect(aes(xmin = 2013.5, xmax = Inf, ymin = -Inf, ymax = Inf, fill = "red"), 
             alpha = 0.5) +
   geom_rect(aes(xmin = 2005.5, xmax = 2013.5, ymin = -Inf, ymax = Inf, fill = "blue"), 
             alpha = 0.5) +
-  geom_point(data = subset(temp_region1, region == 'all' & year %in% c(1982:2022)), 
-             aes(x = year, y = temp, color = region)) +
-  geom_line(data = subset(temp_region1, region == 'all' & year %in% c(1982:2022)), 
-            aes(x = year, y = temp, color = region)) +
+  geom_ribbon(data = subset(temp_region1, region == 'all' & year %in% c(1982:2022)),
+              aes(x = year, ymin = mean_temp - SD, ymax = mean_temp + SD), fill = 'gray', alpha = 0.4) +
+  geom_hline(yintercept = colMeans(subset(temp_region1, region == 'all' & year %in% 1982:2022)[,'mean_temp']), alpha = 0.5, linetype = 'dashed') +
+  geom_line(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+            aes(x = year, y = mean_temp, color = region)) +
+  #geom_point(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+  #           aes(x = year, y = mean_temp, color = region),size=.7) +
+  scale_fill_manual(values = c("red" = "#cc1d1f", "blue" = "#1675ac"),
+                    labels = c("normal-cold", "warm"),
+                    name = "SBT regime") +
   scale_color_manual(values = c('all' = 'black'),
                      breaks = c('all'),
-                     labels = c('Bering\nSea'),name='') +
-  scale_fill_manual(values = c("red" = "red", "blue" = "blue"),
-                    labels = c("cold", "warm"),
-                    name = "SBT regime") +
+                     labels = c('Bering\nSea'),name='',guide=FALSE) +
   theme_bw() +
-  scale_x_continuous(limits = c(1982, 2022),minor_breaks = c(1982:2022),
-                     breaks = c(1982,1990,2000,2010,2020,2022)) +
-  theme(text = element_text(size = 12))+
-  labs(x = '', y = 'average SBT')
+  scale_x_continuous(breaks = c(1985,1990,1995,2000,bold_years,2020),
+                     minor_breaks = c(1982:2022), 
+                     labels = custom_labels, limits = c(1982, 2022),
+                     expand = c(0,0)) +
+  theme(axis.text.x = element_markdown(angle = 45,hjust=1),
+        axis.text.y = element_text(),text = element_text(size = 12)) +
+  labs(x = '', y = 'mean SBT')
 )
 
 #plot

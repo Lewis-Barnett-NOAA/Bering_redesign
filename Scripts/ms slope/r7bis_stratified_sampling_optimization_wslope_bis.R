@@ -135,14 +135,14 @@ load('./extrapolation grids/bering_sea_slope_grid.rda')
 dim(bering_sea_slope_grid)
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-999
-#gridslope<-data.frame(bering_sea_slope_grid,region='SBS')
+#gridslope<-data.frame(bering_sea_slope_grid,region='SLP')
 
 #load EBS+NBS grid
 load('./extrapolation grids/northern_bering_sea_grid.rda')
 load('./extrapolation grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
-                          data.frame(bering_sea_slope_grid,region='SBS')))
+                          data.frame(bering_sea_slope_grid,region='SLP')))
 ncell_ebsnbs<-nrow(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                          data.frame(eastern_bering_sea_grid,region='EBS')))
 ncell_nbs<-nrow(rbind(data.frame(northern_bering_sea_grid,region='NBS')))
@@ -246,7 +246,6 @@ dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
 ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
-
 ###################################
 # Sampling designs
 ###################################
@@ -270,9 +269,6 @@ samp_df<-rbind(samp_df,samp_slope)
 #add scenario number
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
-#save table that relate survey design (here scn) to variables
-save(samp_df,file='./tables/samp_df.RData')
-
 #########################
 # loop over optimized sampling designs
 #########################
@@ -282,14 +278,15 @@ save(samp_df,file='./tables/samp_df.RData')
 #loop through sampling designs
 for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   
-  #s<- 2
+  s<- 17
   
   #print scenario to check progress
   cat(paste("\n #############  Sampling Scenario", samp_df[s,"samp_scn"], " #############\n"))
   
   #domain
   dom<-samp_df[s,'domain']
-  idom<-samp_df[s,'idomain']
+  #dom<-1
+  idom<-NULL
   
   ###############
   # load ms data and settings
@@ -298,9 +295,6 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   if (samp_df[s,'type']=='static') {
     #load multispecies data
     load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
-    df<-data.frame(df[,c(1:9)],
-                   regime='all',
-                   df[,c(10:ncol(df))],check.names = FALSE)
     regime<-c('all')
   } else {
     #load multispecies data
@@ -344,49 +338,56 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   #years
   n_years<-length(2002:2016)
     
+  #loop over regimes
     for (r in regime) {
   
       #r<-regime[1]
-      summary(static_df1)
       #subset cells with appropiate depth
       static_df1<-subset(df1,cell %in% ok_cells)
+      static_df1<-subset(static_df1,cell %in% c(1:53464))
+      
+      #for slope as one single strata
+      static_df1_slope<-subset(df1,cell %in% ok_cells & cell > 53464)
+      Mslope<-colMeans(static_df1_slope[,paste0('Y',1:23)])
+      Sslope<-apply(static_df1_slope[,paste0('Y',1:23)], 2, sd)
+
+      static_df1_all<-subset(df1,cell %in% ok_cells)
       #dim(static_df1)
       #dim(df1)
       
       #n cells
       n_cells<-nrow(static_df1)
-      
 
       #filter by regime if dynamic
-      #if (length(regime)==2) {
-      static_df1<-subset(static_df1,regime==r)
-      #}
+      if (length(regime)==2) {
+        static_df1<-subset(static_df1,regime==r)
+        #remove regime column
+        static_df1<-static_df1[,-10]
+      }
       
       #domain_input
       domain_input<-rep(1, nrow(static_df1))
+      #domain_input<-c(rep(1, nrow(static_df1)/2),rep(2, (nrow(static_df1)/2)+1))
+      #domain_input<-ifelse(static_df1$cell>53464,2,1)
       
       #static_df1[!complete.cases(static_df1), ]
-      #filter 
+      static_df1<-static_df1[,colSums(static_df1[,1:ncol(static_df1)]) != 0]      
       
-      #static_df1<-static_df1[,colSums(static_df1[,11:ncol(static_df1)]) != 0]      
+      #selected Ys with values
+      sel_ys<-names(static_df1[,colSums(static_df1[,1:ncol(static_df1)]) != 0])[10:ncol(static_df1)]
+      sel_ys <- sel_ys[nchar(as.character(sel_ys)) %in% c(2, 3)]
       
-      
-      # Select columns 1 to 10
-      selected_columns <- static_df1[, 1:10]
-      
-      # Identify columns from 11 to ncol(df1) with non-zero column sums
-      non_zero_columns <- static_df1[, 11:ncol(static_df1)][, colSums(static_df1[, 11:ncol(static_df1)]) != 0]
-      
-      # Combine the selected columns
-      static_df1 <- cbind(selected_columns, non_zero_columns)
+      #subset domain slope
+      Mslope<-Mslope[sel_ys]
+      Sslope<-Sslope[sel_ys]
       
       # Extract the two parts of the vector
-      ys <- paste0('Y',1:(length(colnames(static_df1)[11:(ncol(static_df1))])/2))
-      sq_sums <- paste0('Y',1:(length(colnames(static_df1)[11:(ncol(static_df1))])/2),c('_SQ_SUM'))
+      ys <- paste0('Y',1:(length(colnames(static_df1)[9:(ncol(static_df1))])/2))
+      sq_sums <- paste0('Y',1:(length(colnames(static_df1)[9:(ncol(static_df1))])/2),c('_SQ_SUM'))
       
       # Interleave the two parts
-      colnames(static_df1)[11:(ncol(static_df1))]<- c(rbind(ys, sq_sums))
-      tar_var<-colnames(static_df1)[11:(ncol(static_df1))]
+      colnames(static_df1)[10:(ncol(static_df1))]<- c(rbind(ys, sq_sums))
+      tar_var<-colnames(static_df1)[10:(ncol(static_df1))]
       #names(df)[((ncol(df)-length(tar_var))+1):ncol(df)]<-tar_var
       ispp<-n_spp<-length(tar_var)/2
   
@@ -397,7 +398,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       } else {
         stratum_var_input<-data.frame(X1 = static_df1[,paste0(sub("\\_.*", "", samp_df[s,'strat_var']))])
       }
-      
+        
       #target variables
       target_var_input<-static_df1[,tar_var]
       n_samples<-srs_n<-samp_df[s,'n_samples']
@@ -408,6 +409,15 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
                           stratum_var_input, #Stratification variables
                           WEIGHT=n_years, #weight for spp depending on the presence of years
                           target_var_input) #target variables 
+      
+      
+      # #create df
+      # frame_cv <- data.frame(domainvalue = ifelse(static_df1_all$cell>53464,2,1), #domain
+      #                     id = static_df1_all$cell, #id as cells
+      #                     data.frame(X1 = static_df1_all[,paste0(sub("\\_.*", "", samp_df[s,'strat_var']))]), #Stratification variables
+      #                     WEIGHT=n_years, #weight for spp depending on the presence of years
+      #                     static_df1_all[,tar_var]) #target variables 
+      
       
       # #correct years
       #         frame$WEIGHT<-ifelse(frame$id %in% 1:15180,6,
@@ -430,6 +440,10 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       ## SRS statistics
       srs_var <- srs_stats[, paste0("S", 1:ispp)]^2 * (1 -  srs_n/ n_cells) / srs_n
       srs_cv <- sqrt(srs_var) / srs_stats[, paste0("M", 1:ispp)]
+      
+      ## SRS statistics SLOPE
+      srs_var_slope <- Sslope^2 * (1 -  srs_n/ nrow(static_df1_slope)) / srs_n
+      srs_cv_slope <- data.frame(t(sqrt(srs_var_slope) / Mslope))
       
       #CV
       cv_df <- list()
@@ -454,13 +468,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       ###################################
       # Run optimization
       ###################################
-      
-      #for plot 
-      #load('./data processed/grid_EBS_NBS.RData')
-      #gridi<-
-        #unique(grid.ebs_year[,c('Lat','Lon','DepthGEBCO')])
-      #gridi1<-subset(gridi,DepthGEBCO <= 400)
-      
+
       #count
       count<-0
       
@@ -487,6 +495,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
                                 writeFiles = FALSE)
         
         #aggregate(solution$indices$ID ~ solution$indices$X1,FUN=length)
+        aggregate(solution$framenew$ID ~ solution$framenew$STRATO + solution$framenew$DOMAINVALUE,FUN=length)
         
         #plot strata
         solution$framenew$strata<-paste0(solution$framenew$DOMAINVALUE,'_',solution$framenew$STRATO)
@@ -505,11 +514,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
          } else if (nrow(solution$aggr_strata)>samp_df$n_strata[s]*dom){
           cv_df[,c(2:(ispp+1))]<-cv_df[,c(2:(ispp+1))]+cv_df[,c(2:(ispp+1))]*0.10} #increase 1%
       }
-  
-  
-  
-  
-      
+
       ###################################
       # Store solutions from optimizations
       ###################################
@@ -577,11 +582,12 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       ##   Calculate single-species CV subject to the initial stratification
       #######################
   
+      #srs_cv_slope[is.na(srs_cv_slope)]<-1
       
       ss_sample_allocations <- expand.grid(n = n_samples, species = spp)
       
       for (iispp in 1:ispp) {
-        #iispp<-17
+       #iispp<-1
         
         temp_n <- result_list$n
         
@@ -591,10 +597,18 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
                                    paste0("Y", iispp), paste0("Y", iispp, "_SQ_SUM")))
         names(ss_df)[grep(x = names(ss_df), pattern = "Y")] <- c("Y1", "Y1_SQ_SUM")
         
+        ss_df$domainvalue<-ifelse(ss_df$id>53464,2,1)
+        
         ## Create CV inputs to the Bethel algorithm; initialize at SRS CV
           error_df <- data.frame("DOM" = c(1:dom),
                                 'CV1'=as.numeric(srs_cv[,iispp]),
                                  "domainvalue"  = c(1:dom))
+          
+          error_df<-rbind(error_df,
+                          data.frame("DOM" = 2,
+                                     'CV1'=as.numeric(srs_cv_slope[,iispp]),
+                                     "domainvalue"  = 2))
+          
           #names(error_df)[2] <- "CV1"
           
           ## subset stratum stats for the species of interest as inputs to the 
@@ -604,9 +618,19 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
                                        paste0("M", iispp), paste0("S", iispp), 
                                        "COST", "CENS", "DOM1", "X1" ,"SOLUZ")]
           
-          if (dom==2) {
+          
+          slope_temp_stratif<-temp_stratif[1,]
+          
+          slope_temp_stratif$N<-1283
+          slope_temp_stratif[,c(paste0("M", iispp), paste0("S", iispp))]<-c(Mslope[iispp],Sslope[iispp])
+          slope_temp_stratif$DOM1<-2
+          slope_temp_stratif$SOLUZ<-1
+          
+          temp_stratif<-rbind(temp_stratif,slope_temp_stratif)
+          
+          #if (dom==2) {
             temp_stratif$DOM2<-temp_stratif$DOM1
-          }
+          #}
           
           
           temp_stratif$N <- temp_stratif$N / n_years
@@ -629,9 +653,11 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           
           ## Save the current n and cv constraint
           temp_n <- sum(ceiling(temp_bethel))
-          updated_cv_constraint <-ifelse(dom==2,
-                                         as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "]),
-                                         as.numeric(attributes(temp_bethel)$outcv[, "PLANNED CV "]))
+          # updated_cv_constraint <-ifelse(dom==2,
+          #                                as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "]),
+          #                                as.numeric(attributes(temp_bethel)$outcv[, "PLANNED CV "]))
+          
+          updated_cv_constraint <-as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "])
           
             #as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "])
           
@@ -650,10 +676,13 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
                                                   errors = error_df, 
                                                   printa = TRUE)
             
-            temp_n <- sum(as.numeric(temp_bethel))
-            updated_cv_constraint <- ifelse(dom==2,
-                                            as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "]),
-                                            as.numeric(attributes(temp_bethel)$outcv[, "PLANNED CV "]))
+            temp_n <- round(sum(as.numeric(temp_bethel)),digits = 0)
+            # updated_cv_constraint <- ifelse(dom==2,
+            #                                 as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "]),
+            #                                 as.numeric(attributes(temp_bethel)$outcv[, "PLANNED CV "]))
+            
+            updated_cv_constraint <-as.numeric(attributes(temp_bethel)$outcv[c(1,4), "PLANNED CV "])
+          
             print(paste0("n = ", temp_n, ", ", updated_cv_constraint) )
           }
           
@@ -662,9 +691,11 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
             temp_idx <- ss_sample_allocations$n == n_samples & 
               ss_sample_allocations$species == spp[iispp]
           
-          ss_sample_allocations[temp_idx, paste0('CV',1:dom)] <- ifelse(dom==2,
-                                                                        as.numeric(attributes(temp_bethel)$outcv[c(1,4), "ACTUAL CV"]),
-                                                                        as.numeric(attributes(temp_bethel)$outcv[, "ACTUAL CV"]))
+          # ss_sample_allocations[temp_idx, paste0('CV',1:dom)] <- ifelse(dom==2,
+          #                                                               as.numeric(attributes(temp_bethel)$outcv[c(1,4), "ACTUAL CV"]),
+          #                                                               as.numeric(attributes(temp_bethel)$outcv[, "ACTUAL CV"]))
+            
+            ss_sample_allocations[temp_idx, paste0('CV',1:2)] <- as.numeric(attributes(temp_bethel)$outcv[c(1,4), "ACTUAL CV"])
           
           ss_sample_allocations[temp_idx, paste0("Str_", 1:length(temp_bethel))] <- 
             as.integer(temp_bethel)
@@ -678,7 +709,8 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       ##   stratification.
       #####################
       
-      ms_sample_allocations <- expand.grid(n = rep(n_samples,length(unique(domain_input))))
+      #ms_sample_allocations <- expand.grid(n = rep(n_samples,length(unique(domain_input))))
+      ms_sample_allocations <- expand.grid(n = rep(n_samples,2))
       
       ## Subset lower limits of CVs from the ss cvs
       ss_cvs <- subset(ss_sample_allocations, n == n_samples)[,paste0('CV',1:dom)]
@@ -700,6 +732,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         #if (dom==1) {
           
           temp_stratif$DOM1 <- c(rep(1,nrow(temp_stratif)))
+
           
         # } else if (dom==2) {
         #   
@@ -711,10 +744,30 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         
         error_df[is.na(error_df)]<-1
         
+        slope_temp_stratif<-temp_stratif[1,]
+        
+        slope_temp_stratif$N<-1283
+        slope_temp_stratif[1,3:(length(Mslope)+2)]<-Mslope
+        slope_temp_stratif[1,39:(length(Mslope)+38)]<-Sslope
+        slope_temp_stratif$DOM1<-2
+        slope_temp_stratif$SOLUZ<-1
+
+        error_df1<-data.frame("DOM" = 2,
+                              srs_cv_slope,
+                              "domainvalue"  = 2)
+        
+        
+        error_df1[is.na(error_df1)]<-1
+        names(error_df1)[2:(1 + n_spp)] <- paste0("CV", 1:n_spp)
+        
+        error_dfall<-rbind(error_df,error_df1)
+        temp_stratifall<-rbind(temp_stratif,slope_temp_stratif)
+        temp_stratifall$DOM2<-temp_stratifall$DOM1
+        
         ## Run Bethel algorithm and save current n and cv constraints
         temp_bethel <- SamplingStrata::bethel(
-          errors = error_df,
-          stratif = temp_stratif, 
+          errors = error_dfall,
+          stratif = temp_stratifall, 
           realAllocation = T, 
           printa = T)
         
@@ -722,12 +775,13 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         
         # if (dom==2) {
         #   
-        #   updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp,((n_spp*3)+1):(n_spp*4)), "PLANNED CV "])
+           updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp,((n_spp*3)+1):(n_spp*4)), "PLANNED CV "])
         #                                   
         # } else if (dom==1) {
           
-          updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp), "PLANNED CV "])
+        #  updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp), "PLANNED CV "])
           
+           
         #}
         
   
@@ -735,8 +789,8 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         ## between the SRS and SS CVs given n_samples stations. First we calculate 
         ## CVs calculated under SRS for each species with n_samples stations
   
-          temp_srs_var <- srs_stats[, paste0("S", 1:n_spp)]^2 * (1 - n_samples / n_cells) / n_samples
-          temp_srs_cv <- sqrt(temp_srs_var) / srs_stats[, paste0("M", 1:n_spp)]
+  #        temp_srs_var <- srs_stats[, paste0("S", 1:n_spp)]^2 * (1 - n_samples / n_cells) / n_samples
+  #        temp_srs_cv <- sqrt(temp_srs_var) / srs_stats[, paste0("M", 1:n_spp)]
         
   
         
@@ -759,27 +813,27 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           
           ## Update the CV dataframe input with the updated_cv_constraint
   
-            error_df[, paste0("CV", 1:n_spp)] <- updated_cv_constraint
+            error_dfall[, paste0("CV", 1:n_spp)] <- updated_cv_constraint
           
           
         
           ## Rerun Bethel algorithm
-          temp_bethel <- SamplingStrata::bethel(stratif = temp_stratif,
-                                                errors = error_df, 
+          temp_bethel <- SamplingStrata::bethel(stratif = temp_stratifall,
+                                                errors = error_dfall, 
                                                 printa = TRUE)
           
           temp_n <- sum(as.numeric(temp_bethel))
           
           ## Save sample size and CV constraint
-          if (dom==2) {
+          #if (dom==2) {
             
             updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp,((n_spp*3)+1):(n_spp*4)), "PLANNED CV "])
             
-          } else if (dom==1) {
-            
-            updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp), "PLANNED CV "])
-            
-          }
+          # } else if (dom==1) {
+          #   
+          #   updated_cv_constraint <-  as.numeric(attributes(temp_bethel)$outcv[c(1:n_spp), "PLANNED CV "])
+          #   
+          # }
           
           
           ## Print out result to console
@@ -793,31 +847,35 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
             as.numeric(attributes(temp_bethel)$outcv[1:n_spp, "ACTUAL CV"])
         
           # if (dom==2) {
-          #   ms_sample_allocations[2, paste0("CV", 1:n_spp)] <- 
-          #     as.numeric(attributes(temp_bethel)$outcv[c(((n_spp*3)+1):(n_spp*4)), "ACTUAL CV"])
+            ms_sample_allocations[2, paste0("CV", 1:n_spp)] <-
+              as.numeric(attributes(temp_bethel)$outcv[c(((n_spp*3)+1):(n_spp*4)), "ACTUAL CV"])
           # 
           # }
           # 
           # if (dom==1) {
             
-            ms_sample_allocations[1, paste0("Str_", 1:(length(temp_bethel)))] <- 
-              as.integer(temp_bethel)[1:(length(temp_bethel))]
+            #ms_sample_allocations[1, paste0("Str_", 1:(length(temp_bethel)))] <- 
+            #  as.integer(temp_bethel)[1:(length(temp_bethel))]
             
           # } else if (dom==2) {
           #   
-          #   ms_sample_allocations[1, paste0("Str_", 1:(length(temp_bethel)/2))] <- 
-          #     as.integer(temp_bethel)[1:(length(temp_bethel)/2)]
-          #   ms_sample_allocations[2, paste0("Str_", 1:(length(temp_bethel)/2))] <- 
-          #     as.integer(temp_bethel)[((length(temp_bethel)/2)+1):length(temp_bethel)]
+            ms_sample_allocations[1, paste0("Str_", 1:no_strata)] <-
+              as.integer(temp_bethel)[1:no_strata]
+            ms_sample_allocations[1, 'n'] <-
+              sum(as.integer(temp_bethel)[1:no_strata])
+            ms_sample_allocations[2, paste0("Str_", 1)] <-
+              as.integer(temp_bethel)[((no_strata)+1):length(temp_bethel)]
+            ms_sample_allocations[2, 'n'] <-
+              sum(as.integer(temp_bethel)[((no_strata)+1):length(temp_bethel)])
           #   
           # }
     
 
-        #store number samples per strata
+      #store number samples per strata
       samples_strata<-as.integer(temp_bethel)
   
       #store bethel CV
-      cv_bethel_final<-error_df
+      cv_bethel_final<-error_dfall
       
       #cv
       cv_temp <- rbind(CV_random=cv_initial, #max
@@ -846,7 +904,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       
       #save list
         save(all,
-             file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData"))
+             file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData"))
         
         #strata to plot
         dd<-all$result_list$solution$framenew
@@ -909,10 +967,10 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           p <- plot_grid(p1, p2) #labels=c('A', 'B')
           
           if (r=='all') {
-            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png')
+            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type']), fontface='bold')
           } else {
-            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'.png')
+            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type'],'-',r), fontface='bold')
           }
           
@@ -966,7 +1024,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   #   df1<-
   #     df[which(df$cell<=53464),]
   #   #if ebs and slope
-  # } else if (samp_df[s,'region']=='EBS+SBS') {
+  # } else if (samp_df[s,'region']=='EBS+SLOPE') {
   #   df1<-
   #     df[which(df$cell>=15180+1),]
   #   #if all region
@@ -996,7 +1054,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #save list
     load(
-         file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #all
+         file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
@@ -1183,7 +1241,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #load list
     load(
-      file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #all
+      file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
@@ -1247,75 +1305,3 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 plot_grid(plotlist = plot_list,nrow = 4)
 
 1
-
-
-#check
-samp_df
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn1_all.RData"))
-all$cv #ebs
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn3_all.RData"))
-all$cv #with nbs
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn5_all.RData"))
-all$cv #with slope
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn7_all.RData"))
-all$cv #all
-
-#SPECIES CHECK
-#loop through sampling designs
-#for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
-#for (s in c(1:4,9:12)) { #nrow(samp_df)
-for (s in c(5:8,13:24)) { #nrow(samp_df)
-    
-  #s<- 1
-  #s<-12
-  #print scenario to check progress
-  cat(paste("\n #############  Sampling Scenario", samp_df[s,"samp_scn"], " #############\n"))
-  
-  #domain
-  dom<-samp_df[s,'domain']
-  idom<-samp_df[s,'idomain']
-  
-  ###############
-  # load ms data and settings
-  ###############
-  
-  if (samp_df[s,'type']=='static') {
-    #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
-    regime<-c('all')
-  } else {
-    #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
-    regime<-c('cold','warm')
-  }
-  
-  #if ebs
-  if (samp_df[s,'region']=='EBS') {
-    df1<-
-      df[which(df$cell<=53464 & df$cell>=15180+1),]
-    #if ebs and nbs
-  } else if (samp_df[s,'region']=='EBS+NBS') {
-    df1<-
-      df[which(df$cell<=53464),]
-    #if ebs and slope
-  } else if (samp_df[s,'region']=='EBS+SBS') {
-    df1<-
-      df[which(df$cell>=15180+1),]
-    #if all region
-  } else {
-    df1<-df
-  }
- 
-  spp_cols1<-paste0(spp_name$spp,'_sumDensity_sq')
-  spp_cols2<-paste0(spp_name$spp,'_sumDensity')
-  spp_cols<-c(spp_cols1,spp_cols2)
-  
-  df1<-df1[,spp_cols]
-  # Ensure only numeric columns are selected
-  spps <- (names(df1)[colSums(df1[sapply(df1, is.numeric)]) != 0])
-  # Remove everything after the first underscore
-  spps <- sort(unique(sub("_.*", "", spps)))
-  #print
-  cat(paste0('############# ',samp_df[s,'region'], ' - ', length(spps), ' #################\n'))
-  cat(paste0('############# ',spps, ' #################\n'))
-}

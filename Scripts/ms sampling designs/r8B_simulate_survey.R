@@ -727,3 +727,138 @@ for (sbt in df_sbt$sbt_n) {
 }
 
         
+
+############################################################################
+############################################################################
+############################################################################
+#                       EXPERIMENT NUMBER OF SURVEYS
+############################################################################
+############################################################################
+############################################################################
+
+#simulated densities
+load(file = paste0('./output/species/ms_sim_dens.RData'))  #sim_dens1
+
+#1year - 1simulated dens - 1 species
+dimnames(sim_dens1)
+sim_dens2<-sim_dens1[,'Gadus macrocephalus','1982','1']
+
+#get survey designs for one stratification design
+#load survey allocations by sampling design
+load(file = paste0('./output/survey_allocations_scn3.RData')) #scn_allocations
+dimnames(scn_allocations)
+scn_allocations1<-data.frame(scn_allocations[,,'rand'])
+unique(scn_allocations1$sur) #4000 survey designs
+
+
+#load optimization results
+load(paste0("./output/ms_optim_allocations_scn3.RData")) #all
+
+#area
+area_cell<-merge(all$result_list$solution$indices, grid2, by.x='ID',by.y='cell')
+
+#area by strata
+strata_areas <- aggregate(Area_in_survey_km2 ~ X1, 
+                          FUN = sum,
+                          data = area_cell)
+
+#strata data
+survey_detail <- data.frame("Stratum" = all$samples_strata$strata, #strata
+                            'Nh' = as.integer(table(all$result_list$solution$indices$X1)), #number of cells
+                            "nh" = all$samples_strata$n_samples) #number of sample allocations
+
+#weight of strata for each
+survey_detail$Wh <- survey_detail$Nh / sum(survey_detail$Nh)
+survey_detail$wh <- with(survey_detail, nh/Nh)
+
+cv.all<-c()
+
+#loop over station allocation approac
+for (sur in 1:4000) {
+  
+  #sur<-1
+  
+  apr<-'rand'
+  
+  #print process        
+  #cat(paste(" #############  ",samp,'- simdata',sim,'- sbt',sbt,'- survey',sur, '- year',y ,'- allocation',apr," #############\n"))
+  
+  #get densities based on station allocations
+  sim_survey<-data.frame(cbind(strata=scn_allocations1[which(scn_allocations1$sur==sur),c('strata')],
+                               dens=sim_dens2[scn_allocations1[which(scn_allocations1$sur==sur),c('cell')]]),check.names = FALSE)
+  
+  sim_survey1<-reshape2::melt(sim_survey,id.vars=c('strata'))
+  
+  #mean, sum and var by strata and year (variable)
+  sim_survey2<-aggregate(x=sim_survey1$value,
+                         by=list(strata=sim_survey1$strata,sp=sim_survey1$variable),
+                         FUN = function(x) c('mean' = mean(x,na.rm=T), 'sum' = sum(x),'var' = var(x,na.rm=T) ))
+  
+  #create df
+  zzz<-data.frame('strata'=sim_survey2$strata,'sp'=sim_survey2$sp,'mean'=sim_survey2$x[,c('mean')],'var'=sim_survey2$x[,c('var')]) #/length(yy$value)
+  zzzz<-merge(zzz,strata_areas,by.x='strata',by.y='X1',all.x=TRUE)
+  zzzz<-merge(zzzz,survey_detail,by.x='strata',by.y='Stratum',all.x=TRUE)
+  
+  #add index strata for sum to compute index (mean strata density * area of strata) kg!
+  zzzz$index_strata<-zzzz$mean*zzzz$Area_in_survey_km2
+  
+  #add strata var 
+  zzzz$strs_var<-zzzz$var*(zzzz$Area_in_survey_km2^2)/zzzz$nh #sum(survey_detail$Nh) 
+  
+  #sum of strata var and mean density across years (kg/km2)
+  zzzz1 <- aggregate(zzzz[,c('strs_var','index_strata')], by= list(zzzz$sp),FUN = sum)
+  
+  #get CV across years
+  zzzz1$cv<- sqrt(zzzz1$strs_var) / zzzz1$index_strata
+  
+  #mean CV 
+  mean(zzzz1$cv,na.rm=TRUE)
+  
+  #get outputs
+  STRS_mean <- zzzz1$index_strata
+  STRS_var <- zzzz1$strs_var
+  CV <- sqrt(STRS_var) / STRS_mean
+  
+  cv.all<-c(cv.all,CV)
+
+}
+
+######
+
+cv.all<-data.frame(cv.all)
+names(cv.all)<-'cv'
+
+cv.all$dummy<-1
+
+set.seed(6)
+
+p<-
+ggplot() +
+  geom_hline(yintercept = mean(cv.all[sample(nrow(cv.all), 100), 'cv']),linetype='dashed')+
+  geom_boxplot(data=cv.all[sample(nrow(cv.all), 100), ], aes(y=cv, x=factor('100', levels=c('100', '200', '500', '1000', '4000')))) +
+  geom_boxplot(data=cv.all[sample(nrow(cv.all), 200), ], aes(y=cv, x=factor('200', levels=c('100', '200', '500', '1000', '4000')))) +
+  geom_boxplot(data=cv.all[sample(nrow(cv.all), 500), ], aes(y=cv, x=factor('500', levels=c('100', '200', '500', '1000', '4000')))) +
+  geom_boxplot(data=cv.all[sample(nrow(cv.all), 1000), ], aes(y=cv, x=factor('1000', levels=c('100', '200', '500', '1000', '4000')))) +
+  geom_boxplot(data=cv.all[sample(nrow(cv.all), 4000), ], aes(y=cv, x=factor('4000', levels=c('100', '200', '500', '1000', '4000')))) +
+  labs(x='number of surveys',y=expression(widehat(CV)))+
+  theme_bw()
+
+#save index plot
+ragg::agg_png(paste0('./figures/number_simulated surveys.tiff'), width = 7, height = 4, units = "in", res = 300)
+p
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

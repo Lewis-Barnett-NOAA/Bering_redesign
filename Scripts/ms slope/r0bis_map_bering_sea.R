@@ -77,16 +77,16 @@ for (i in shfiles) {
   
   #i=shfiles[1]
   
-  id.data<-files.1[which(grepl(i,files.1$name)),]
-  
-  for (j in 1:nrow(id.data)) {
-    
-    #download data
-    googledrive::drive_download(file=id.data$id[j],
-                                path = paste0('./shapefiles/',id.data$name[j]),
-                                overwrite = TRUE)
-    
-  }
+  # id.data<-files.1[which(grepl(i,files.1$name)),]
+  # 
+  # for (j in 1:nrow(id.data)) {
+  #   
+  #   #download data
+  #   googledrive::drive_download(file=id.data$id[j],
+  #                               path = paste0('./shapefiles/',id.data$name[j]),
+  #                               overwrite = TRUE)
+  #   
+  # }
   
   #shapefile EBS
   sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
@@ -208,7 +208,7 @@ googledrive::drive_download(file=file$id,
                             overwrite = TRUE)
 
 #read csv file
-haul<-readRDS(paste0('./data raw/',file$name))
+haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))#,file$name))
 dim(haul);length(unique(haul$hauljoin))
 
 haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
@@ -333,12 +333,7 @@ slop_sppoly<-as(slope$survey.strata, 'Spatial')
 plot(slop_sppoly['STRATUM'])
 length(unique(slop_sppoly$STRATUM))
 
-
-ggplot()+
-  geom_polygon(data=slop_sppoly, aes(x=long, y=lat, group=group,fill=STRATUM))
-
-  
-  #get stratums wfor 200-400m slope
+#get stratums wfor 200-400m slope
 slope200_400<-sort(unique(slop_sppoly$STRATUM))[c(1,6,11,16,21,26)]
 slopesub4<-c(41:45)
 
@@ -391,9 +386,9 @@ zoomin<-
     ggplot()+
     #geom_sf(data=ebs_layers$survey.strata,fill=NA,color='grey30')+
     geom_polygon(data=ak_sppoly,aes(x=long,y=lat,group=group),color='black',linewidth=0.2,fill = 'grey80')+
-    geom_segment(aes(x = seg2[1,'x'], y = seg2[1,'y'], xend = seg2[2,'x'], yend = seg2[2,'y']), colour = "black")+
-    geom_segment(aes(x = seg2[3,'x'], y = seg2[3,'y'], xend = seg2[4,'x'], yend = seg2[4,'y']), colour = "black")+
-    geom_segment(aes(x = seg2[7,'x'], y = seg2[7,'y'], xend = seg2[8,'x'], yend = seg2[8,'y']), colour = "black")+
+    #geom_segment(aes(x = seg2[1,'x'], y = seg2[1,'y'], xend = seg2[2,'x'], yend = seg2[2,'y']), colour = "black")+
+    #geom_segment(aes(x = seg2[3,'x'], y = seg2[3,'y'], xend = seg2[4,'x'], yend = seg2[4,'y']), colour = "black")+
+    #geom_segment(aes(x = seg2[7,'x'], y = seg2[7,'y'], xend = seg2[8,'x'], yend = seg2[8,'y']), colour = "black")+
     #geom_point(data=pts,aes(x=Lon,y=Lat),shape=4,size=1)+
     #geom_point(data=subset(pts,corner==TRUE),aes(x=Lon,y=Lat),shape=4,size=1,color='red')+
     geom_sf(data = xx2_single,fill='#00b159',color='#00b159')+
@@ -426,10 +421,10 @@ zoomin<-
     annotate("text", x = -1376559, y = 2049090, label = "Russia",parse=TRUE,size=7)+
     annotate("text", x = -816559, y = 1454909, label = "NBS",parse=TRUE,size=7)+
     annotate("text", x = -806559, y = 1024909, label = "EBS",size=7)+
-      annotate("text", x = -1460559, y = 1239909, label = "SBS",size=7)+
-    annotate("text", x = seg2[5,'x'], y = seg2[5,'y'], label = "St. Matthew\nIsland",size=5,lineheight = 0.9)+
-      annotate("text", x = seg2[6,'x'], y = seg2[6,'y'], label = "Pribilof\nIslands",size=5,lineheight = 0.9)+
-    annotate("text", x = seg2[9,'x'], y = seg2[9,'y'], label = "St. Lawrence\nIsland",size=5,lineheight = 0.9)+
+    annotate("text", x = -1460559, y = 1239909, label = "BSS",size=7)+
+    #annotate("text", x = seg2[5,'x'], y = seg2[5,'y'], label = "St. Matthew\nIsland",size=5,lineheight = 0.9)+
+    #annotate("text", x = seg2[6,'x'], y = seg2[6,'y'], label = "Pribilof\nIslands",size=5,lineheight = 0.9)+
+    #annotate("text", x = seg2[9,'x'], y = seg2[9,'y'], label = "St. Lawrence\nIsland",size=5,lineheight = 0.9)+
     annotation_scale(location='tr')+
     scale_y_continuous(expand = c(0,0),position = 'right',sec.axis = dup_axis())+
     annotate("text", x = -1376559, y = 744900, label = "italic('Bering Sea')",parse=TRUE,size=9)
@@ -473,7 +468,7 @@ zoomout<-
 
 #save plot
 dir.create('./figures slope/')
-agg_png(paste0('./figures slope/map_bering1.png'), width = 7, height = 7, units = "in", res = 300)
+agg_png(paste0('./figures slope/map_bering2.png'), width = 7, height = 7, units = "in", res = 300)
 grid.newpage()
 vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
 vp_a <- viewport(width = 0.4, height = 0.3, x = 0.217, y = 0.846)  # the inset in upper left
@@ -514,7 +509,7 @@ ggplot()+
 
 
 #load optim file (in script #6 to get meanTemp and varSBT)
-load('./output/multisp_optimization_static_data_ebsnbs_slope_st.RData')
+load('./output slope//multisp_optimization_static_data_ebsnbs_slope_st.RData')
 head(df)
 coordinates(df) <- ~ Lon + Lat
 proj4string(df)<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
@@ -671,3 +666,26 @@ dir.create('./output/',showWarnings = FALSE)
 
 #save data
 save(baseline_strata,file='./output/baseline_strata.RData')
+
+# #######################
+# # calculate distance from shore
+# ######################
+# 
+# # Set up raster extent and resolution
+# raster_extent <- ext(ak_sppoly) # Use the extent of the polygon
+# raster_res <- 1000  # Set resolution in meters (adjust as needed)
+# 
+# # Create an empty raster with the specified extent and resolution
+# distance_raster <- rast(raster_extent, resolution = raster_res)
+# 
+# # Create a binary raster mask where land is 1, and water is NA
+# land_mask <- rasterize(vect(ak_sppoly), distance_raster, field = 1, background = NA)
+# 
+# # Calculate the distance to the nearest land cell
+# distance_raster <- distance(land_mask)
+# 
+# # Convert distances from meters to kilometers
+# distance_raster_km <- distance_raster / 1000
+# 
+# plot(distance_raster_km, main = "Distance from Shore (km)")
+# plot(ak_sppoly,add=TRUE)
