@@ -972,7 +972,7 @@ ggplot(data = metrics_df) +
                color = "black", size = 0.5, adjust = 2) +  # adjust for smoothness
   geom_jitter(aes(x = depthq90 - depthq10, y = species, fill = mean_temp), 
               alpha = 0.5, shape = 21, size = 2, color = rgb(0, 0, 0, alpha = 0.2), 
-              width = 0.01, height = 0.1) +  # Only jitter along the y-axis
+              width = 0.01, height = 0.5) +  # Only jitter along the y-axis
  
   
   scale_x_continuous(expand = c(0, 0)) +  # Adjust x-axis scale
@@ -1024,11 +1024,43 @@ ggplot(data = metrics_df) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim1.png'), width = 7, height = 3, units = "in", res = 300)
+agg_png(paste0('./figures slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
 print(p)
 dev.off()
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim2.png'), width = 7, height = 3, units = "in", res = 300)
+agg_png(paste0('./figures slope/interdecile_depth_sim2.png'), width = 7, height = 5, units = "in", res = 300)
 print(p1)
+dev.off()
+
+
+p2<-
+  ggplot(data = metrics_df) +  
+  # Reorder the 'common' variable by 'mean_temp' for sorting the violins
+  geom_violin(aes(x = depthq90 - depthq10, y = mean_temp, fill = mean_temp, group = mean_temp),  
+              color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
+              trim = FALSE) +  # Adjusted scale for height
+  
+  scale_x_continuous() +  # Adjust x-axis scale
+  
+  facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
+  
+  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
+                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
+  
+  theme_bw() +  
+  theme(
+    #axis.text.y = element_blank(),  # Hide y-axis text
+    #axis.ticks.y = element_blank(),  # Remove y-axis ticks
+    #axis.title.y = element_blank(),  # Remove y-axis title
+    strip.background = element_blank(),  # Clean facet strip background
+    text = element_text(size = 12),  # General font size
+    strip.text = element_text(size = 12)  # Size for facet labels
+  ) +  
+  
+  labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
+
+#save env plot
+agg_png(paste0('./figures slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+print(p2)
 dev.off()
