@@ -259,22 +259,25 @@ library(ggh4x)
 df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
 
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
-df_summary <- aggregate(value ~ region + combined_label + scn1 + 
-                          regime + strat_var, 
+df_summary <- aggregate(value ~ region + combined_label + scn1 + regime + strat_var, 
                         data = df_sub, 
-                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), 
+                                            q10 = quantile(x, 0.10, na.rm = TRUE), 
+                                            q90 = quantile(x, 0.90, na.rm = TRUE)))
 
-# Convert matrix columns to separate numeric columns
+# Extract the values into separate columns
 df_summary$mean_value <- df_summary$value[, "mean"]
-df_summary$sd_value <- df_summary$value[, "sd"]
+df_summary$q10 <- df_summary$value[, "q10.10%"]
+df_summary$q90 <- df_summary$value[, "q90.90%"]
 df_summary$value <- NULL  # Remove old column
+
 
 df_summary$region1<-gsub('+','\n',df_summary$region)
 #levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
 df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
 #plot 2slope
-pBSS2<-
+#pBSS2<-
 ggplot(data=df_summary)+
   #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
   #geom_boxplot(aes(x=scn1,y=mean_value/BSS_km2*1000,fill=combined_label,linetype=combined_label),color='black',alpha=0.7,position=position_dodge(width=0.9))+ # fill='grey90'
@@ -282,10 +285,14 @@ ggplot(data=df_summary)+
                      labels = scales::label_number(accuracy = 0.1),
                      limits = c(0, NA),
                      expand = expansion(mult = c(0, 0.1)))+
-  geom_errorbar(aes(x = interaction(region,strat_var), ymin = (mean_value - sd_value)/BSS_km2*1000, ymax = (mean_value + sd_value)/BSS_km2*1000, 
-                    group = interaction(scn1, regime,combined_label)),
-                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
-  geom_point(aes(x = interaction(region,strat_var), y = mean_value/BSS_km2*1000, fill = combined_label, 
+  geom_errorbar(aes(x = interaction(region, strat_var), 
+                    ymin = q10/BSS_km2*1000, 
+                    ymax = q90/BSS_km2*1000, 
+                    group = interaction(scn1, regime, combined_label)), 
+                width = 0.3, 
+                position = position_dodge(width = 0.9), 
+                color = "black")+
+geom_point(aes(x = interaction(region,strat_var), y = mean_value/BSS_km2*1000, fill = combined_label, 
                  group = interaction(scn1, regime,combined_label), 
                  shape = combined_label), 
              size = 3, position = position_dodge(width = 0.9), color = "black") + 
