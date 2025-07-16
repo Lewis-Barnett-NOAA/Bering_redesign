@@ -501,6 +501,11 @@ aggregate(Lat ~ Year + species, dens_all,FUN=length)
 
 #obs_df1<-obs_df[which(obs_df$year %in% c(cyrs,wyrs)),]
 dens_all<-dens_all[which(dens_all$Year %in% 2002:2016),]
+aggregate(Lat ~ Year + species, dens_all,FUN=length)
+
+#check
+unique(dens_all$region)
+subset(dens_all,Year=='2003' & region=='EBSslope')
 
 #year type
 dens_all$year_type<-ifelse(dens_all$Year %in% c(2002:2005,2014:2016), "warm",'cold')
@@ -560,11 +565,12 @@ mean_dens_df <- dens_all %>%
     .groups = "drop"
   )
 
-p <- ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
+#p <- 
+  ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
   geom_point(alpha = 0.5) +  # Raw mean densities
-  geom_smooth(method = "loess", se = FALSE) +  # Smooth trend
+  geom_smooth(method = "loess", se = TRUE) +  # Smooth trend
   labs(x = 'depth (m)', y = 'mean density (kg/km²)') +
-  scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
+  #scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
   scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
                      labels = c("cold", "warm"),
                      name = 'SBT regime') +
@@ -574,6 +580,27 @@ p <- ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type
         text = element_text(size = 12)) +
   facet_wrap(~common,scales='free_y')
 
+  p<-
+  ggplot(mean_dens_df,
+         aes(x = depth_mid, y = mean_density, color = year_type)) +
+    geom_point(alpha = 0.5) +                               # raw points (original scale)
+    stat_smooth(
+      aes(y = mean_density),                            # use positive version for the fit
+      method       = "gam",
+      formula      = y ~ s(x, bs = "cs"),                  # cubic spline
+      method.args  = list(family = Gamma(link = "log")),   # guarantees > 0 predictions
+      se           = FALSE
+    ) +
+    labs(x = "depth (m)", y = "mean density (kg/km²)") +
+    scale_y_continuous(limits = c(0,NA))+
+    scale_color_manual(values = c(cold = "#1675ac", warm = "#cc1d1f"),
+                       labels  = c("cold", "warm"),
+                       name    = "SBT regime") +
+    theme_bw() +
+    theme(strip.text       = element_text(size = 12),
+          strip.background = element_blank(),
+          text             = element_text(size = 12)) +
+    facet_wrap(~common, scales = "free_y")
 
 #then add wilcoxon densities from observed data
 
@@ -643,8 +670,8 @@ ggplot(plot_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_density.png'), width = 7, height = 4, units = "in", res = 300)
-print(p0)
+agg_png(paste0('./figures slope/depth_distribution_density2.png'), width = 7, height = 4, units = "in", res = 300)
+print(p)
 dev.off()
 
 #load file observed dataframe input 
@@ -1249,8 +1276,8 @@ p1<-
     strip.text = element_text(size = 12),
     panel.grid.minor = element_line(linetype = 'dashed')
   ) + 
-  scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
-                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
+  scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)',
+                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
   # scale_size(name = 'abundance', breaks = c(min(summary_stats$mean_scaledbio), 
   #                                           mean(summary_stats$mean_scaledbio), 
   #                                           max(summary_stats$mean_scaledbio)), 
@@ -2562,14 +2589,14 @@ plot_df <- metrics_df %>%
   left_join(depth_labels, by = "common")
 
 plot_df$legend_label <- "depth range (Q10–Q90)"
-plot_df$point_label <- "depth range width (Q90 - Q10)"
+plot_df$point_label <- "depth niche (Q90 - Q10)"
 # Keep labels as strings in your data frame
 plot_df$legend_label <- "depth range (Q10–Q90)"
-plot_df$point_label <- "depth range width (Q90 - Q10)"
+plot_df$point_label <- "depth niche (Q90 - Q10)"
 
 # Define expression labels for the legend
 legend_label_expr <- expression("depth range"~(Q[10]*","*Q[90]))
-point_label_expr <- expression("depth range width"~(Q[90] - Q[10]))
+point_label_expr <- expression("depth niche"~(Q[90] - Q[10]))
 
 p3<-
 ggplot(plot_df, aes(y = Year)) +
@@ -2583,19 +2610,23 @@ ggplot(plot_df, aes(y = Year)) +
     color = "black"
   ) +
   scale_y_discrete(limits = rev) +
+  
+  # Gradient scales (no guide specified here to avoid being overwritten)
   scale_color_gradientn(
     colors = custom_colors(20),
-    name = "SBT (°C)",
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+    name = "SBT (°C)"
   ) +
   scale_fill_gradientn(
     colors = custom_colors(20),
-    name = "SBT (°C)",
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+    name = "SBT (°C)"
   ) +
-  scale_size_continuous(range = c(1, 4),guide = "none")+  # smaller sizes
+  
+  scale_size_continuous(range = c(1, 4), guide = "none") +  # size legend off
+  
   facet_wrap(~common, scales = "free_x") +
+  
   labs(x = "depth (m)", y = NULL) +
+  
   theme_minimal() +
   theme(
     strip.text = element_text(size = 12),
@@ -2606,53 +2637,62 @@ ggplot(plot_df, aes(y = Year)) +
     legend.spacing.x = unit(0.4, "cm"),
     legend.title = element_text(hjust = 0.5)
   ) +
-  # Manual linetype scale with math expression label
+  
+  # Manual linetype and shape scales
   scale_linetype_manual(
     name = NULL,
     values = c("depth range (Q10–Q90)" = "solid"),
     labels = c(legend_label_expr)
   ) +
-  # Manual shape scale with math expression label
   scale_shape_manual(
     name = NULL,
-    values = c("depth range width (Q90 - Q10)" = 21),
+    values = c("depth niche (Q90 - Q10)" = 21),
     labels = c(point_label_expr)
   ) +
-  # Guides with custom layout
+  
+  # Guides (now including frame/tick settings)
   guides(
     color = guide_colorbar(
       order = 1,
       title.position = "top",
       direction = "horizontal",
-      title.hjust = 0.5
+      title.hjust = 0.5,
+      frame.colour = "black",
+      ticks.colour = "black"
     ),
     fill = guide_colorbar(
       order = 1,
       title.position = "top",
       direction = "horizontal",
-      title.hjust = 0.5
+      title.hjust = 0.5,
+      frame.colour = "black",
+      ticks.colour = "black"
     ),
     linetype = guide_legend(
       order = 2,
       override.aes = list(
         size = 10,
-        color = "black"
+        colour = "black"
       )
     ),
-    shape = guide_legend(order = 3,override.aes = list(size=5))
-#  )
- ) +
-  # Add top-left label for Lat p-value
-  geom_text(
-    data = plot_df %>% distinct(common, label_depth),
-    aes(x = -Inf, y = Inf, label = label_depth),
-    hjust = -0.1, vjust = 1.2,
-    inherit.aes = FALSE,
-    size = 3.5,lineheight = 0.8
+    shape = guide_legend(
+      order = 3,
+      override.aes = list(size = 5)
+    )
   )
 
+ # ) +
+ #  # Add top-left label for Lat p-value
+ #  geom_text(
+ #    data = plot_df %>% distinct(common, label_depth),
+ #    aes(x = -Inf, y = Inf, label = label_depth),
+ #    hjust = -0.1, vjust = 1.2,
+ #    inherit.aes = FALSE,
+ #    size = 3.5,lineheight = 0.8
+ #  )
+
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_pred1.png'), width = 7.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('./figures slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
 print(p3)
 dev.off()
 
