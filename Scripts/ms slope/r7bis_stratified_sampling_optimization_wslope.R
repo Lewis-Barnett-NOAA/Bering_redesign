@@ -1158,10 +1158,12 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 #                      labels=c('static','warm','cold'),name='regime')
 
 
-
+samp_df$region<-gsub('SBS','BSS',samp_df$region)
+samp_df$strat_var<-gsub('Depth','depth',samp_df$strat_var)
+samp_df$type<-gsub('dynamic','adaptive',samp_df$type)
 
 #common legend
-lims<-c(min(mins),max(maxs))
+lims<-c(min(mins[13:24]),max(maxs[13:24]))
 plot_list<-list()
 
 #loop through sampling designs
@@ -1210,9 +1212,9 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #title
     if (r=='all') {
-      title <- paste0(samp_df[s,'region'],'\n',samp_df[s,'strat_var'],' ',samp_df[s,'type'])
+      title <- paste0(samp_df[s,'region'],' and ',samp_df[s,'strat_var'],'\n',samp_df[s,'type'])
     } else {
-      title <- paste0(samp_df[s,'region'],'\n',samp_df[s,'strat_var'],' ',samp_df[s,'type'],' - ',r)
+      title <- paste0(samp_df[s,'region'],' and ',samp_df[s,'strat_var'],'\n',samp_df[s,'type'],'-',r)
     }
     
     #palette
@@ -1231,9 +1233,9 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       theme(axis.title = element_blank(),axis.text = element_blank(),panel.grid = element_blank(),
             legend.key.width = unit(1.5, 'lines'),legend.key.height =  unit(4, 'lines'),
             legend.text = element_text(size=12),legend.title = element_text(size=14),
-            plot.title = element_text(hjust = 0.1,vjust=-15,face='bold'))+      
+            plot.title = element_text(hjust = 0.1,vjust=-5,face='bold'))+      
       #scale_color_gradientn(colours = pal,name='stations/area')
-      scale_color_gradientn(colours = pal,name='stations/area',limits=lims)
+      scale_color_gradientn(colours = pal,name='stations/area',limits=lims) #
     
     plot_list[[paste0(s,'_',r)]]<-p+theme(legend.position = 'none')
   }
@@ -1244,8 +1246,9 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 # cowplot::ggdraw(legend)
 
 #plots
-plot_grid(plotlist = plot_list,nrow = 4)
-
+agg_png(paste0('./figures slope/sampling intensity survey designs.png'), width = 9, height = 13, units = "in", res = 300)
+plot_grid(plotlist = plot_list[13:24],nrow = 4)
+dev.off()
 1
 
 

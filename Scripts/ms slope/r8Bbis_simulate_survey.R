@@ -293,11 +293,12 @@ ggplot(data = df_summary) +
       x = interaction(region, strat_var),
       ymin = (mean_value - sd_value) / BSS_km2 * 1000,
       ymax = (mean_value + sd_value) / BSS_km2 * 1000,
-      group = interaction(scn1, regime, combined_label)
+      group = interaction(scn1, regime, combined_label),
+      color = combined_label
     ),
-    width = 0.3,
+    width = 0.3,size=1,
     position = position_dodge(width = 0.9),
-    color = "black"
+    #color = "black"
   ) +
   geom_point(
     aes(
@@ -329,10 +330,29 @@ ggplot(data = df_summary) +
     label = c(
       'random\nstatic',
       'balanced random\nstatic',
-      'random\ndynamic cold',
-      'balanced random\ndynamic cold',
-      'random\ndynamic warm',
-      'balanced random\ndynamic warm'
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
+    ),
+    name = "sampling allocation\nregime approach"
+  ) +
+  scale_color_manual(
+    values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"
+    ),
+    label = c(
+      'random\nstatic',
+      'balanced random\nstatic',
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
     ),
     name = "sampling allocation\nregime approach"
   ) +
@@ -348,10 +368,10 @@ ggplot(data = df_summary) +
     label = c(
       'random\nstatic',
       'balanced random\nstatic',
-      'random\ndynamic cold',
-      'balanced random\ndynamic cold',
-      'random\ndynamic warm',
-      'balanced random\ndynamic warm'
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
     ),
     name = "sampling allocation\nregime approach"
   ) +
@@ -367,10 +387,10 @@ ggplot(data = df_summary) +
     label = c(
       'random\nstatic',
       'balanced random\nstatic',
-      'random\ndynamic cold',
-      'balanced random\ndynamic cold',
-      'random\ndynamic warm',
-      'balanced random\ndynamic warm'
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
     ),
     name = "sampling allocation\nregime approach"
   ) +
@@ -464,8 +484,8 @@ ggplot(data=df_summary)+
     )
   ) +
   geom_errorbar(aes(x = interaction(region,strat_var), ymin = (mean_value - sd_value)/nbs_km2*1000, ymax = (mean_value + sd_value)/nbs_km2*1000, 
-                    group = interaction(scn1, regime,combined_label)),
-                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
+                    group = interaction(scn1, regime,combined_label), color = combined_label),
+                width = 0.3, position = position_dodge(width = 0.9),size=1) + 
   geom_point(aes(x = interaction(region,strat_var), y = mean_value/nbs_km2*1000, fill = combined_label, 
                  group = interaction(scn1, regime,combined_label), 
                  shape = combined_label), 
@@ -485,12 +505,25 @@ ggplot(data=df_summary)+
     'sb - warm' = "#cc1d1f"), 
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\ndynamic cold',
-              'balanced random\ndynamic cold',
-              'random\ndynamic warm',
-              'balanced random\ndynamic warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation\nregime approach") +
-  
+  scale_color_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"), 
+    label = c('random\nstatic',
+              'balanced random\nstatic',
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
+    name = "sampling allocation\nregime approach") +
   scale_linetype_manual(values = c('rand - all' = 'solid',
                                    'sb - all' = 'dashed',
                                    'rand - cold' = 'solid',
@@ -499,10 +532,10 @@ ggplot(data=df_summary)+
                                    'sb - warm' = 'dashed'),
                         label = c('random\nstatic',
                                   'balanced random\nstatic',
-                                  'random\ndynamic cold',
-                                  'balanced random\ndynamic cold',
-                                  'random\ndynamic warm',
-                                  'balanced random\ndynamic warm'),
+                                  'random\nadaptive cold',
+                                  'balanced random\nadaptive cold',
+                                  'random\nadaptive warm',
+                                  'balanced random\nadaptive warm'),
                         name = "sampling allocation\nregime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
@@ -513,10 +546,10 @@ ggplot(data=df_summary)+
                                 'sb - warm' = 24),
                      label = c('random\nstatic',
                                'balanced random\nstatic',
-                               'random\ndynamic cold',
-                               'balanced random\ndynamic cold',
-                               'random\ndynamic warm',
-                               'balanced random\ndynamic warm'),
+                               'random\nadaptive cold',
+                               'balanced random\nadaptive cold',
+                               'random\nadaptive warm',
+                               'balanced random\nadaptive warm'),
                      name = "sampling allocation\nregime approach") +
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
@@ -559,7 +592,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 9, height = 6, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 

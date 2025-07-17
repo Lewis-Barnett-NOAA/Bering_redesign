@@ -666,9 +666,24 @@ y_scale$scn<-'scn1'
 #p
 #dev.off()
 
-# HISTORICAL CV, RRMSE and RBIAS (from index) #####
+#2 HISTORICAL CV, RRMSE and RBIAS (from index) #####
   
+  #load simulated index
+  load('./output slope/estimated_index_hist.RData') #ind2
   
+  #load true ind
+  load(file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  #true_ind
+  
+  #arrange true index data
+  true_ind1<-reshape2::melt(true_ind,id.vars='year')
+  true_ind1 <- melt(true_ind, varnames = c("year", "region", "spp"), value.name = "value")
+  
+  true_ind1<-subset(true_ind1,region!='year')
+  
+  true_ind1<-true_ind1[which(true_ind1$spp %in% df_spp1$spp),]
+  true_ind1<-merge(true_ind1,df_spp1,by='spp')
+  true_ind1$year<-as.integer(true_ind1$year)
+  true_ind1$dummy<-'true index'
   #ind2
   #true_ind1
   
@@ -845,7 +860,8 @@ y_scale$scn<-'scn1'
   y_scale$year<-2022
   y_scale$scn_label<-'EBS\nvarTemp'
   
-  
+  #sub SBS for BSS
+  df_rb_rrmse1$region<-gsub('SBS','BSS',df_rb_rrmse1$region)
   
   library(ggh4x)
   
@@ -884,8 +900,8 @@ y_scale$scn<-'scn1'
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_color_manual(values = c(
@@ -895,8 +911,8 @@ y_scale$scn<-'scn1'
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c(
@@ -906,8 +922,8 @@ y_scale$scn<-'scn1'
       'sb - dyn' = 24),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
@@ -996,6 +1012,9 @@ y_scale$scn<-'scn1'
   df_rb_rrmse2$combined_label1<-factor(df_rb_rrmse2$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
   df_rb_rrmse2<-merge(df_rb_rrmse2,df_spp,by='spp')
   
+  #sub SBS for BSS
+  df_rb_rrmse2$region<-gsub('SBS','BSS',df_rb_rrmse2$region)
+  
   y_scale[4,2:4]<-0.45
   
   
@@ -1026,10 +1045,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"), 
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -1040,10 +1059,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -1054,10 +1073,10 @@ y_scale$scn<-'scn1'
                                      'sb - warm' = 'dashed'),
                           label = c('random\nstatic',
                                     'balanced random\nstatic',
-                                    'random\nflexible cold',
-                                    'balanced random\nflexible cold',
-                                    'random\nflexible warm',
-                                    'balanced random\nflexible warm'),
+                                    'random\nadaptive cold',
+                                    'balanced random\nadaptive cold',
+                                    'random\nadaptive warm',
+                                    'balanced random\nadaptive warm'),
                           name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -1068,10 +1087,10 @@ y_scale$scn<-'scn1'
                                   'sb - warm' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible cold',
-                                 'balanced random\nflexible cold',
-                                 'random\nflexible warm',
-                                 'balanced random\nflexible warm'),
+                                 'random\nadaptive cold',
+                                 'balanced random\nadaptive cold',
+                                 'random\nadaptive warm',
+                                 'balanced random\nadaptive warm'),
                        name = "sampling allocation and regime approach") +
     
     #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -1175,8 +1194,8 @@ y_scale$scn<-'scn1'
         'sb - dyn' = '#bcae19'),
         label = c('random\nstatic',
                   'balanced random\nstatic',
-                  'random\nflexible',
-                  'balanced random\nflexible'),
+                  'random\nadaptive',
+                  'balanced random\nadaptive'),
         name = "sampling allocation and regime approach") +
       
       scale_color_manual(values = c(
@@ -1186,8 +1205,8 @@ y_scale$scn<-'scn1'
         'sb - dyn' = '#bcae19'),
         label = c('random\nstatic',
                   'balanced random\nstatic',
-                  'random\nflexible',
-                  'balanced random\nflexible'),
+                  'random\nadaptive',
+                  'balanced random\nadaptive'),
         name = "sampling allocation and regime approach") +
       
       scale_shape_manual(values = c(
@@ -1197,8 +1216,8 @@ y_scale$scn<-'scn1'
         'sb - dyn' = 24),
         label = c('random\nstatic',
                   'balanced random\nstatic',
-                  'random\nflexible',
-                  'balanced random\nflexible'),
+                  'random\nadaptive',
+                  'balanced random\nadaptive'),
         name = "sampling allocation and regime approach") +
       
       scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
@@ -1264,7 +1283,7 @@ y_scale$scn<-'scn1'
     
     p<-
       ggplot(na.omit(df_rb_rrmse2)) +
-      
+      geom_hline(yintercept = 0, alpha = 0.5, linetype = 'dotted') +
       geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_rel_bias - sd_rel_bias, ymax = mean_rel_bias + sd_rel_bias, color = combined_label,
                         group = interaction(scn, approach, spp, regime)),
                     width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
@@ -1289,10 +1308,10 @@ y_scale$scn<-'scn1'
         'sb - warm' = "#cc1d1f"), 
         label = c('random\nstatic',
                   'balanced random\nstatic',
-                  'random\nflexible cold',
-                  'balanced random\nflexible cold',
-                  'random\nflexible warm',
-                  'balanced random\nflexible warm'),
+                  'random\nadaptive cold',
+                  'balanced random\nadaptive cold',
+                  'random\nadaptive warm',
+                  'balanced random\nadaptive warm'),
         name = "sampling allocation and regime approach") +
       scale_color_manual(values = c(
         'rand - all' = 'grey30',
@@ -1303,10 +1322,10 @@ y_scale$scn<-'scn1'
         'sb - warm' = "#cc1d1f"),
         label = c('random\nstatic',
                   'balanced random\nstatic',
-                  'random\nflexible cold',
-                  'balanced random\nflexible cold',
-                  'random\nflexible warm',
-                  'balanced random\nflexible warm'),
+                  'random\nadaptive cold',
+                  'balanced random\nadaptive cold',
+                  'random\nadaptive warm',
+                  'balanced random\nadaptive warm'),
         name = "sampling allocation and regime approach") +
       
       scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -1317,10 +1336,10 @@ y_scale$scn<-'scn1'
                                        'sb - warm' = 'dashed'),
                             label = c('random\nstatic',
                                       'balanced random\nstatic',
-                                      'random\nflexible cold',
-                                      'balanced random\nflexible cold',
-                                      'random\nflexible warm',
-                                      'balanced random\nflexible warm'),
+                                      'random\nadaptive cold',
+                                      'balanced random\nadaptive cold',
+                                      'random\nadaptive warm',
+                                      'balanced random\nadaptive warm'),
                             name = "sampling allocation and regime approach") +
       
       scale_shape_manual(values = c('rand - all' = 21,
@@ -1331,10 +1350,10 @@ y_scale$scn<-'scn1'
                                     'sb - warm' = 24),
                          label = c('random\nstatic',
                                    'balanced random\nstatic',
-                                   'random\nflexible cold',
-                                   'balanced random\nflexible cold',
-                                   'random\nflexible warm',
-                                   'balanced random\nflexible warm'),
+                                   'random\nadaptive cold',
+                                   'balanced random\nadaptive cold',
+                                   'random\nadaptive warm',
+                                   'balanced random\nadaptive warm'),
                          name = "sampling allocation and regime approach") +
       
       #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -1570,10 +1589,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"), 
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -1584,10 +1603,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -1598,10 +1617,10 @@ y_scale$scn<-'scn1'
                                      'sb - warm' = 'dashed'),
                           label = c('random\nstatic',
                                     'balanced random\nstatic',
-                                    'random\nflexible cold',
-                                    'balanced random\nflexible cold',
-                                    'random\nflexible warm',
-                                    'balanced random\nflexible warm'),
+                                    'random\nadaptive cold',
+                                    'balanced random\nadaptive cold',
+                                    'random\nadaptive warm',
+                                    'balanced random\nadaptive warm'),
                           name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -1612,10 +1631,10 @@ y_scale$scn<-'scn1'
                                   'sb - warm' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible cold',
-                                 'balanced random\nflexible cold',
-                                 'random\nflexible warm',
-                                 'balanced random\nflexible warm'),
+                                 'random\nadaptive cold',
+                                 'balanced random\nadaptive cold',
+                                 'random\nadaptive warm',
+                                 'balanced random\nadaptive warm'),
                        name = "sampling allocation and regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -1752,10 +1771,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"), 
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -1766,10 +1785,10 @@ y_scale$scn<-'scn1'
       'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -1780,10 +1799,10 @@ y_scale$scn<-'scn1'
                                      'sb - warm' = 'dashed'),
                           label = c('random\nstatic',
                                     'balanced random\nstatic',
-                                    'random\nflexible cold',
-                                    'balanced random\nflexible cold',
-                                    'random\nflexible warm',
-                                    'balanced random\nflexible warm'),
+                                    'random\nadaptive cold',
+                                    'balanced random\nadaptive cold',
+                                    'random\nadaptive warm',
+                                    'balanced random\nadaptive warm'),
                           name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -1794,10 +1813,10 @@ y_scale$scn<-'scn1'
                                   'sb - warm' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible cold',
-                                 'balanced random\nflexible cold',
-                                 'random\nflexible warm',
-                                 'balanced random\nflexible warm'),
+                                 'random\nadaptive cold',
+                                 'balanced random\nadaptive cold',
+                                 'random\nadaptive warm',
+                                 'balanced random\nadaptive warm'),
                        name = "sampling allocation and regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -1880,8 +1899,8 @@ y_scale$scn<-'scn1'
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -1892,8 +1911,8 @@ y_scale$scn<-'scn1'
       #'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     
@@ -1903,8 +1922,8 @@ y_scale$scn<-'scn1'
                                   'sb - dyn' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible',
-                                 'balanced random\nflexible'),
+                                 'random\nadaptive',
+                                 'balanced random\nadaptive'),
                        name = "sampling allocation and regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -2105,10 +2124,10 @@ ggplot(df_summary) +
     'sb - warm' = "#cc1d1f"), 
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible cold',
-              'balanced random\nflexible cold',
-              'random\nflexible warm',
-              'balanced random\nflexible warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation and regime approach") +
   scale_color_manual(values = c(
     'rand - all' = 'grey30',
@@ -2119,10 +2138,10 @@ ggplot(df_summary) +
     'sb - warm' = "#cc1d1f"),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible cold',
-              'balanced random\nflexible cold',
-              'random\nflexible warm',
-              'balanced random\nflexible warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation and regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -2133,10 +2152,10 @@ ggplot(df_summary) +
                                    'sb - warm' = 'dashed'),
                         label = c('random\nstatic',
                                   'balanced random\nstatic',
-                                  'random\nflexible cold',
-                                  'balanced random\nflexible cold',
-                                  'random\nflexible warm',
-                                  'balanced random\nflexible warm'),
+                                  'random\nadaptive cold',
+                                  'balanced random\nadaptive cold',
+                                  'random\nadaptive warm',
+                                  'balanced random\nadaptive warm'),
                         name = "sampling allocation and regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
@@ -2147,10 +2166,10 @@ ggplot(df_summary) +
                                 'sb - warm' = 24),
                      label = c('random\nstatic',
                                'balanced random\nstatic',
-                               'random\nflexible cold',
-                               'balanced random\nflexible cold',
-                               'random\nflexible warm',
-                               'balanced random\nflexible warm'),
+                               'random\nadaptive cold',
+                               'balanced random\nadaptive cold',
+                               'random\nadaptive warm',
+                               'balanced random\nadaptive warm'),
                      name = "sampling allocation and regime approach") +
   
   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -2311,8 +2330,8 @@ p1<-
     'sb - dyn' = '#bcae19'),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
+              'random\nadaptive',
+              'balanced random\nadaptive'),
     name = "sampling allocation and approach") +
   scale_color_manual(values = c(
     'rand - all - all' = 'grey30',
@@ -2325,8 +2344,8 @@ p1<-
     #'sb - warm' = "#cc1d1f"),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
+              'random\nadaptive',
+              'balanced random\nadaptive'),
     name = "sampling allocation and approach") +
   
   
@@ -2336,8 +2355,8 @@ p1<-
                                 'sb - dyn' = 24),
                      label = c('random\nstatic',
                                'balanced random\nstatic',
-                               'random\nflexible',
-                               'balanced random\nflexible'),
+                               'random\nadaptive',
+                               'balanced random\nadaptive'),
                      name = "sampling allocation and approach") +
   
   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -2414,8 +2433,8 @@ p1<-
 #'     'sb - dyn' = '#bcae19'),
 #'     label = c('random\nstatic',
 #'               'balanced random\nstatic',
-#'               'random\nflexible',
-#'               'balanced random\nflexible'),
+#'               'random\nadaptive',
+#'               'balanced random\nadaptive'),
 #'     name = "sampling allocation and approach") +
 #'   scale_color_manual(values = c(
 #'     'rand - all' = 'grey30',
@@ -2426,8 +2445,8 @@ p1<-
 #'     #'sb - warm' = "#cc1d1f"),
 #'     label = c('random\nstatic',
 #'               'balanced random\nstatic',
-#'               'random\nflexible',
-#'               'balanced random\nflexible'),
+#'               'random\nadaptive',
+#'               'balanced random\nadaptive'),
 #'     name = "sampling allocation and approach") +
 #'   
 #'   
@@ -2437,8 +2456,8 @@ p1<-
 #'                                 'sb - dyn' = 24),
 #'                      label = c('random\nstatic',
 #'                                'balanced random\nstatic',
-#'                                'random\nflexible',
-#'                                'balanced random\nflexible'),
+#'                                'random\nadaptive',
+#'                                'balanced random\nadaptive'),
 #'                      name = "sampling allocation and approach") +
 #'   
 #'   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -2581,6 +2600,9 @@ df_rb_rrmse1$combined_label1<-factor(df_rb_rrmse1$combined_label1,c("rand - all"
 
 df_rb_rrmse1<-merge(df_rb_rrmse1,df_spp,by='spp')
 
+#sub SBS for BSS
+df_rb_rrmse1$region<-gsub('SBS','BSS',df_rb_rrmse1$region)
+
 #for geom_blank(0 and adjust scale)
 y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
 y_scale$scale<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.2
@@ -2625,8 +2647,8 @@ p<-
     'sb - dyn' = '#bcae19'),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
+              'random\nadaptive',
+              'balanced random\nadaptive'),
     name = "sampling allocation and regime approach") +
   
   scale_color_manual(values = c(
@@ -2636,8 +2658,8 @@ p<-
     'sb - dyn' = '#bcae19'),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
+              'random\nadaptive',
+              'balanced random\nadaptive'),
     name = "sampling allocation and regime approach") +
   
   scale_shape_manual(values = c(
@@ -2647,8 +2669,8 @@ p<-
     'sb - dyn' = 24),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
+              'random\nadaptive',
+              'balanced random\nadaptive'),
     name = "sampling allocation and regime approach") +
   
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
@@ -2737,6 +2759,8 @@ df_rb_rrmse2$combined_label1<-paste0(df_rb_rrmse2$approach," - ",df_rb_rrmse2$re
 df_rb_rrmse2$combined_label1<-factor(df_rb_rrmse2$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
 df_rb_rrmse2<-merge(df_rb_rrmse2,df_spp,by='spp')
 
+df_rb_rrmse2$region<-gsub('SBS','BSS',df_rb_rrmse2$region)
+
 #for geom_blank(0 and adjust scale)
 y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse2, spp %in% sel_spp),max)
 y_scale$scale<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.2
@@ -2774,10 +2798,10 @@ p<-
     'sb - warm' = "#cc1d1f"), 
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible cold',
-              'balanced random\nflexible cold',
-              'random\nflexible warm',
-              'balanced random\nflexible warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation and regime approach") +
   scale_color_manual(values = c(
     'rand - all' = 'grey30',
@@ -2788,10 +2812,10 @@ p<-
     'sb - warm' = "#cc1d1f"),
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible cold',
-              'balanced random\nflexible cold',
-              'random\nflexible warm',
-              'balanced random\nflexible warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation and regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -2802,10 +2826,10 @@ p<-
                                    'sb - warm' = 'dashed'),
                         label = c('random\nstatic',
                                   'balanced random\nstatic',
-                                  'random\nflexible cold',
-                                  'balanced random\nflexible cold',
-                                  'random\nflexible warm',
-                                  'balanced random\nflexible warm'),
+                                  'random\nadaptive cold',
+                                  'balanced random\nadaptive cold',
+                                  'random\nadaptive warm',
+                                  'balanced random\nadaptive warm'),
                         name = "sampling allocation and regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
@@ -2816,10 +2840,10 @@ p<-
                                 'sb - warm' = 24),
                      label = c('random\nstatic',
                                'balanced random\nstatic',
-                               'random\nflexible cold',
-                               'balanced random\nflexible cold',
-                               'random\nflexible warm',
-                               'balanced random\nflexible warm'),
+                               'random\nadaptive cold',
+                               'balanced random\nadaptive cold',
+                               'random\nadaptive warm',
+                               'balanced random\nadaptive warm'),
                      name = "sampling allocation and regime approach") +
   
   #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -2925,8 +2949,8 @@ p<-
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_color_manual(values = c(
@@ -2936,8 +2960,8 @@ p<-
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c(
@@ -2947,8 +2971,8 @@ p<-
       'sb - dyn' = 24),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and regime approach") +
     
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
@@ -3037,6 +3061,8 @@ p<-
   df_rb_rrmse2$combined_label1<-factor(df_rb_rrmse2$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
   df_rb_rrmse2<-merge(df_rb_rrmse2,df_spp,by='spp')
   
+  df_rb_rrmse2$region<-gsub('SBS','BSS',df_rb_rrmse2$region)
+  
   y_scale[4,2:4]<-15
   
   p<-
@@ -3066,10 +3092,10 @@ p<-
       'sb - warm' = "#cc1d1f"), 
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -3080,10 +3106,10 @@ p<-
       'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -3094,10 +3120,10 @@ p<-
                                      'sb - warm' = 'dashed'),
                           label = c('random\nstatic',
                                     'balanced random\nstatic',
-                                    'random\nflexible cold',
-                                    'balanced random\nflexible cold',
-                                    'random\nflexible warm',
-                                    'balanced random\nflexible warm'),
+                                    'random\nadaptive cold',
+                                    'balanced random\nadaptive cold',
+                                    'random\nadaptive warm',
+                                    'balanced random\nadaptive warm'),
                           name = "sampling allocation and regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -3108,10 +3134,10 @@ p<-
                                   'sb - warm' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible cold',
-                                 'balanced random\nflexible cold',
-                                 'random\nflexible warm',
-                                 'balanced random\nflexible warm'),
+                                 'random\nadaptive cold',
+                                 'balanced random\nadaptive cold',
+                                 'random\nadaptive warm',
+                                 'balanced random\nadaptive warm'),
                        name = "sampling allocation and regime approach") +
     
     #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
@@ -3170,237 +3196,6 @@ p<-
   dev.off()
   
   
-#p<-
-  ggplot(df_summary) +
-  #labs(y = 'RRMSE of CV', x = '') +
-    geom_errorbar(aes(
-      x = interaction(region, strat_var),
-      ymin = q10,
-      ymax = q90,
-      color = combined_label,
-      group = interaction(scn_label, approach, spp, regime)
-    ),
-    width = 0.3, position = position_dodge(width = 0.9), size = 1, alpha = 0.8)+
-    
-    geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
-                   group = interaction(scn_label, approach, spp, regime), 
-                   shape = combined_label), 
-               size = 2, position = position_dodge(width = 0.9), color = "black") + 
-    labs(y = expression("RRMSE of " * widehat(CV)),y='')+
-    theme_bw() + 
-    facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
-    
-    scale_fill_manual(values = c(
-      'rand - all' = 'grey30',
-      'sb - all' = 'grey30',
-      'rand - cold' = '#1675ac',
-      'sb - cold' = '#1675ac',
-      'rand - warm' = "#cc1d1f",
-      'sb - warm' = "#cc1d1f"), 
-      label = c('random\nstatic',
-                'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
-      name = "sampling allocation and regime approach") +
-    scale_color_manual(values = c(
-      'rand - all' = 'grey30',
-      'sb - all' = 'grey30',
-      'rand - cold' = '#1675ac',
-      'sb - cold' = '#1675ac',
-      'rand - warm' = "#cc1d1f",
-      'sb - warm' = "#cc1d1f"),
-      label = c('random\nstatic',
-                'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
-      name = "sampling allocation and regime approach") +
-    
-    scale_linetype_manual(values = c('rand - all' = 'solid',
-                                     'sb - all' = 'dashed',
-                                     'rand - cold' = 'solid',
-                                     'sb - cold' = 'dashed',
-                                     'rand - warm' = 'solid',
-                                     'sb - warm' = 'dashed'),
-                          label = c('random\nstatic',
-                                    'balanced random\nstatic',
-                                    'random\nflexible cold',
-                                    'balanced random\nflexible cold',
-                                    'random\nflexible warm',
-                                    'balanced random\nflexible warm'),
-                          name = "sampling allocation and regime approach") +
-    
-    scale_shape_manual(values = c('rand - all' = 21,
-                                  'sb - all' = 24,
-                                  'rand - cold' = 21,
-                                  'sb - cold' = 24,
-                                  'rand - warm' = 21,
-                                  'sb - warm' = 24),
-                       label = c('random\nstatic',
-                                 'balanced random\nstatic',
-                                 'random\nflexible cold',
-                                 'balanced random\nflexible cold',
-                                 'random\nflexible warm',
-                                 'balanced random\nflexible warm'),
-                       name = "sampling allocation and regime approach") +
-    scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA),labels = scales::label_number(accuracy = 0.01))+
-    
-    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-    theme(
-      panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
-      legend.key.width = unit(1, "lines"),
-      legend.key.size = unit(30, 'points'),
-      legend.text = element_text(size = 11),
-      legend.title = element_text(size = 12),
-      legend.spacing.y = unit(10, "cm"),
-      legend.spacing = unit(10, "cm"),
-      legend.box.spacing = unit(0.5, "cm"),
-      strip.background = element_blank(),
-      legend.background = element_blank(),
-      panel.spacing.x = unit(0.5, "lines"), 
-      panel.spacing.y = unit(1, "lines"),
-      strip.text = element_blank(),
-      axis.title.x = element_blank(),
-      #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-      axis.text = element_text(size = 10))+
-    guides(
-      #shape = guide_legend(override.aes = list(size = 3)),
-      fill = guide_legend(override.aes = list(size = 3)),
-      #color = guide_legend(override.aes = list(size = 3))
-    )+
-    geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-    geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
-  
-#save plot
-ragg::agg_png(paste0('./figures slope/rrmse_cv_suppl.png'), width = 11, height = 7, units = "in", res = 300)
-#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
-p
-dev.off()
-
-
-
-
-
-df_summary$regime1<-ifelse(df_summary$regime=='all','all','dyn')
-df_summary$combined_label1<-paste0(df_summary$approach," - ",df_summary$regime1)
-
-df_summary_clean <- df_summary %>%
-  group_by(region, approach,strat_var, combined_label1, region1, regime1, common) %>%
-  summarise(
-    mean_value = mean(mean_value, na.rm = TRUE),
-    q10 = mean(q10, na.rm = TRUE),  # or another logic
-    q90 = mean(q90, na.rm = TRUE),  # or another logic
-    
-    .groups = "drop"
-  )
-
-
-
-df_summary_clean$combined_label1<-factor(df_summary_clean$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
-df_summary_clean$combined_label1 <- factor(df_summary_clean$combined_label1, c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
-
-y_scale<-aggregate(q90 ~ common, subset(df_summary_clean, spp %in% sel_spp),max)
-y_scale[4,2]<-1.5
-y_scale$scale<-y_scale$q90+y_scale$q90*0.1
-y_scale$text<-y_scale$q90+y_scale$q90*0.1
-y_scale$apr<-'sb'
-y_scale$scn<-'scn1'
-y_scale$year<-2022
-y_scale$scn_label<-'EBS\nvarTemp'
-y_scale
-p1<-
-  ggplot(df_summary_clean) +
-  
-  geom_errorbar(aes(
-    x = interaction(region, strat_var),
-    ymin = q10,
-    ymax = q90,
-    color = combined_label1,
-    group = combined_label1
-  ),
-  width = 0.3, position = position_dodge(width = 0.9), size = 1, alpha = 0.8)+
-  geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label1, 
-                 group = combined_label1, 
-                 shape = combined_label1), 
-             size = 2.5, position = position_dodge(width = 0.9), color = "black") + 
-  labs(y = expression(widehat(CV)), x = '') +
-  theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
-  
-  scale_fill_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    #'rand - cold' = '#1675ac',
-    #'sb - cold' = '#1675ac',
-    'rand - dyn' = '#bcae19',
-    'sb - dyn' = '#bcae19'),
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
-    name = "sampling allocation and approach") +
-  scale_color_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    'rand - dyn' = '#bcae19',
-    'sb - dyn' = '#bcae19'),
-    #'rand - warm' = "#cc1d1f",
-    #'sb - warm' = "#cc1d1f"),
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\nflexible',
-              'balanced random\nflexible'),
-    name = "sampling allocation and approach") +
-  
-  
-  scale_shape_manual(values = c('rand - all' = 21,
-                                'sb - all' = 24,
-                                'rand - dyn' = 21,
-                                'sb - dyn' = 24),
-                     label = c('random\nstatic',
-                               'balanced random\nstatic',
-                               'random\nflexible',
-                               'balanced random\nflexible'),
-                     name = "sampling allocation and approach") +
-  
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-  theme(
-    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
-    legend.key.width = unit(1, "lines"),
-    legend.key.size = unit(30, 'points'),
-    legend.text = element_text(size = 11),
-    legend.title = element_text(size = 12),
-    legend.spacing.y = unit(10, "cm"),
-    legend.spacing = unit(10, "cm"),
-    legend.box.spacing = unit(0.5, "cm"),
-    strip.background = element_blank(),
-    legend.background = element_blank(),
-    panel.spacing.x = unit(0.5, "lines"), 
-    panel.spacing.y = unit(1, "lines"),
-    strip.text = element_blank(),
-    axis.title.x = element_blank(),
-    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    axis.text = element_text(size = 10))+
-  guides(
-    #shape = guide_legend(override.aes = list(size = 3)),
-    fill = guide_legend(override.aes = list(size = 3)),
-    #color = guide_legend(override.aes = list(size = 3))
-  )+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) #+ #,fontface='italic'
-#geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
-
-
-#save plot
-ragg::agg_png(paste0('./figures slope/rrmse_cv2.png'), width = 11, height = 7, units = "in", res = 300)
-#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
-p1
-dev.off()
-
-
 
 
 #6 CV ratio ####
@@ -3516,10 +3311,10 @@ p<-
     'sb - warm' = "#cc1d1f"), 
     label = c('random\nstatic',
               'balanced random\nstatic',
-              'random\nflexible cold',
-              'balanced random\nflexible cold',
-              'random\nflexible warm',
-              'balanced random\nflexible warm'),
+              'random\nadaptive cold',
+              'balanced random\nadaptive cold',
+              'random\nadaptive warm',
+              'balanced random\nadaptive warm'),
     name = "sampling allocation and regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -3530,10 +3325,10 @@ p<-
       'sb - warm' = "#cc1d1f"), 
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible cold',
-                'balanced random\nflexible cold',
-                'random\nflexible warm',
-                'balanced random\nflexible warm'),
+                'random\nadaptive cold',
+                'balanced random\nadaptive cold',
+                'random\nadaptive warm',
+                'balanced random\nadaptive warm'),
       name = "sampling allocation and regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -3544,10 +3339,10 @@ p<-
                                    'sb - warm' = 'dashed'),
                         label = c('random\nstatic',
                                   'balanced random\nstatic',
-                                  'random\nflexible cold',
-                                  'balanced random\nflexible cold',
-                                  'random\nflexible warm',
-                                  'balanced random\nflexible warm'),
+                                  'random\nadaptive cold',
+                                  'balanced random\nadaptive cold',
+                                  'random\nadaptive warm',
+                                  'balanced random\nadaptive warm'),
                         name = "sampling allocation and regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
@@ -3558,10 +3353,10 @@ p<-
                                 'sb - warm' = 24),
                      label = c('random\nstatic',
                                'balanced random\nstatic',
-                               'random\nflexible cold',
-                               'balanced random\nflexible cold',
-                               'random\nflexible warm',
-                               'balanced random\nflexible warm'),
+                               'random\nadaptive cold',
+                               'balanced random\nadaptive cold',
+                               'random\nadaptive warm',
+                               'balanced random\nadaptive warm'),
                      name = "sampling allocation and regime approach") +
   
     #scale_y_continuous(limits = c(-0.25,0.45))+
@@ -3671,8 +3466,8 @@ p1<-
       'sb - dyn' = '#bcae19'),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -3683,8 +3478,8 @@ p1<-
       #'sb - warm' = "#cc1d1f"),
       label = c('random\nstatic',
                 'balanced random\nstatic',
-                'random\nflexible',
-                'balanced random\nflexible'),
+                'random\nadaptive',
+                'balanced random\nadaptive'),
       name = "sampling allocation and approach") +
     
     
@@ -3694,8 +3489,8 @@ p1<-
                                   'sb - dyn' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible',
-                                 'balanced random\nflexible'),
+                                 'random\nadaptive',
+                                 'balanced random\nadaptive'),
                        name = "sampling allocation and approach") +
     
     
@@ -3705,8 +3500,8 @@ p1<-
                                   'sb - dyn' = 24),
                        label = c('random\nstatic',
                                  'balanced random\nstatic',
-                                 'random\nflexible',
-                                 'balanced random\nflexible'),
+                                 'random\nadaptive',
+                                 'balanced random\nadaptive'),
                        name = "sampling allocation and approach") +
   
   #scale_y_continuous(limits = c(-0.25,0.45))+
@@ -3873,10 +3668,10 @@ p<-
       'rand - warm' = 'darkred',
       'sb - warm' = 'darkred'), label=c('random\nstatic',
                                         'balanced random\nstatic',
-                                        'random\nflexible normal-cold',
-                                        'balanced random\nflexible normal-cold',
-                                        'random\nflexible warm',
-                                        'balanced random\nflexible warm'),
+                                        'random\nadaptive normal-cold',
+                                        'balanced random\nadaptive normal-cold',
+                                        'random\nadaptive warm',
+                                        'balanced random\nadaptive warm'),
       name = "sampling allocations\nregime approach") +
     scale_linetype_manual(values = c('rand - all' = 'solid',
                                      'sb - all' = 'dashed',
@@ -3885,10 +3680,10 @@ p<-
                                      'rand - warm' = 'solid',
                                      'sb - warm' = 'dashed'), label=c('random\nstatic',
                                                                       'balanced random\nstatic',
-                                                                      'random\nflexible normal-cold',
-                                                                      'balanced random\nflexible normal-cold',
-                                                                      'random\nflexible warm',
-                                                                      'balanced random\nflexible warm'),
+                                                                      'random\nadaptive normal-cold',
+                                                                      'balanced random\nadaptive normal-cold',
+                                                                      'random\nadaptive warm',
+                                                                      'balanced random\nadaptive warm'),
                           name = "sampling allocations\nregime approach")+
   scale_y_continuous(expand = c(0,0),limits = c(0,0.06))+ #expand = c(NA,0.1),
   theme(
@@ -3972,10 +3767,10 @@ p<-
       'rand - warm' = 'darkred',
       'sb - warm' = 'darkred'), label=c('random\nstatic',
                                         'balanced random\nstatic',
-                                        'random\nflexible normal-cold',
-                                        'balanced random\nflexible normal-cold',
-                                        'random\nflexible warm',
-                                        'balanced random\nflexible warm'),
+                                        'random\nadaptive normal-cold',
+                                        'balanced random\nadaptive normal-cold',
+                                        'random\nadaptive warm',
+                                        'balanced random\nadaptive warm'),
       name = "sampling allocations\nregime approach"
       ) +
     scale_linetype_manual(values = c('rand - all' = 'solid',
@@ -3985,10 +3780,10 @@ p<-
                                        'rand - warm' = 'solid',
                                        'sb - warm' = 'dashed'), label=c('random\nstatic',
                                                                         'balanced random\nstatic',
-                                                                        'random\nflexible normal-cold',
-                                                                        'balanced random\nflexible normal-cold',
-                                                                        'random\nflexible warm',
-                                                                        'balanced random\nflexible warm'),
+                                                                        'random\nadaptive normal-cold',
+                                                                        'balanced random\nadaptive normal-cold',
+                                                                        'random\nadaptive warm',
+                                                                        'balanced random\nadaptive warm'),
                           name = "sampling allocations\nregime approach")+
     scale_y_continuous(expand = c(0, 0), limits = c(0.25, 1.9)) +
     theme(

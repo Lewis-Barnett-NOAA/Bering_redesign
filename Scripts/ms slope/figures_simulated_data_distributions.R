@@ -177,7 +177,7 @@ p<-
 
 
 #save env plot
-agg_png(paste0('./figures slope/temperature_regime2.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('./figures slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -3115,3 +3115,116 @@ agg_png(paste0('./figures slope/interdecile_depth_sim3.png'), width = 7, height 
 print(p2)
 dev.off()
 
+#background stratification figure ####
+
+library(ggplot2)
+
+# Dummy data for the plot (replace with your actual data)
+df <- data.frame(
+  Year = 2000:2020,
+  Value = rnorm(21)
+)
+
+library(ggplot2)
+library(ggplot2)
+
+# Define rectangles and labels
+rects <- data.frame(
+  xmin = c(2002, 2005, 2002, 2014),
+  xmax = c(2016, 2014, 2005, 2016),
+  ymin = c(0, 0, 0, 0),
+  ymax = c(1, 1, 1, 1),
+  fill = c("gray90", "#1675ac", "#cc1d1f", "#cc1d1f"),
+  label = c(NA, "cold", "warm", "warm")
+)
+
+# Center-top label position
+rects$label_x <- (rects$xmin + rects$xmax) / 2
+rects$label_y <- rects$ymax - 0.05
+
+p1<-
+# Plot
+ggplot() +
+  # Background rectangles — add first
+  geom_rect(
+    data = rects,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill),
+    inherit.aes = FALSE
+  ) +
+  
+  # Identity fill to use exact colors
+  scale_fill_identity() +
+  
+  # Text labels for cold/warm only
+  geom_text(
+    data = subset(rects, !is.na(label)),
+    aes(x = label_x, y = label_y, label = label),
+    size = 4.5,
+    fontface = "bold",
+    color = "white"
+  ) +
+  geom_vline(xintercept = 2005,linewidth =0.5,linetype='dashed',color='grey20')+
+  geom_vline(xintercept = 2014,linewidth =0.5,linetype='dashed',color='grey20')+
+
+  # Axis and grid options
+  scale_x_continuous(breaks = 2002:2016) +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_line(),
+    axis.title.y = element_blank(),panel.grid.major.y = element_blank(),panel.grid.minor = element_blank(),panel.grid.major.x = element_blank(),
+    #panel.grid.major = element_line(color = "gray80"),
+    #panel.grid.minor = element_line(color = "gray90"),
+    panel.ontop = TRUE  # <- gridlines rendered over geom_rect
+  ) +
+  labs(x = "year", y = "",title='environmentally informed stratification')
+
+
+  library(ggplot2)
+
+rects <- data.frame(
+  xmin = 2002,
+  xmax = 2016,
+  ymin = 0,
+  ymax = 1,
+  fill = "gray30",
+  label = "static",
+  label_x = (2002 + 2016) / 2,
+  label_y = 1 - 0.05
+)
+
+p2<-
+ggplot() +
+  geom_rect(
+    data = rects,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill),
+    inherit.aes = FALSE
+  ) +
+  scale_fill_identity() +
+  # geom_text(
+  #   data = rects,
+  #   aes(x = label_x, y = label_y, label = label),
+  #   size = 6,
+  #   fontface = "bold",
+  #   color = "white"
+  # ) +
+  scale_x_continuous(breaks = 2002:2016) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.x = element_line(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.ontop = TRUE
+  ) +
+  labs(x = "year", y = "",title='static stratification')
+
+
+agg_png(paste0('./figures slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
+cowplot::plot_grid(p2,p1,ncol = 1)
+dev.off()
