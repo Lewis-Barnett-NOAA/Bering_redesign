@@ -32,7 +32,7 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #selected species
@@ -752,6 +752,8 @@ y_scale$scn<-'scn1'
   
   for (s in 1:100) {
     
+    #s<-1
+    cat(paste0('#### sim ', s,' ###\n'))
     # Subset for one simulation
     ind4 <- ind3[sim == s]
     
@@ -761,6 +763,9 @@ y_scale$scn<-'scn1'
         (regime == "warm" & year %in% c(2002:2005, 2014:2016)) |
         (regime == "cold" & year %in% c(2006:2013))
     ]) #to remove static warm and cold (because of prior errors)
+    
+    #check
+    unique(ind4$region)
     
     # Compute relative bias
     ind4[, rel_bias := 100*((index - true_index) / true_index)]
@@ -829,7 +834,6 @@ y_scale$scn<-'scn1'
   # y_scale$year<-2022
   # y_scale$scn_label<-'EBS\nvarTemp'
   # 
-  library(ggh4x)
   
   df_rb_rrmse1$regime<-ifelse(df_rb_rrmse1$type=='static','all','dyn')
   df_rb_rrmse1$regime1<-ifelse(df_rb_rrmse1$regime=='all','all','dyn')
@@ -863,7 +867,21 @@ y_scale$scn<-'scn1'
   #sub SBS for BSS
   df_rb_rrmse1$region<-gsub('SBS','BSS',df_rb_rrmse1$region)
   
-  library(ggh4x)
+  
+  # Define the nesting
+  region_ranges<-
+    data.frame('key'=c('depth','varSBT'),
+               'start'=c(0.5,4.7),
+               'end'=c(4.5,8.5))
+  
+  
+  # Suppose your region labels
+  regions <- unique(df_rb_rrmse1$region)
+  
+  # Convert to a list of element_text
+  levels_text_list <- lapply(regions, function(x) element_text())
+  
+  library(legendry)
   
   
   p<-
@@ -902,7 +920,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -913,7 +931,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_shape_manual(values = c(
       'rand - all' = 21,
@@ -924,11 +942,11 @@ y_scale$scn<-'scn1'
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-    scale_x_discrete(guide = guide_axis_nested(angle = 0),
-                     labels = function(x) gsub("\\+", "\n", x)) +
+    #scale_x_discrete(guide = guide_axis_nested(angle = 0),
+    #                 labels = function(x) gsub("\\+", "\n", x)) +
     
     theme(
       panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
@@ -968,8 +986,27 @@ y_scale$scn<-'scn1'
         override.aes = list(size = 4),
         nrow = 1,
         title.position = "top"
-      )
+      ),
+      #x = "axis_nested", 
+      x = legendry::guide_axis_nested(key = key_range_manual(
+        region_ranges$key,level = 1,
+        start = region_ranges$start,
+        end = region_ranges$end,
+      ),levels_text = levels_text_list,
+      angle = 0)
+      #)
+      #)
     )+
+    #scale_x_discrete(
+    #           labels = function(x) gsub("\\+", "\n", x)
+    #)  +
+    scale_x_discrete(labels = function(x) {
+      # Keep everything before the first dot
+      x <- sub("\\..*$", "", x)
+      # Replace + with line break
+      x <- gsub("\\+", "\n", x)
+      return(x)
+    })+
     
     geom_text(data = subset(y_scale, common %in% sel_spp_com),
               aes(label = common, y = text), x = Inf, 
@@ -1018,130 +1055,141 @@ y_scale$scn<-'scn1'
   y_scale[4,2:4]<-0.45
   
   
-  p<-
+  # fix factor levels once
+  df_rb_rrmse2$combined_label <- factor(
+    df_rb_rrmse2$combined_label,
+    levels = c("rand - all",
+               "sb - all",
+               "rand - cold",
+               "sb - cold",
+               "rand - warm",
+               "sb - warm")
+  )
+  
+  # define labels vector once
+  labels_vec <- c("random\nstatic",
+                  "balanced random\nstatic",
+                  "random\nadaptive cold",
+                  "balanced random\nadaptive cold",
+                  "random\nadaptive warm",
+                  "balanced random\nadaptive warm")
+  
+  p <-
     ggplot(na.omit(df_rb_rrmse2)) +
     
-    geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_rrmse - sd_rrmse, ymax = mean_rrmse + sd_rrmse, color = combined_label,
-                      group = interaction(scn, approach, spp, regime)),
-                  width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
-    geom_point(aes(x = interaction(region,strat_var), y = mean_rrmse, fill = combined_label, 
-                   group = interaction(scn, approach, spp, regime), 
-                   shape = combined_label), 
-               size = 2, position = position_dodge(width = 0.9), color = "black") + 
-      labs(y = 'RRMSE of abundance estimates', x = '') +
-      theme_bw() + 
-      
-      facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
-      
-      
-      scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-      
-    scale_fill_manual(values = c(
-      'rand - all' = 'grey30',
-      'sb - all' = 'grey30',
-      'rand - cold' = '#1675ac',
-      'sb - cold' = '#1675ac',
-      'rand - warm' = "#cc1d1f",
-      'sb - warm' = "#cc1d1f"), 
-      label = c('random\nstatic',
-                'balanced random\nstatic',
-                'random\nadaptive cold',
-                'balanced random\nadaptive cold',
-                'random\nadaptive warm',
-                'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
-    scale_color_manual(values = c(
-      'rand - all' = 'grey30',
-      'sb - all' = 'grey30',
-      'rand - cold' = '#1675ac',
-      'sb - cold' = '#1675ac',
-      'rand - warm' = "#cc1d1f",
-      'sb - warm' = "#cc1d1f"),
-      label = c('random\nstatic',
-                'balanced random\nstatic',
-                'random\nadaptive cold',
-                'balanced random\nadaptive cold',
-                'random\nadaptive warm',
-                'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+    geom_errorbar(
+      aes(x = interaction(region, strat_var),
+          ymin = mean_rrmse - sd_rrmse,
+          ymax = mean_rrmse + sd_rrmse,
+          color = combined_label,
+          group = interaction(scn, approach, spp, regime)),
+      width = 0.3,
+      position = position_dodge(width = 0.9),
+      size = 1,
+      alpha = 0.8
+    ) +
+    geom_point(
+      aes(x = interaction(region, strat_var),
+          y = mean_rrmse,
+          fill = combined_label,
+          group = interaction(scn, approach, spp, regime),
+          shape = combined_label),
+      size = 2,
+      position = position_dodge(width = 0.9),
+      color = "black"
+    ) +
+    labs(y = 'RRMSE of abundance estimates', x = '') +
+    theme_bw() +
+    facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
+    scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
     
-    scale_linetype_manual(values = c('rand - all' = 'solid',
-                                     'sb - all' = 'dashed',
-                                     'rand - cold' = 'solid',
-                                     'sb - cold' = 'dashed',
-                                     'rand - warm' = 'solid',
-                                     'sb - warm' = 'dashed'),
-                          label = c('random\nstatic',
-                                    'balanced random\nstatic',
-                                    'random\nadaptive cold',
-                                    'balanced random\nadaptive cold',
-                                    'random\nadaptive warm',
-                                    'balanced random\nadaptive warm'),
-                          name = "sampling allocation and regime approach") +
+    # manual scales with consistent order
+    scale_fill_manual(
+      values = c("rand - all" = "grey30",
+                 "sb - all" = "grey30",
+                 "rand - cold" = "#1675ac",
+                 "sb - cold" = "#1675ac",
+                 "rand - warm" = "#cc1d1f",
+                 "sb - warm" = "#cc1d1f"),
+      labels = labels_vec,
+      name = "sampling allocation and design regime approach"
+    ) +
+    scale_color_manual(
+      values = c("rand - all" = "grey30",
+                 "sb - all" = "grey30",
+                 "rand - cold" = "#1675ac",
+                 "sb - cold" = "#1675ac",
+                 "rand - warm" = "#cc1d1f",
+                 "sb - warm" = "#cc1d1f"),
+      labels = labels_vec,
+      name = "sampling allocation and design regime approach"
+    ) +
+    scale_shape_manual(
+      values = c("rand - all" = 21,
+                 "sb - all" = 24,
+                 "rand - cold" = 21,
+                 "sb - cold" = 24,
+                 "rand - warm" = 21,
+                 "sb - warm" = 24),
+      labels = labels_vec,
+      name = "sampling allocation and design regime approach"
+    ) +
     
-    scale_shape_manual(values = c('rand - all' = 21,
-                                  'sb - all' = 24,
-                                  'rand - cold' = 21,
-                                  'sb - cold' = 24,
-                                  'rand - warm' = 21,
-                                  'sb - warm' = 24),
-                       label = c('random\nstatic',
-                                 'balanced random\nstatic',
-                                 'random\nadaptive cold',
-                                 'balanced random\nadaptive cold',
-                                 'random\nadaptive warm',
-                                 'balanced random\nadaptive warm'),
-                       name = "sampling allocation and regime approach") +
+    theme(
+      panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+      legend.position = "bottom",
+      legend.direction = "horizontal",
+      legend.key.width = unit(1, "lines"),
+      legend.key.size = unit(30, 'points'),
+      legend.text = element_text(size = 11),
+      legend.spacing.y = unit(0.3, "cm"),
+      legend.spacing = unit(0.3, "cm"),
+      legend.box.spacing = unit(0.3, "cm"),
+      strip.background = element_blank(),
+      legend.background = element_blank(),
+      panel.spacing.x = unit(0.5, "lines"),
+      panel.spacing.y = unit(1, "lines"),
+      strip.text = element_blank(),
+      axis.title.x = element_blank(),
+      axis.text = element_text(size = 10),
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.title.align = 0.5
+    ) +
     
-    #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-      theme(
-        panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
-        legend.position = "bottom",                      # Move legend to bottom
-        legend.direction = "horizontal",                 # Horizontal orientation
-        legend.key.width = unit(1, "lines"),
-        legend.key.size = unit(30, 'points'),
-        legend.text = element_text(size = 11),
-        #legend.title = element_text(size = 12),
-        legend.spacing.y = unit(0.3, "cm"),              # Reduced spacing
-        legend.spacing = unit(0.3, "cm"),
-        legend.box.spacing = unit(0.3, "cm"),
-        strip.background = element_blank(),
-        legend.background = element_blank(),
-        panel.spacing.x = unit(0.5, "lines"), 
-        panel.spacing.y = unit(1, "lines"),
-        strip.text = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text = element_text(size = 10),
-        legend.title = element_text(size = 12, face = "bold"),
-        legend.title.align = 0.5,  # Optional: center the legend title
-        
-      ) +
-      
-      guides(
-        fill = guide_legend(
-          override.aes = list(size = 4),
-          nrow = 1,
-          title.position = "top"
-        ),
-        color = guide_legend(
-          override.aes = list(size = 4),
-          nrow = 1,
-          title.position = "top"
-        ),
-        shape = guide_legend(
-          override.aes = list(size = 4),
-          nrow = 1,
-          title.position = "top"
-        )
-      )+
-      geom_text(data = subset(y_scale, common %in% sel_spp_com),
-                aes(label = common, y = text), x = Inf, 
-                vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
-      
-      geom_blank(data = subset(y_scale, spp %in% sel_spp_com),
-                 aes(x = scn_label, y = scale, fill = scn_label, 
-                     group = interaction(scn_label, apr)))
+    guides(
+      fill = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      ),
+      color = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      ),
+      shape = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      )
+    ) +
+    
+    scale_x_discrete(labels = function(x) {
+      # Keep everything before the first dot
+      x <- sub("\\..*$", "", x)
+      # Replace + with line break
+      x <- gsub("\\+", "\n", x)
+      return(x)
+    }) +
+    
+    geom_text(data = subset(y_scale, common %in% sel_spp_com),
+              aes(label = common, y = text), x = Inf,
+              vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
+    geom_blank(data = subset(y_scale, spp %in% sel_spp_com),
+               aes(x = scn_label, y = scale,
+                   fill = scn_label,
+                   group = interaction(scn_label, apr)))
+  
     
   
   ragg::agg_png(paste0('./figures slope/RRMSE_index_suppl.png'), width = 10, height = 7, units = "in", res = 300)
@@ -1196,7 +1244,7 @@ y_scale$scn<-'scn1'
                   'balanced random\nstatic',
                   'random\nadaptive',
                   'balanced random\nadaptive'),
-        name = "sampling allocation and regime approach") +
+        name = "sampling allocation and design approach") +
       
       scale_color_manual(values = c(
         'rand - all' = 'grey30',
@@ -1207,7 +1255,7 @@ y_scale$scn<-'scn1'
                   'balanced random\nstatic',
                   'random\nadaptive',
                   'balanced random\nadaptive'),
-        name = "sampling allocation and regime approach") +
+        name = "sampling allocation and design approach") +
       
       scale_shape_manual(values = c(
         'rand - all' = 21,
@@ -1218,7 +1266,7 @@ y_scale$scn<-'scn1'
                   'balanced random\nstatic',
                   'random\nadaptive',
                   'balanced random\nadaptive'),
-        name = "sampling allocation and regime approach") +
+        name = "sampling allocation and design approach") +
       
       scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
       scale_x_discrete(guide = guide_axis_nested(angle = 0),
@@ -1246,7 +1294,6 @@ y_scale$scn<-'scn1'
         legend.title.align = 0.5,  # Optional: center the legend title
         
       ) +
-      
       guides(
         fill = guide_legend(
           override.aes = list(size = 4),
@@ -1263,7 +1310,15 @@ y_scale$scn<-'scn1'
           nrow = 1,
           title.position = "top"
         )
-      )+
+      ) +
+      
+      scale_x_discrete(labels = function(x) {
+        # Keep everything before the first dot
+        x <- sub("\\..*$", "", x)
+        # Replace + with line break
+        x <- gsub("\\+", "\n", x)
+        return(x)
+      }) +
       
       geom_text(data = subset(y_scale, common %in% sel_spp_com),
                 aes(label = common, y = text), x = Inf, 
@@ -1279,7 +1334,7 @@ y_scale$scn<-'scn1'
     dev.off()
     
     
-    y_scale[4,2:4]<-6
+    #y_scale[4,2:4]<-6
     
     p<-
       ggplot(na.omit(df_rb_rrmse2)) +
@@ -1312,7 +1367,7 @@ y_scale$scn<-'scn1'
                   'balanced random\nadaptive cold',
                   'random\nadaptive warm',
                   'balanced random\nadaptive warm'),
-        name = "sampling allocation and regime approach") +
+        name = "sampling allocation and design regime approach") +
       scale_color_manual(values = c(
         'rand - all' = 'grey30',
         'sb - all' = 'grey30',
@@ -1326,7 +1381,7 @@ y_scale$scn<-'scn1'
                   'balanced random\nadaptive cold',
                   'random\nadaptive warm',
                   'balanced random\nadaptive warm'),
-        name = "sampling allocation and regime approach") +
+        name = "sampling allocation and design regime approach") +
       
       scale_linetype_manual(values = c('rand - all' = 'solid',
                                        'sb - all' = 'dashed',
@@ -1340,7 +1395,7 @@ y_scale$scn<-'scn1'
                                       'balanced random\nadaptive cold',
                                       'random\nadaptive warm',
                                       'balanced random\nadaptive warm'),
-                            name = "sampling allocation and regime approach") +
+                            name = "sampling allocation and design regime approach") +
       
       scale_shape_manual(values = c('rand - all' = 21,
                                     'sb - all' = 24,
@@ -1354,10 +1409,10 @@ y_scale$scn<-'scn1'
                                    'balanced random\nadaptive cold',
                                    'random\nadaptive warm',
                                    'balanced random\nadaptive warm'),
-                         name = "sampling allocation and regime approach") +
+                         name = "sampling allocation and design regime approach") +
       
       #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-      scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+      #scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
       theme(
         panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
         legend.position = "bottom",                      # Move legend to bottom
@@ -1396,8 +1451,27 @@ y_scale$scn<-'scn1'
           override.aes = list(size = 4),
           nrow = 1,
           title.position = "top"
-        )
+        ),
+        #x = "axis_nested", 
+        x = legendry::guide_axis_nested(key = key_range_manual(
+          region_ranges$key,level = 1,
+          start = region_ranges$start,
+          end = region_ranges$end,
+        ),levels_text = levels_text_list,
+        angle = 0)
+        #)
+        #)
       )+
+      #scale_x_discrete(
+      #           labels = function(x) gsub("\\+", "\n", x)
+      #)  +
+      scale_x_discrete(labels = function(x) {
+        # Keep everything before the first dot
+        x <- sub("\\..*$", "", x)
+        # Replace + with line break
+        x <- gsub("\\+", "\n", x)
+        return(x)
+      })+
       geom_text(data = subset(y_scale, common %in% sel_spp_com),
                 aes(label = common, y = text), x = Inf, 
                 vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
@@ -1593,7 +1667,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -1607,7 +1681,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
                                      'sb - all' = 'dashed',
@@ -1621,7 +1695,7 @@ y_scale$scn<-'scn1'
                                     'balanced random\nadaptive cold',
                                     'random\nadaptive warm',
                                     'balanced random\nadaptive warm'),
-                          name = "sampling allocation and regime approach") +
+                          name = "sampling allocation and design regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
                                   'sb - all' = 24,
@@ -1635,7 +1709,7 @@ y_scale$scn<-'scn1'
                                  'balanced random\nadaptive cold',
                                  'random\nadaptive warm',
                                  'balanced random\nadaptive warm'),
-                       name = "sampling allocation and regime approach") +
+                       name = "sampling allocation and design regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
     scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
@@ -1775,7 +1849,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -1789,7 +1863,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
                                      'sb - all' = 'dashed',
@@ -1803,7 +1877,7 @@ y_scale$scn<-'scn1'
                                     'balanced random\nadaptive cold',
                                     'random\nadaptive warm',
                                     'balanced random\nadaptive warm'),
-                          name = "sampling allocation and regime approach") +
+                          name = "sampling allocation and design regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
                                   'sb - all' = 24,
@@ -1817,7 +1891,7 @@ y_scale$scn<-'scn1'
                                  'balanced random\nadaptive cold',
                                  'random\nadaptive warm',
                                  'balanced random\nadaptive warm'),
-                       name = "sampling allocation and regime approach") +
+                       name = "sampling allocation and design regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
     scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
@@ -1901,7 +1975,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -1913,7 +1987,7 @@ y_scale$scn<-'scn1'
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -1924,7 +1998,7 @@ y_scale$scn<-'scn1'
                                  'balanced random\nstatic',
                                  'random\nadaptive',
                                  'balanced random\nadaptive'),
-                       name = "sampling allocation and regime approach") +
+                       name = "sampling allocation and design regime approach") +
     
     scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
     scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
@@ -2094,7 +2168,22 @@ y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$scn_label<-'EBS\nvarTemp'
 
-library(ggh4x)
+
+
+# Define the nesting
+region_ranges<-
+  data.frame('key'=c('depth','varSBT'),
+             'start'=c(0.5,4.7),
+             'end'=c(4.5,8.5))
+
+
+# Suppose your region labels
+regions <- unique(df_summary$region)
+
+# Convert to a list of element_text
+levels_text_list <- lapply(regions, function(x) element_text())
+
+
 
 p<-
 ggplot(df_summary) +
@@ -2128,7 +2217,7 @@ ggplot(df_summary) +
               'balanced random\nadaptive cold',
               'random\nadaptive warm',
               'balanced random\nadaptive warm'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design regime approach") +
   scale_color_manual(values = c(
     'rand - all' = 'grey30',
     'sb - all' = 'grey30',
@@ -2142,7 +2231,7 @@ ggplot(df_summary) +
               'balanced random\nadaptive cold',
               'random\nadaptive warm',
               'balanced random\nadaptive warm'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
                                    'sb - all' = 'dashed',
@@ -2156,7 +2245,7 @@ ggplot(df_summary) +
                                   'balanced random\nadaptive cold',
                                   'random\nadaptive warm',
                                   'balanced random\nadaptive warm'),
-                        name = "sampling allocation and regime approach") +
+                        name = "sampling allocation and design regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
                                 'sb - all' = 24,
@@ -2170,10 +2259,10 @@ ggplot(df_summary) +
                                'balanced random\nadaptive cold',
                                'random\nadaptive warm',
                                'balanced random\nadaptive warm'),
-                     name = "sampling allocation and regime approach") +
+                     name = "sampling allocation and design regime approach") +
   
   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  #scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
     legend.position = "bottom",                      # Move legend to bottom
@@ -2211,8 +2300,27 @@ ggplot(df_summary) +
       override.aes = list(size = 4),
       nrow = 1,
       title.position = "top"
-    )
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,level = 1,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0)
+    #)
+    #)
   )+
+  #scale_x_discrete(
+  #           labels = function(x) gsub("\\+", "\n", x)
+  #)  +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
   geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
   geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
@@ -2332,7 +2440,7 @@ p1<-
               'balanced random\nstatic',
               'random\nadaptive',
               'balanced random\nadaptive'),
-    name = "sampling allocation and approach") +
+    name = "sampling allocation and design approach") +
   scale_color_manual(values = c(
     'rand - all - all' = 'grey30',
     'sb - all - all' = 'grey30',
@@ -2346,7 +2454,7 @@ p1<-
               'balanced random\nstatic',
               'random\nadaptive',
               'balanced random\nadaptive'),
-    name = "sampling allocation and approach") +
+    name = "sampling allocation and design approach") +
   
   
   scale_shape_manual(values = c('rand - all - all' = 21,
@@ -2357,10 +2465,10 @@ p1<-
                                'balanced random\nstatic',
                                'random\nadaptive',
                                'balanced random\nadaptive'),
-                     name = "sampling allocation and approach") +
+                     name = "sampling allocation and design approach") +
   
   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  #scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
     theme(
       panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
       legend.position = "bottom",                      # Move legend to bottom
@@ -2380,23 +2488,40 @@ p1<-
       axis.title.x = element_blank(),
       axis.text = element_text(size = 10),
       legend.title = element_text(size = 12, face = "bold",hjust=0.5))+  # Optional: center the legend title
-    guides(
-      fill = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      color = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      shape = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"))+
+  guides(
+    fill = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    color = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    shape = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,level = 1,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0))+
+      scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
+    #)
+    #))+
   geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) #+ #,fontface='italic'
-#geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
+  #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
 
   
   
@@ -2435,7 +2560,7 @@ p1<-
 #'               'balanced random\nstatic',
 #'               'random\nadaptive',
 #'               'balanced random\nadaptive'),
-#'     name = "sampling allocation and approach") +
+#'     name = "sampling allocation and design approach") +
 #'   scale_color_manual(values = c(
 #'     'rand - all' = 'grey30',
 #'     'sb - all' = 'grey30',
@@ -2447,7 +2572,7 @@ p1<-
 #'               'balanced random\nstatic',
 #'               'random\nadaptive',
 #'               'balanced random\nadaptive'),
-#'     name = "sampling allocation and approach") +
+#'     name = "sampling allocation and design approach") +
 #'   
 #'   
 #'   scale_shape_manual(values = c('rand - all' = 21,
@@ -2458,7 +2583,7 @@ p1<-
 #'                                'balanced random\nstatic',
 #'                                'random\nadaptive',
 #'                                'balanced random\nadaptive'),
-#'                      name = "sampling allocation and approach") +
+#'                      name = "sampling allocation and design approach") +
 #'   
 #'   scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
 #'   scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
@@ -2516,11 +2641,12 @@ cv3_filtered[, sqrtdiff := (cv_sim - true_cv)^2]
 cv_summary <- cv3_filtered[, .(
   mean_rel_bias = mean(rel_bias, na.rm = TRUE),
   mean_sqrtdiff = mean(sqrtdiff, na.rm = TRUE),
-  mean_cv_sim = mean(cv_sim, na.rm = TRUE)
+  mean_cv_sim = mean(cv_sim, na.rm = TRUE),
+  mean_cv_true = mean(true_cv, na.rm = TRUE)
 ), by = .(spp, year, scn, approach, regime, sim, region)]
 
 # Step 4: Calculate RRMSE
-cv_summary[, rrmse := sqrt(mean_sqrtdiff) / mean_cv_sim]
+cv_summary[, rrmse := sqrt(mean_sqrtdiff) / mean_cv_true]
 
 # Optional: remove NAs
 cv5 <- na.omit(cv_summary)
@@ -2590,7 +2716,8 @@ setattr(df_rb_rrmse1$strat_var, "levels", c('depth', 'varSBT'))  # Update levels
 #filter by spp
 df_rb_rrmse1<-subset(df_rb_rrmse1,spp %in% sel_spp)
 
-library(ggh4x)
+# library(ggh4x
+#         )
 
 df_rb_rrmse1$regime<-ifelse(df_rb_rrmse1$type=='static','all','dyn')
 df_rb_rrmse1$regime1<-ifelse(df_rb_rrmse1$regime=='all','all','dyn')
@@ -2612,7 +2739,23 @@ y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$scn_label<-'EBS\nvarTemp'
 
+library(legendry)
 
+# Define the nesting
+# Define the nesting
+region_ranges<-
+  data.frame('key'=c('depth','varSBT'),
+             'start'=c(0.5,4.7),
+             'end'=c(4.5,8.5))
+
+
+# Suppose your region labels
+regions <- unique(df_rb_rrmse1$region)
+
+# Convert to a list of element_text
+levels_text_list <- lapply(regions, function(x) element_text())
+
+#
 p<-
   ggplot() +
   #geom_hline(yintercept = 0, alpha = 0.5, linetype = 'dotted') +
@@ -2649,7 +2792,7 @@ p<-
               'balanced random\nstatic',
               'random\nadaptive',
               'balanced random\nadaptive'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design approach") +
   
   scale_color_manual(values = c(
     'rand - all' = 'grey30',
@@ -2660,7 +2803,7 @@ p<-
               'balanced random\nstatic',
               'random\nadaptive',
               'balanced random\nadaptive'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design approach") +
   
   scale_shape_manual(values = c(
     'rand - all' = 21,
@@ -2671,12 +2814,9 @@ p<-
               'balanced random\nstatic',
               'random\nadaptive',
               'balanced random\nadaptive'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design approach") +
   
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-  scale_x_discrete(guide = guide_axis_nested(angle = 0),
-                   labels = function(x) gsub("\\+", "\n", x)) +
-  
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
     legend.position = "bottom",                      # Move legend to bottom
@@ -2715,9 +2855,28 @@ p<-
       override.aes = list(size = 4),
       nrow = 1,
       title.position = "top"
-    )
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,level = 1,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0)
+    #)
+    #)
   )+
-  
+  #scale_x_discrete(
+  #           labels = function(x) gsub("\\+", "\n", x)
+  #)  +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
+
   geom_text(data = subset(y_scale, common %in% sel_spp_com),
             aes(label = common, y = text), x = Inf, 
             vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
@@ -2726,8 +2885,9 @@ p<-
              aes(x = scn_label, y = scale, fill = scn_label, 
                  group = interaction(scn_label, apr)))
 
+  
 
-ragg::agg_png(paste0('./figures slope/RRMSE_cv.png'), width = 8, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_cv1.png'), width = 8, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2769,7 +2929,37 @@ y_scale$apr<-'sb'
 y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$scn_label<-'EBS\nvarTemp'
-y_scale[4,2:4]<-3
+#y_scale[4,2:4]<-3
+
+library(legendry)
+
+# Define the nesting
+region_ranges<-
+  data.frame('key'=c('depth','varSBT'),
+             'start'=c(0.5,4.7),
+             'end'=c(4.5,8.5))
+
+
+# Suppose your region labels
+regions <- unique(df_rb_rrmse2$region)
+
+# Convert to a list of element_text
+levels_text_list <- lapply(regions, function(x) element_text())
+
+# Define the order of the legend items
+desired_order <- c(
+  'rand - all',
+  'sb - all',
+  'rand - cold',
+  'sb - cold',
+  'rand - warm',
+  'sb - warm'
+)
+
+# Convert combined_label to a factor with this order
+df_rb_rrmse2$combined_label <- factor(df_rb_rrmse2$combined_label, levels = desired_order)
+
+
 
 p<-
   ggplot(na.omit(df_rb_rrmse2)) +
@@ -2802,7 +2992,7 @@ p<-
               'balanced random\nadaptive cold',
               'random\nadaptive warm',
               'balanced random\nadaptive warm'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design regime approach") +
   scale_color_manual(values = c(
     'rand - all' = 'grey30',
     'sb - all' = 'grey30',
@@ -2816,7 +3006,7 @@ p<-
               'balanced random\nadaptive cold',
               'random\nadaptive warm',
               'balanced random\nadaptive warm'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
                                    'sb - all' = 'dashed',
@@ -2830,7 +3020,7 @@ p<-
                                   'balanced random\nadaptive cold',
                                   'random\nadaptive warm',
                                   'balanced random\nadaptive warm'),
-                        name = "sampling allocation and regime approach") +
+                        name = "sampling allocation and design regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
                                 'sb - all' = 24,
@@ -2844,10 +3034,9 @@ p<-
                                'balanced random\nadaptive cold',
                                'random\nadaptive warm',
                                'balanced random\nadaptive warm'),
-                     name = "sampling allocation and regime approach") +
+                     name = "sampling allocation and design regime approach") +
   
   #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
     legend.position = "bottom",                      # Move legend to bottom
@@ -2870,24 +3059,42 @@ p<-
     legend.title.align = 0.5,  # Optional: center the legend title
     
   ) +
-  
-  guides(
-    fill = guide_legend(
-      override.aes = list(size = 4),
-      nrow = 1,
-      title.position = "top"
-    ),
-    color = guide_legend(
-      override.aes = list(size = 4),
-      nrow = 1,
-      title.position = "top"
-    ),
-    shape = guide_legend(
-      override.aes = list(size = 4),
-      nrow = 1,
-      title.position = "top"
-    )
-  )+
+    guides(
+      fill = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      ),
+      color = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      ),
+      shape = guide_legend(
+        override.aes = list(size = 4),
+        nrow = 1,
+        title.position = "top"
+      ),
+      #x = "axis_nested", 
+      x = legendry::guide_axis_nested(key = key_range_manual(
+        region_ranges$key,level = 1,
+        start = region_ranges$start,
+        end = region_ranges$end,
+      ),levels_text = levels_text_list,
+      angle = 0)
+      #)
+      #)
+    )+
+    #scale_x_discrete(
+    #           labels = function(x) gsub("\\+", "\n", x)
+    #)  +
+    scale_x_discrete(labels = function(x) {
+      # Keep everything before the first dot
+      x <- sub("\\..*$", "", x)
+      # Replace + with line break
+      x <- gsub("\\+", "\n", x)
+      return(x)
+    })+
   geom_text(data = subset(y_scale, common %in% sel_spp_com),
             aes(label = common, y = text), x = Inf, 
             vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
@@ -2896,7 +3103,7 @@ p<-
              aes(x = scn_label, y = scale, fill = scn_label, 
                  group = interaction(scn_label, apr)))
 
-  ragg::agg_png(paste0('./figures slope/RRMSE_cv_suppl.png'), width = 10, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_cv_suppl1.png'), width = 10, height = 7, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -2951,7 +3158,7 @@ p<-
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
@@ -2962,7 +3169,7 @@ p<-
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_shape_manual(values = c(
       'rand - all' = 21,
@@ -2973,11 +3180,11 @@ p<-
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design approach") +
     
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-    scale_x_discrete(guide = guide_axis_nested(angle = 0),
-                     labels = function(x) gsub("\\+", "\n", x)) +
+    #scale_x_discrete(guide = guide_axis_nested(angle = 0),
+      #               labels = function(x) gsub("\\+", "\n", x)) +
     
     theme(
       panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
@@ -3002,23 +3209,43 @@ p<-
       
     ) +
     
-    guides(
-      fill = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      color = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      shape = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      )
-    )+
+  
+  guides(
+    fill = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    color = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    shape = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0)
+    #)
+    #)
+  )+
+  #scale_x_discrete(
+  #           labels = function(x) gsub("\\+", "\n", x)
+  #)  +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
     
     geom_text(data = subset(y_scale, common %in% sel_spp_com),
               aes(label = common, y = text), x = Inf, 
@@ -3065,6 +3292,11 @@ p<-
   
   y_scale[4,2:4]<-15
   
+  
+  # Convert combined_label to a factor with this order
+  df_rb_rrmse2$combined_label <- factor(df_rb_rrmse2$combined_label, levels = desired_order)
+  
+  
   p<-
     ggplot(na.omit(df_rb_rrmse2)) +
     
@@ -3096,7 +3328,7 @@ p<-
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -3110,7 +3342,7 @@ p<-
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
     
     scale_linetype_manual(values = c('rand - all' = 'solid',
                                      'sb - all' = 'dashed',
@@ -3124,7 +3356,7 @@ p<-
                                     'balanced random\nadaptive cold',
                                     'random\nadaptive warm',
                                     'balanced random\nadaptive warm'),
-                          name = "sampling allocation and regime approach") +
+                          name = "sampling allocation and design regime approach") +
     
     scale_shape_manual(values = c('rand - all' = 21,
                                   'sb - all' = 24,
@@ -3138,10 +3370,10 @@ p<-
                                  'balanced random\nadaptive cold',
                                  'random\nadaptive warm',
                                  'balanced random\nadaptive warm'),
-                       name = "sampling allocation and regime approach") +
+                       name = "sampling allocation and design regime approach") +
     
     #scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+    #scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
     theme(
       panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
       legend.position = "bottom",                      # Move legend to bottom
@@ -3180,8 +3412,28 @@ p<-
         override.aes = list(size = 4),
         nrow = 1,
         title.position = "top"
-      )
+      ),
+      #x = "axis_nested", 
+      x = legendry::guide_axis_nested(key = key_range_manual(
+        region_ranges$key,
+        start = region_ranges$start,
+        end = region_ranges$end,
+      ),levels_text = levels_text_list,
+      angle = 0)
+      #)
+      #)
     )+
+    #scale_x_discrete(
+    #           labels = function(x) gsub("\\+", "\n", x)
+    #)  +
+    scale_x_discrete(labels = function(x) {
+      # Keep everything before the first dot
+      x <- sub("\\..*$", "", x)
+      # Replace + with line break
+      x <- gsub("\\+", "\n", x)
+      return(x)
+    })+
+    
     geom_text(data = subset(y_scale, common %in% sel_spp_com),
               aes(label = common, y = text), x = Inf, 
               vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
@@ -3265,7 +3517,6 @@ df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 df_summary$scn_label<-paste0(df_summary$region,'\n',df_summary$strat_var)
 
 df_summary$common <- df_spp$common[match(df_summary$spp, df_spp$spp)]
-library(ggh4x)
 #df_summary$mean_sd<-df_summary$mean_ratio+df_summary$sd_ratio
 
 # Create a new combined variable in your data
@@ -3286,6 +3537,16 @@ y_scale$apr<-'sb'
 y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$scn_label<-'EBS\nvarTemp'
+
+# Convert combined_label to a factor with this order
+df_summary$combined_label <- factor(df_summary$combined_label, levels = desired_order)
+
+# Define the nesting
+region_ranges<-
+  data.frame('key'=c('depth','varSBT'),
+             'start'=c(0.5,3.6),
+             'end'=c(3.4,6.5))
+
 
 p<-
   ggplot(na.omit(subset(df_summary,spp %in% sel_spp & region !='EBS'))) +
@@ -3315,7 +3576,7 @@ p<-
               'balanced random\nadaptive cold',
               'random\nadaptive warm',
               'balanced random\nadaptive warm'),
-    name = "sampling allocation and regime approach") +
+    name = "sampling allocation and design regime approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -3329,7 +3590,7 @@ p<-
                 'balanced random\nadaptive cold',
                 'random\nadaptive warm',
                 'balanced random\nadaptive warm'),
-      name = "sampling allocation and regime approach") +
+      name = "sampling allocation and design regime approach") +
   
   scale_linetype_manual(values = c('rand - all' = 'solid',
                                    'sb - all' = 'dashed',
@@ -3343,7 +3604,7 @@ p<-
                                   'balanced random\nadaptive cold',
                                   'random\nadaptive warm',
                                   'balanced random\nadaptive warm'),
-                        name = "sampling allocation and regime approach") +
+                        name = "sampling allocation and design regime approach") +
   
   scale_shape_manual(values = c('rand - all' = 21,
                                 'sb - all' = 24,
@@ -3357,7 +3618,7 @@ p<-
                                'balanced random\nadaptive cold',
                                'random\nadaptive warm',
                                'balanced random\nadaptive warm'),
-                     name = "sampling allocation and regime approach") +
+                     name = "sampling allocation and design regime approach") +
   
     #scale_y_continuous(limits = c(-0.25,0.45))+
   #scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA),labels = scales::label_number(accuracy = 0.01))+
@@ -3384,25 +3645,43 @@ p<-
       
     ) +
     
-    guides(
-      fill = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      color = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      ),
-      shape = guide_legend(
-        override.aes = list(size = 4),
-        nrow = 1,
-        title.position = "top"
-      )
-    )+
   
-    scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  guides(
+    fill = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    color = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    shape = guide_legend(
+      override.aes = list(size = 4),
+      nrow = 1,
+      title.position = "top"
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0)
+    #)
+    #)
+  )+
+  #scale_x_discrete(
+  #           labels = function(x) gsub("\\+", "\n", x)
+  #)  +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
   geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
   geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
@@ -3468,7 +3747,7 @@ p1<-
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and approach") +
+      name = "sampling allocation and design approach") +
     scale_color_manual(values = c(
       'rand - all' = 'grey30',
       'sb - all' = 'grey30',
@@ -3480,7 +3759,7 @@ p1<-
                 'balanced random\nstatic',
                 'random\nadaptive',
                 'balanced random\nadaptive'),
-      name = "sampling allocation and approach") +
+      name = "sampling allocation and design approach") +
     
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -3491,7 +3770,7 @@ p1<-
                                  'balanced random\nstatic',
                                  'random\nadaptive',
                                  'balanced random\nadaptive'),
-                       name = "sampling allocation and approach") +
+                       name = "sampling allocation and design approach") +
     
     
     scale_shape_manual(values = c('rand - all' = 21,
@@ -3502,7 +3781,7 @@ p1<-
                                  'balanced random\nstatic',
                                  'random\nadaptive',
                                  'balanced random\nadaptive'),
-                       name = "sampling allocation and approach") +
+                       name = "sampling allocation and design approach") +
   
   #scale_y_continuous(limits = c(-0.25,0.45))+
   #scale_y_continuous(expand = expansion(mult = c(0.03, 0)),limits = c(0,NA),labels = scales::label_number(accuracy = 0.01))+
@@ -3526,6 +3805,7 @@ p1<-
     axis.text = element_text(size = 10),
     legend.title = element_text(size = 12, face = "bold"),
     legend.title.align = 0.5) +
+  
   guides(
     fill = guide_legend(
       override.aes = list(size = 4),
@@ -3540,9 +3820,26 @@ p1<-
     shape = guide_legend(
       override.aes = list(size = 4),
       nrow = 1,
-      title.position = "top"))+  
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-    geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+      title.position = "top"
+    ),
+    #x = "axis_nested", 
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0))+
+  #scale_x_discrete(
+  #           labels = function(x) gsub("\\+", "\n", x)
+  #)  +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
+  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
     geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
 ragg::agg_png(paste0('./figures slope/logcvratio2.png'), width = 8, height = 7, units = "in", res = 300)

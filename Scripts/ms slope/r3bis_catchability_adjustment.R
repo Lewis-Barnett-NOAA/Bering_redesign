@@ -174,9 +174,10 @@ ggplot()+
 
 p<-
 ggplot(data_sratio_summary, aes(x = SIZE_BIN, y = mean)) +
+  geom_hline(yintercept = 1,linetype='dashed',alpha=0.5)+
+  
   # Add ribbon for uncertainty between p10 and p90
   geom_ribbon(aes(ymin = p10, ymax = p90),fill='grey30', alpha = 0.3) +
-  
   # Add smoothed line over mean values
   #geom_smooth(se = FALSE, color = "black") +
   
@@ -185,14 +186,19 @@ ggplot(data_sratio_summary, aes(x = SIZE_BIN, y = mean)) +
   
   # Facet by species
   facet_wrap(~scientific_name,nrow=2,scales='free_x') +
-  
+  scale_y_continuous(limits = c(0,5.5))+
   # Optional theme
-  theme_minimal() +
+  theme_bw() +
+  theme(
+    strip.text = element_text(size = 12),
+    strip.background = element_blank(),
+    text = element_text(size = 12)
+  ) +
   labs(x = "length (cm)", y = "SR")
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/sr.png'), width = 8, height = 4, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sr2.png'), width = 10, height = 5, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()

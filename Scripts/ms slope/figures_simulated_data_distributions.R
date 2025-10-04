@@ -602,6 +602,35 @@ mean_dens_df <- dens_all %>%
           text             = element_text(size = 12)) +
     facet_wrap(~common, scales = "free_y")
 
+  library(ggplot2)
+  library(mgcv)
+  
+  p <- ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
+    geom_point(alpha = 0.5) +  # raw points
+    stat_smooth(
+      method = "gam",
+      formula = y ~ s(x, bs = "cs"),
+      method.args = list(family = Gamma(link = "log")),  # positive predictions
+      se = TRUE,    # show confidence interval
+      aes(ymin = ..ymin.., ymax = ..ymax.., fill= year_type),alpha=0.2  # default, but just for clarity
+    ) +
+    labs(x = "depth (m)", y = "mean density (kg/km²)") +
+    scale_y_continuous(limits = c(0, NA)) +  # clip axis below 0
+    scale_color_manual(values = c(cold = "#1675ac", warm = "#cc1d1f"),
+                       labels = c("cold", "warm"),
+                       name = "SBT regime") +
+    scale_fill_manual(values = c(cold = "#1675ac", warm = "#cc1d1f"),
+                       labels = c("cold", "warm"),
+                       name = "SBT regime") +
+    theme_bw() +
+    theme(strip.text       = element_text(size = 12),
+          strip.background = element_blank(),
+          text             = element_text(size = 12)) +
+    facet_wrap(~common, scales = "free_y")
+  
+  p
+  
+  
 #then add wilcoxon densities from observed data
 
 library(dplyr)
@@ -670,7 +699,7 @@ ggplot(plot_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_density2.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('./figures slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
