@@ -137,24 +137,8 @@ BSS_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'BSS'),'Are
 # Sampling designs (from script #11) 
 ###################################
 
-#sampling scenarios
-samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+BSS','EBS+NBS+BSS'),
-                     strat_var=c('varSBT','depth'), #,'varSBT_forced','depth_forced' #LonE and combinations
-                     target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
-                     n_strata=c(10),
-                     domain=1) #c(5,10,15)
-
-#samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("BSS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
-
-#add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
-
-#add scenario number
-samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
+#load table that relate survey design (here scn) to variables
+load(file='./tables/samp_df_dens.RData') #samp_df
 
 ################
 # SAMPLES PER REGION
@@ -184,7 +168,7 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   #r<-regime[1]  
   cat(paste0('########## ',s,' - ',r,' ##########\n'))    
   #scn_allocations
-  load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
+  load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   
   for (sur in 1:n_sur) {
     
@@ -647,11 +631,11 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sampling_effort_area_dens.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
-  ################
+################
 # HISTORICAL SURVEY
 ################
  
@@ -738,7 +722,7 @@ for (sim in 1:n_sim_hist) {
         #r<-'all'
         
         #load optimization results
-        load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+        load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
         
         #area
         area_cell<-merge(all$result_list$solution$indices, grid3, by.x='ID',by.y='cell')
@@ -764,7 +748,7 @@ for (sim in 1:n_sim_hist) {
       alloc<-samp_df$n_samples[s]
       
       #load survey allocations by sampling design
-        load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
+        load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
         #scn_allocations
       #dimnames(scn_allocations)[[3]]<-c('rand','sb')
       
@@ -895,12 +879,12 @@ for (sim in 1:n_sim_hist) {
       }
     }
   
-  save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist.RData'))  
+  save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist_dens.RData'))  
 
 }
 
 
-load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist.RData'))   #index_hist
+load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
 index_hist[,,'y2003','rand',1,'scn4','cold']
 #samp_df
 
