@@ -710,9 +710,12 @@ y_scale$scn<-'scn1'
   ind2[, year := as.integer(year)]
   # Filter ind2
   ind2 <- ind2[scn %in% unique(samp_df1$scn)]
+  ind2[region == "EBS+SBS", region := "EBS+BSS"]
+  ind2[region == "EBS+NBS+SBS", region := "EBS+NBS+BSS"]
+  
   true_ind1[, year := as.integer(year)]
-  true_ind1[region == "EBS+BSS", region := "EBS+SBS"]
-  true_ind1[region == "EBS+NBS+BSS", region := "EBS+NBS+SBS"]
+  true_ind1[region == "EBS+SBS", region := "EBS+BSS"]
+  true_ind1[region == "EBS+NBS+SBS", region := "EBS+NBS+BSS"]
   
   head(ind2)
   head(true_ind1)
@@ -823,7 +826,8 @@ y_scale$scn<-'scn1'
   setattr(df_rb_rrmse1$strat_var, "levels", c('depth', 'varSBT'))  # Update levels properly
   
   #filter by spp
-  df_rb_rrmse1<-subset(df_rb_rrmse1,spp %in% sel_spp)
+  #df_rb_rrmse1<-subset(df_rb_rrmse1,spp %in% sel_spp)
+  
   
   # #for geom_blank(0 and adjust scale)
   # y_scale<-aggregate((mean_value+sd_value) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
@@ -856,13 +860,15 @@ y_scale$scn<-'scn1'
   #2 HISTORICAL RRMSE (from index)  #####
   
   #for geom_blank(0 and adjust scale)
-  y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
-  y_scale$scale<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.2
+  #y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
+  y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, df_rb_rrmse1,max)
+  y_scale$scale<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.1
   y_scale$text<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.1
   y_scale$apr<-'sb'
   y_scale$scn<-'scn1'
   y_scale$year<-2022
-  y_scale$scn_label<-'EBS\nvarTemp'
+  y_scale$region<-'EBS'
+  y_scale$strat_var<-'varSBT'
   
   #sub SBS for BSS
   df_rb_rrmse1$region<-gsub('SBS','BSS',df_rb_rrmse1$region)
@@ -871,8 +877,8 @@ y_scale$scn<-'scn1'
   # Define the nesting
   region_ranges<-
     data.frame('key'=c('depth','varSBT'),
-               'start'=c(0.5,4.7),
-               'end'=c(4.5,8.5))
+               'start'=c(0.6,4.6),
+               'end'=c(4.4,8.4))
   
   
   # Suppose your region labels
@@ -909,7 +915,7 @@ y_scale$scn<-'scn1'
     labs(y = 'RRMSE of abundance estimates', x = '') +
     theme_bw() + 
     
-    facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
+    facet_wrap(~common, scales = 'free_y', nrow = 5, dir = 'h') +
     
     scale_fill_manual(values = c(
       'rand - all' = 'grey30',
@@ -1008,16 +1014,16 @@ y_scale$scn<-'scn1'
       return(x)
     })+
     
-    geom_text(data = subset(y_scale, common %in% sel_spp_com),
+    geom_text(data = y_scale,
               aes(label = common, y = text), x = Inf, 
               vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
     
-    geom_blank(data = subset(y_scale, spp %in% sel_spp_com),
-               aes(x = scn_label, y = scale, fill = scn_label, 
+    geom_blank(data = y_scale,
+               aes(x = interaction(region, strat_var), y = scale, fill = scn_label, 
                    group = interaction(scn_label, apr)))
     
   
-  ragg::agg_png(paste0('./figures slope/RRMSE_index.png'), width = 8, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_index_all.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1040,7 +1046,9 @@ y_scale$scn<-'scn1'
   df_rb_rrmse2[, strat_var := factor(strat_var, levels = c(levels(strat_var)[1:2], 'depth', 'varSBT'))]
   setattr(df_rb_rrmse2$strat_var, "levels", c('depth', 'varSBT'))  # Update levels properly
   #filter by spp
-  df_rb_rrmse2<-subset(df_rb_rrmse2,spp %in% sel_spp)
+  #df_rb_rrmse2<-subset(df_rb_rrmse2,spp %in% sel_spp)
+  
+  
   #df_rb_rrmse2$regime<-ifelse(df_rb_rrmse2$type=='static','all','dyn')
   df_rb_rrmse2$regime1<-ifelse(df_rb_rrmse2$regime=='all','all','dyn')
   df_rb_rrmse2$combined_label<-paste0(df_rb_rrmse2$approach," - ",df_rb_rrmse2$regime)
@@ -1100,7 +1108,7 @@ y_scale$scn<-'scn1'
     ) +
     labs(y = 'RRMSE of abundance estimates', x = '') +
     theme_bw() +
-    facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
+    facet_wrap(~common, scales = 'free_y', nrow = 5, dir = 'h') +
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
     
     # manual scales with consistent order
@@ -1171,8 +1179,16 @@ y_scale$scn<-'scn1'
         override.aes = list(size = 4),
         nrow = 1,
         title.position = "top"
-      )
-    ) +
+      ),
+      x = legendry::guide_axis_nested(key = key_range_manual(
+        region_ranges$key,level = 1,
+        start = region_ranges$start,
+        end = region_ranges$end,
+      ),levels_text = levels_text_list,
+      angle = 0)
+      #)
+      #)
+    )+
     
     scale_x_discrete(labels = function(x) {
       # Keep everything before the first dot
@@ -1182,17 +1198,17 @@ y_scale$scn<-'scn1'
       return(x)
     }) +
     
-    geom_text(data = subset(y_scale, common %in% sel_spp_com),
+    geom_text(data = y_scale,
               aes(label = common, y = text), x = Inf,
               vjust = 1, hjust = 1.1, size = 4, lineheight = 0.8) +
-    geom_blank(data = subset(y_scale, spp %in% sel_spp_com),
-               aes(x = scn_label, y = scale,
+    geom_blank(data = y_scale,
+               aes(x = interaction(region, strat_var), y = scale,
                    fill = scn_label,
                    group = interaction(scn_label, apr)))
   
     
   
-  ragg::agg_png(paste0('./figures slope/RRMSE_index_suppl.png'), width = 10, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_index_suppl_all.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1309,8 +1325,16 @@ y_scale$scn<-'scn1'
           override.aes = list(size = 4),
           nrow = 1,
           title.position = "top"
-        )
-      ) +
+        ),
+        x = legendry::guide_axis_nested(key = key_range_manual(
+            region_ranges$key,level = 1,
+            start = region_ranges$start,
+            end = region_ranges$end,
+          ),levels_text = levels_text_list,
+          angle = 0)
+    #)
+    #)
+        )+
       
       scale_x_discrete(labels = function(x) {
         # Keep everything before the first dot
@@ -2092,7 +2116,8 @@ load(file = './output slope//estimated_cvsim_hist.RData')
 setDT(cv2)
 
 # Subset the data
-cv2 <- cv2[cv2$spp %in% sel_spp & cv2$scn %in% paste0('scn',1:16), ]
+cv2 <- cv2[cv2$scn %in% paste0('scn',1:16), ]
+#cv2 <- cv2[cv2$spp %in% sel_spp & cv2$scn %in% paste0('scn',1:16), ]
 
 #year
 cv2$year<-gsub('y','',cv2$year)
@@ -2117,8 +2142,10 @@ cv3 <- merge(cv2, true_ind3, by = c("spp", "year", "scn", "approach", "regime",'
 unique(cv3[, .(scn, region)])
 
 #save  
-save(cv3,file = './output slope//estimated_cvs.RData')
-load(file = './output slope//estimated_cvs.RData')
+# save(cv3,file = './output slope//estimated_cvs.RData')
+# load(file = './output slope//estimated_cvs.RData')
+save(cv3,file = './output slope//estimated_cvs_spp.RData')
+load(file = './output slope//estimated_cvs_spp.RData')
 class(cv3)
 
 #df<-df[which(df$spp %in% df_spp1$spp),]
@@ -2160,21 +2187,23 @@ df_summary[, strat_var := factor(strat_var, levels = c(levels(strat_var)[1:2], '
 setattr(df_summary$strat_var, "levels", c('depth', 'varSBT'))  # Update levels properly
 
 #for geom_blank(0 and adjust scale)
-y_scale<-aggregate(q90 ~ common, subset(df_summary, spp %in% sel_spp),max)
-y_scale$scale<-y_scale$q90+y_scale$q90*0.2
+#y_scale<-aggregate(q90 ~ common, subset(df_summary, spp %in% sel_spp),max)
+y_scale<-aggregate(q90 ~ common, df_summary,max)
+y_scale$scale<-y_scale$q90+y_scale$q90*0.1
 y_scale$text<-y_scale$q90+y_scale$q90*0.1
 y_scale$apr<-'sb'
 y_scale$scn<-'scn1'
 y_scale$year<-2022
-y_scale$scn_label<-'EBS\nvarTemp'
+y_scale$region<-'EBS'
+y_scale$strat_var<-'varSBT'
 
 
 
 # Define the nesting
 region_ranges<-
   data.frame('key'=c('depth','varSBT'),
-             'start'=c(0.5,4.7),
-             'end'=c(4.5,8.5))
+             'start'=c(0.6,4.6),
+             'end'=c(4.4,8.4))
 
 
 # Suppose your region labels
@@ -2183,7 +2212,7 @@ regions <- unique(df_summary$region)
 # Convert to a list of element_text
 levels_text_list <- lapply(regions, function(x) element_text())
 
-
+library(legendry)
 
 p<-
 ggplot(df_summary) +
@@ -2202,7 +2231,7 @@ ggplot(df_summary) +
              size = 2, position = position_dodge(width = 0.9), color = "black") + 
   labs(y = expression(widehat(CV)), x = '') +
   theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
+  facet_wrap(~common , scales = 'free_y', nrow = 5, dir = 'h') +
   
   scale_fill_manual(values = c(
     'rand - all' = 'grey30',
@@ -2321,14 +2350,17 @@ ggplot(df_summary) +
     x <- gsub("\\+", "\n", x)
     return(x)
   })+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  geom_blank(data=y_scale,aes(x=interaction(region,strat_var),y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+
+  #geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
 
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_supl.png'),  width = 10, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_supl_all.png'),  width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2336,6 +2368,7 @@ dev.off()
 df_summary$regime1<-ifelse(df_summary$regime=='all','all','dyn')
 df_summary$combined_label1<-paste0(df_summary$approach," - ",df_summary$regime1)
 
+library(dplyr)
 df_summary_clean <- df_summary %>%
   group_by(region, approach,strat_var, combined_label1, region1, regime1, common) %>%
   summarise(
@@ -2427,7 +2460,7 @@ p1<-
 
   labs(y = expression(widehat(CV)), x = '') +
   theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 2, dir = 'h') +
+  facet_wrap(~common , scales = 'free_y', nrow = 5, dir = 'h') +
   
   scale_fill_manual(values = c(
     'rand - all - all' = 'grey30',
@@ -2520,8 +2553,10 @@ p1<-
   })+
     #)
     #))+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) #+ #,fontface='italic'
-  #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
+  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) #+ #,fontface='italic'
+  #geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) #+ #,fontface='italic'
+
+#geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
 
   
   
@@ -2613,7 +2648,7 @@ p1<-
 #'   #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
 
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3.png'), width = 8, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_all.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
@@ -2731,7 +2766,8 @@ df_rb_rrmse1<-merge(df_rb_rrmse1,df_spp,by='spp')
 df_rb_rrmse1$region<-gsub('SBS','BSS',df_rb_rrmse1$region)
 
 #for geom_blank(0 and adjust scale)
-y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
+#y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp),max)
+y_scale<-aggregate((mean_rrmse+sd_rrmse) ~ common, df_rb_rrmse1,max)
 y_scale$scale<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.2
 y_scale$text<-y_scale$`(mean_rrmse + sd_rrmse)`+y_scale$`(mean_rrmse + sd_rrmse)`*0.1
 y_scale$apr<-'sb'
@@ -2745,8 +2781,8 @@ library(legendry)
 # Define the nesting
 region_ranges<-
   data.frame('key'=c('depth','varSBT'),
-             'start'=c(0.5,4.7),
-             'end'=c(4.5,8.5))
+             'start'=c(0.6,4.6),
+             'end'=c(4.4,8.4))
 
 
 # Suppose your region labels
@@ -2936,8 +2972,8 @@ library(legendry)
 # Define the nesting
 region_ranges<-
   data.frame('key'=c('depth','varSBT'),
-             'start'=c(0.5,4.7),
-             'end'=c(4.5,8.5))
+             'start'=c(0.6,4.6),
+             'end'=c(4.4,8.4))
 
 
 # Suppose your region labels
@@ -3452,8 +3488,9 @@ p<-
 
 #6 CV ratio ####
 #LOAD
-load(file = './output slope//estimated_cvs.RData') #cv3
-
+#load(file = './output slope//estimated_cvs.RData') #cv3
+  load(file = './output slope//estimated_cvs_spp.RData') #cv3
+  
 #merge samp data
 setDT(samp_df)
 samp_df$region<-gsub('SBS','BSS',samp_df$region)
@@ -3530,13 +3567,15 @@ df_summary$combined_label<-factor(df_summary$combined_label,levels=c('rand - all
                                                        'sb - warm' ) )
 
 #for geom_blank(0 and adjust scale)
-y_scale <- aggregate(q90 ~ common, subset(df_summary, spp %in% sel_spp), max)
-y_scale$scale<-0.47
-y_scale$text<-0.47
+y_scale <- aggregate(q90 ~ common, df_summary, max)
+y_scale$scale<-1
+y_scale$text<-1
 y_scale$apr<-'sb'
 y_scale$scn<-'scn1'
 y_scale$year<-2022
-y_scale$scn_label<-'EBS\nvarTemp'
+y_scale$scn_label<-'EBS+NBS\nvarTemp'
+y_scale$region<-'EBS+NBS'
+y_scale$strat_var<-'varSBT'
 
 # Convert combined_label to a factor with this order
 df_summary$combined_label <- factor(df_summary$combined_label, levels = desired_order)
@@ -3544,12 +3583,11 @@ df_summary$combined_label <- factor(df_summary$combined_label, levels = desired_
 # Define the nesting
 region_ranges<-
   data.frame('key'=c('depth','varSBT'),
-             'start'=c(0.5,3.6),
-             'end'=c(3.4,6.5))
-
+             'start'=c(0.6,3.6),
+             'end'=c(3.4,6.4))
 
 p<-
-  ggplot(na.omit(subset(df_summary,spp %in% sel_spp & region !='EBS'))) +
+  ggplot(na.omit(subset(df_summary,  region !='EBS'))) +
     
     geom_hline(yintercept = 0,linetype='dashed')+
   geom_errorbar(aes(x = interaction(region,strat_var), ymin = q10, ymax = q90, color = combined_label, 
@@ -3561,7 +3599,7 @@ p<-
              size = 2, position = position_dodge(width = 0.8), color = "black") + 
   labs(y = expression(log(widehat(CV)/widehat(CV)[EBS])), x = '') +   
   theme_bw() + 
-  facet_wrap(~common , nrow = 2, dir = 'h') +
+  facet_wrap(~common , nrow = 5, dir = 'h') +
   
   scale_fill_manual(values = c(
     'rand - all' = 'grey30',
@@ -3682,12 +3720,12 @@ p<-
     x <- gsub("\\+", "\n", x)
     return(x)
   })+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+  geom_blank(data=y_scale,aes(x=interaction(region,strat_var),y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/logcvratio_supl.png'), width = 10, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio_supl_all.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3720,6 +3758,8 @@ y_scale$apr<-'sb'
 y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$scn_label<-'EBS\nvarTemp'
+y_scale$region<-'EBS'
+y_scale$strat_var<-'varSBT'
 
 p1<-
   ggplot(na.omit(subset(df_summary_clean,region!='EBS'))) +
@@ -3839,10 +3879,10 @@ p1<-
     x <- gsub("\\+", "\n", x)
     return(x)
   })+
-  geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-    geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+    geom_blank(data=y_scale,aes(x=interaction(region,strat_var),y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
-ragg::agg_png(paste0('./figures slope/logcvratio2.png'), width = 8, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio2_all.png'), width = 8, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
