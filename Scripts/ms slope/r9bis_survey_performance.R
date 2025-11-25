@@ -153,24 +153,8 @@ ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 
 # Sampling designs #####
 
-#sampling scenarios
-samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
-                     strat_var=c('varTemp','Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
-                     target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
-                     n_strata=c(10),
-                     domain=1) #c(5,10,15)
-
-#samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("SBS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
-
-#add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
-
-#add scenario number
-samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
+#load table that relate survey design (here scn) to variables
+load(file='./tables/samp_df_dens.RData') #samp_df
 samp1<-samp_df
 
 # HISTORICAL INDEX #####
@@ -249,7 +233,7 @@ ind2<-data.frame(matrix(NA,nrow = 0,ncol = 7))
 names(ind2)<-c('spp','year','approach','sur','scn','index','sim')
 
 #list of files (100 files, one for each simulated data)
-files<-list.files('./output slope//ms_sim_survey_hist/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
+files<-list.files('./output slope//ms_sim_survey_hist/',pattern = 'index_hist_dens',recursive = TRUE,full.names = TRUE)
 
 sims<-list.files('./output slope/ms_sim_survey_hist/')
 sims<-as.numeric(gsub('sim','',sims))
@@ -282,8 +266,8 @@ for (sim in sims) {
 }
 
 #save simulated index
-save(ind2,file = './output slope//estimated_index_hist.RData') #ind2
-load('./output slope/estimated_index_hist.RData')
+save(ind2,file = './output slope//estimated_index_hist_dens.RData') #ind2
+load('./output slope/estimated_index_hist_dens.RData')
 
 #aggregate df to get mean, q95 and q5 for each group (sp, year, sampling scenario and approach)
 df<-aggregate(index ~ spp + year + scn + approach + regime,ind2,FUN = function(x) c(mean = mean(x), q95 = quantile(x,probs=0.95) , q5 = quantile(x,probs=0.05)) )
@@ -669,7 +653,7 @@ y_scale$scn<-'scn1'
 #2 HISTORICAL CV, RRMSE and RBIAS (from index) #####
   
   #load simulated index
-  load('./output slope/estimated_index_hist.RData') #ind2
+  load('./output slope/estimated_index_hist_dens.RData') #ind2
   
   #load true ind
   load(file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  #true_ind
@@ -1023,7 +1007,7 @@ y_scale$scn<-'scn1'
                    group = interaction(scn_label, apr)))
     
   
-  ragg::agg_png(paste0('./figures slope/RRMSE_index_all.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_index_all_dens.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1208,7 +1192,7 @@ y_scale$scn<-'scn1'
   
     
   
-  ragg::agg_png(paste0('./figures slope/RRMSE_index_suppl_all.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_index_suppl_all_dens.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1352,7 +1336,7 @@ y_scale$scn<-'scn1'
                  aes(x = scn_label, y = scale, fill = scn_label, 
                      group = interaction(scn_label, apr)))
     
-    ragg::agg_png(paste0('./figures slope/RBIAS_index.png'), width = 8, height = 7, units = "in", res = 300)
+    ragg::agg_png(paste0('./figures slope/RBIAS_index_dens.png'), width = 8, height = 7, units = "in", res = 300)
     #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
     p
     dev.off()
@@ -1505,7 +1489,7 @@ y_scale$scn<-'scn1'
                      group = interaction(scn_label, apr)))
     
     
-    ragg::agg_png(paste0('./figures slope/RBIAS_index_suppl.png'), width = 10, height = 7, units = "in", res = 300)
+    ragg::agg_png(paste0('./figures slope/RBIAS_index_suppl_dens.png'), width = 10, height = 7, units = "in", res = 300)
     #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
     p
     dev.off()
@@ -2064,7 +2048,7 @@ y_scale$scn<-'scn1'
   col_names <- c('spp', 'year', 'approach', 'sur', 'scn', 'regime', 'cv_sim')
 
   # Get list of files
-  files <- list.files('./output slope/ms_sim_survey_hist/', pattern = 'index_hist', recursive = TRUE, full.names = TRUE)
+  files <- list.files('./output slope/ms_sim_survey_hist/', pattern = 'index_hist_dens', recursive = TRUE, full.names = TRUE)
 
   # Process all files using lapply and combine results efficiently
   cv2 <- rbindlist(lapply(seq_along(files), function(sim) {
@@ -2111,8 +2095,8 @@ y_scale$scn<-'scn1'
   }), fill = TRUE)  # Use fill = TRUE to handle missing columns if needed
  
 #save  
-save(cv2,file = './output slope//estimated_cvsim_hist.RData')
-load(file = './output slope//estimated_cvsim_hist.RData')
+save(cv2,file = './output slope//estimated_cvsim_hist_dens.RData')
+load(file = './output slope//estimated_cvsim_hist_dens.RData')
 setDT(cv2)
 
 # Subset the data
@@ -2144,8 +2128,8 @@ unique(cv3[, .(scn, region)])
 #save  
 # save(cv3,file = './output slope//estimated_cvs.RData')
 # load(file = './output slope//estimated_cvs.RData')
-save(cv3,file = './output slope//estimated_cvs_spp.RData')
-load(file = './output slope//estimated_cvs_spp.RData')
+save(cv3,file = './output slope//estimated_cvs_spp_dens.RData')
+load(file = './output slope//estimated_cvs_spp_dens.RData')
 class(cv3)
 
 #df<-df[which(df$spp %in% df_spp1$spp),]
@@ -2214,104 +2198,142 @@ levels_text_list <- lapply(regions, function(x) element_text())
 
 library(legendry)
 
-p<-
-ggplot(df_summary) +
+# Shared legend definitions
+labels_shared <- c(
+  'random\nstatic',
+  'balanced random\nstatic',
+  'random\nadaptive cold',
+  'balanced random\nadaptive cold',
+  'random\nadaptive warm',
+  'balanced random\nadaptive warm'
+)
+
+values_colors <- c(
+  'rand - all'  = 'grey30',
+  'sb - all'    = 'grey30',
+  'rand - cold' = '#1675ac',
+  'sb - cold'   = '#1675ac',
+  'rand - warm' = "#cc1d1f",
+  'sb - warm'   = "#cc1d1f"
+)
+
+values_shapes <- c(
+  'rand - all'  = 21,
+  'sb - all'    = 24,
+  'rand - cold' = 21,
+  'sb - cold'   = 24,
+  'rand - warm' = 21,
+  'sb - warm'   = 24
+)
+
+values_linetype <- c(
+  'rand - all'  = 'solid',
+  'sb - all'    = 'dashed',
+  'rand - cold' = 'solid',
+  'sb - cold'   = 'dashed',
+  'rand - warm' = 'solid',
+  'sb - warm'   = 'dashed'
+)
+
+legend_title <- "sampling allocation and design regime approach"
+
+
+# --------------------------------------------------------------------
+#                           UPDATED PLOT
+# --------------------------------------------------------------------
+
+p <- ggplot(df_summary) +
   
-  geom_errorbar(aes(
-    x = interaction(region, strat_var),
-    ymin = q10,
-    ymax = q90,
-    color = combined_label,
-    group = interaction(scn_label, approach, spp, regime)
-  ),
-  width = 0.3, position = position_dodge(width = 0.9), size = 1, alpha = 0.8)+
-  geom_point(aes(x = interaction(region,strat_var), y = mean_value, fill = combined_label, 
-                 group = interaction(scn_label, approach, spp, regime), 
-                 shape = combined_label), 
-             size = 2, position = position_dodge(width = 0.9), color = "black") + 
-  labs(y = expression(widehat(CV)), x = '') +
-  theme_bw() + 
-  facet_wrap(~common , scales = 'free_y', nrow = 5, dir = 'h') +
+  geom_errorbar(
+    aes(
+      x = interaction(region, strat_var),
+      ymin = q10,
+      ymax = q90,
+      color = combined_label,
+      group = interaction(scn_label, approach, spp, regime)
+    ),
+    width = 0.3,
+    position = position_dodge(width = 0.9),
+    size = 1,
+    alpha = 0.8
+  ) +
   
-  scale_fill_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    'rand - cold' = '#1675ac',
-    'sb - cold' = '#1675ac',
-    'rand - warm' = "#cc1d1f",
-    'sb - warm' = "#cc1d1f"), 
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\nadaptive cold',
-              'balanced random\nadaptive cold',
-              'random\nadaptive warm',
-              'balanced random\nadaptive warm'),
-    name = "sampling allocation and design regime approach") +
-  scale_color_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    'rand - cold' = '#1675ac',
-    'sb - cold' = '#1675ac',
-    'rand - warm' = "#cc1d1f",
-    'sb - warm' = "#cc1d1f"),
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\nadaptive cold',
-              'balanced random\nadaptive cold',
-              'random\nadaptive warm',
-              'balanced random\nadaptive warm'),
-    name = "sampling allocation and design regime approach") +
+  geom_point(
+    aes(
+      x = interaction(region, strat_var),
+      y = mean_value,
+      fill = combined_label,
+      group = interaction(scn_label, approach, spp, regime),
+      shape = combined_label
+    ),
+    size = 2,
+    position = position_dodge(width = 0.9),
+    color = "black"
+  ) +
   
-  scale_linetype_manual(values = c('rand - all' = 'solid',
-                                   'sb - all' = 'dashed',
-                                   'rand - cold' = 'solid',
-                                   'sb - cold' = 'dashed',
-                                   'rand - warm' = 'solid',
-                                   'sb - warm' = 'dashed'),
-                        label = c('random\nstatic',
-                                  'balanced random\nstatic',
-                                  'random\nadaptive cold',
-                                  'balanced random\nadaptive cold',
-                                  'random\nadaptive warm',
-                                  'balanced random\nadaptive warm'),
-                        name = "sampling allocation and design regime approach") +
+  labs(y = expression(widehat(CV)), x = "") +
+  theme_bw() +
   
-  scale_shape_manual(values = c('rand - all' = 21,
-                                'sb - all' = 24,
-                                'rand - cold' = 21,
-                                'sb - cold' = 24,
-                                'rand - warm' = 21,
-                                'sb - warm' = 24),
-                     label = c('random\nstatic',
-                               'balanced random\nstatic',
-                               'random\nadaptive cold',
-                               'balanced random\nadaptive cold',
-                               'random\nadaptive warm',
-                               'balanced random\nadaptive warm'),
-                     name = "sampling allocation and design regime approach") +
+  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
   
-  scale_y_continuous(expand = c(0, 0), limits = c(0, NA),labels = scales::label_number(accuracy = 0.01))+
-  #scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
+  
+  # ------------------------ UNIFIED LEGENDS -------------------------
+scale_fill_manual(
+  values = values_colors,
+  labels = labels_shared,
+  name = legend_title
+) +
+  
+  scale_color_manual(
+    values = values_colors,
+    labels = labels_shared,
+    name = legend_title
+  ) +
+  
+  scale_shape_manual(
+    values = values_shapes,
+    labels = labels_shared,
+    name = legend_title
+  ) +
+  
+  scale_linetype_manual(
+    values = values_linetype,
+    labels = labels_shared,
+    name = legend_title
+  ) +
+  
+  
+  # ------------------------------------------------------------------
+scale_y_continuous(
+  expand = c(0, 0),
+  limits = c(0, NA),
+  labels = scales::label_number(accuracy = 0.01)
+) +
+  
+  scale_x_discrete(labels = function(x) {
+    x <- sub("\\..*$", "", x)
+    gsub("\\+", "\n", x)
+  }) +
+  
+  
   theme(
-    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
-    legend.position = "bottom",                      # Move legend to bottom
-    legend.direction = "horizontal",                 # Horizontal orientation
+    panel.grid.minor = element_line(linetype = 2, color = "grey90"),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
     legend.key.width = unit(1, "lines"),
-    legend.key.size = unit(30, 'points'),
+    legend.key.size = unit(30, "points"),
     legend.text = element_text(size = 11),
-    #legend.title = element_text(size = 12),
-    legend.spacing.y = unit(0.3, "cm"),              # Reduced spacing
+    legend.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    legend.spacing.y = unit(0.3, "cm"),
     legend.spacing = unit(0.3, "cm"),
     legend.box.spacing = unit(0.3, "cm"),
     strip.background = element_blank(),
     legend.background = element_blank(),
-    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.x = unit(0.5, "lines"),
     panel.spacing.y = unit(1, "lines"),
     strip.text = element_blank(),
     axis.title.x = element_blank(),
-    axis.text = element_text(size = 10),
-    legend.title = element_text(size = 12, face = "bold",hjust=0.5),  # Optional: center the legend title
-    
+    axis.text = element_text(size = 10)
   ) +
   
   guides(
@@ -2330,37 +2352,46 @@ ggplot(df_summary) +
       nrow = 1,
       title.position = "top"
     ),
-    #x = "axis_nested", 
-    x = legendry::guide_axis_nested(key = key_range_manual(
-      region_ranges$key,level = 1,
-      start = region_ranges$start,
-      end = region_ranges$end,
-    ),levels_text = levels_text_list,
-    angle = 0)
-    #)
-    #)
-  )+
-  #scale_x_discrete(
-  #           labels = function(x) gsub("\\+", "\n", x)
-  #)  +
-  scale_x_discrete(labels = function(x) {
-    # Keep everything before the first dot
-    x <- sub("\\..*$", "", x)
-    # Replace + with line break
-    x <- gsub("\\+", "\n", x)
-    return(x)
-  })+
-  geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
-  geom_blank(data=y_scale,aes(x=interaction(region,strat_var),y=scale,fill=scn_label,group =interaction(scn_label,apr)))
+    x = legendry::guide_axis_nested(
+      key = key_range_manual(
+        region_ranges$key,
+        level = 1,
+        start = region_ranges$start,
+        end = region_ranges$end
+      ),
+      levels_text = levels_text_list,
+      angle = 0
+    )
+  ) +
+  
+  geom_text(
+    data = y_scale,
+    aes(label = common, y = text),
+    x = Inf,
+    vjust = 1.7,
+    hjust = 1.1,
+    size = 4,
+    lineheight = 0.8
+  ) +
+  
+  geom_blank(
+    data = y_scale,
+    aes(
+      x = interaction(region, strat_var),
+      y = scale,
+      fill = scn_label,
+      group = interaction(scn_label, apr)
+    )
+  )
 
-  #geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
+#geom_text(data=subset(y_scale,common %in% sel_spp_com),aes(label = common, y = text),x = Inf, vjust = 1.7, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
   #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
 
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_supl_all.png'),  width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_supl_all_dens.png'),  width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2648,7 +2679,7 @@ p1<-
 #'   #geom_blank(data=subset(y_scale,spp %in% sel_spp_com),aes(x=scn_label,y=scale,group =interaction(apr)))
 
 #save plot
-ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_all.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/ms_hist_indices_cv3_all_dens.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
@@ -2657,7 +2688,7 @@ dev.off()
 #4 RRMSE classic CVtrue CVsim  #####
 #LOAD
 
-load(file = './output slope//estimated_cvs.RData') #cv3
+load(file = './output slope//estimated_cvs_dens.RData') #cv3
 head(cv3)
 # Step 1: Filter based on regime + year
 cv3_filtered <- cv3[
@@ -2923,7 +2954,7 @@ p<-
 
   
 
-ragg::agg_png(paste0('./figures slope/RRMSE_cv1.png'), width = 8, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_cv1_dens.png'), width = 8, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3139,7 +3170,7 @@ p<-
              aes(x = scn_label, y = scale, fill = scn_label, 
                  group = interaction(scn_label, apr)))
 
-  ragg::agg_png(paste0('./figures slope/RRMSE_cv_suppl1.png'), width = 10, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RRMSE_cv_suppl1_dens.png'), width = 10, height = 7, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3292,7 +3323,7 @@ p<-
                    group = interaction(scn_label, apr)))
   
   
-  ragg::agg_png(paste0('./figures slope/RBIAS_cv.png'), width = 8, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RBIAS_cv_dens.png'), width = 8, height = 7, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3478,7 +3509,7 @@ p<-
                aes(x = scn_label, y = scale, fill = scn_label, 
                    group = interaction(scn_label, apr)))
   
-  ragg::agg_png(paste0('./figures slope/RBIAS_cv_suppl.png'), width = 10, height = 7, units = "in", res = 300)
+  ragg::agg_png(paste0('./figures slope/RBIAS_cv_suppl_dens.png'), width = 10, height = 7, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3489,7 +3520,7 @@ p<-
 #6 CV ratio ####
 #LOAD
 #load(file = './output slope//estimated_cvs.RData') #cv3
-  load(file = './output slope//estimated_cvs_spp.RData') #cv3
+  load(file = './output slope//estimated_cvs_spp_dens.RData') #cv3
   
 #merge samp data
 setDT(samp_df)
@@ -3527,8 +3558,8 @@ cv4ebs <- merge(cv3, cv3ebs,
 cv4ebs$ratio<-log(cv4ebs$cv_sim/cv4ebs$cv_ebs)
 
 #save
-save(cv4ebs,file = './output slope//estimated_cvratio.RData') #cv4ebs
-load(file = './output slope//estimated_cvratio.RData')
+save(cv4ebs,file = './output slope//estimated_cvratio_dens.RData') #cv4ebs
+load(file = './output slope//estimated_cvratio_dens.RData')
 
 # Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
 cv5ebs <-cv4ebs
@@ -3725,7 +3756,7 @@ p<-
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/logcvratio_supl_all.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio_supl_all_dens.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3882,7 +3913,7 @@ p1<-
   geom_text(data=y_scale,aes(label = common, y = text),x = Inf, vjust = 1.1, hjust = 1.1,size=4, lineheight = 0.8) + #,fontface='italic'
     geom_blank(data=y_scale,aes(x=interaction(region,strat_var),y=scale,fill=scn_label,group =interaction(scn_label,apr)))
 
-ragg::agg_png(paste0('./figures slope/logcvratio2_all.png'), width = 8, height = 7, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio2_all_dens.png'), width = 8, height = 7, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
