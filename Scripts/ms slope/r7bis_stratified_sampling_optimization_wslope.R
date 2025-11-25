@@ -52,7 +52,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
 setwd(out_dir)
 
@@ -246,6 +246,45 @@ dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
 ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
+###################################
+# Get SAMPLES DENSITY for the EBS and find for BSS and NBS
+###################################
+
+# EBS
+ebs_samples <- 376
+ebs_area <- sum(eastern_bering_sea_grid[,'Area_in_survey_km2'])
+ebs_dens <- ebs_samples / ebs_area   # samples per km2
+
+# SBS
+grid_slp1 <- subset(grid_slp, DepthGEBCO <= 400)
+sbs_area <- sum(grid_slp1[,'Area_in_survey_km2'])
+sbs_samples <- sbs_area * ebs_dens
+
+# NBS
+nbs_area <- sum(northern_bering_sea_grid[,'Area_in_survey_km2'])
+nbs_samples <- nbs_area * ebs_dens
+
+# Summary
+region_samples <- data.frame(
+  region = c("EBS", "SBS", "NBS"),
+  Area_km2 = c(ebs_area, sbs_area, nbs_area),
+  samples = c(ebs_samples, sbs_samples, nbs_samples)
+)
+
+region_samples
+region_samples$samples <- round(region_samples$samples)
+region_samples
+
+n_EBS <- region_samples$samples[region_samples$region == "EBS"]
+n_SBS <- region_samples$samples[region_samples$region == "SBS"]
+n_NBS <- region_samples$samples[region_samples$region == "NBS"]
+# sample counts by combination
+n_samples_vec <- c(
+  "EBS"           = n_EBS,
+  "EBS+NBS"       = n_EBS + n_NBS,
+  "EBS+SBS"       = n_EBS + n_SBS,
+  "EBS+NBS+SBS"   = n_EBS + n_NBS + n_SBS
+)
 
 ###################################
 # Sampling designs
@@ -254,11 +293,17 @@ rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 #sampling scenarios
 samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
                      region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
-                     strat_var=c('varTemp','Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
+                     strat_var=c('Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
                      target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
+                     n_samples=NA, #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
                      n_strata=c(10),
                      domain=1) #c(5,10,15)
+
+
+# assign n_samples based on region
+samp_df$n_samples <- n_samples_vec[samp_df$region]
+samp_df
+
 
 #samples slope to add dummy approach
 samp_slope <- subset(samp_df, grepl("SBS", region))
@@ -271,7 +316,7 @@ samp_df<-rbind(samp_df,samp_slope)
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
 #save table that relate survey design (here scn) to variables
-save(samp_df,file='./tables/samp_df.RData')
+save(samp_df,file='./tables/samp_df_dens.RData')
 
 #########################
 # loop over optimized sampling designs
@@ -347,7 +392,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     for (r in regime) {
   
       #r<-regime[1]
-      summary(static_df1)
+      #summary(static_df1)
       #subset cells with appropiate depth
       static_df1<-subset(df1,cell %in% ok_cells)
       #dim(static_df1)
@@ -846,7 +891,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       
       #save list
         save(all,
-             file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData"))
+             file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData"))
         
         #strata to plot
         dd<-all$result_list$solution$framenew
@@ -996,7 +1041,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #save list
     load(
-         file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #all
+         file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
