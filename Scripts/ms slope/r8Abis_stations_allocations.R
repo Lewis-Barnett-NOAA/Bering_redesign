@@ -31,7 +31,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #' #selected species
@@ -311,9 +311,22 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     
     # Parallelizing the loop
     dfrandom <- foreach(sur = 1:rep_sur, .combine=rbind) %dopar% {
-      #cat(paste(" #############  random sampling", '- survey', sur, " #############\n"))
       
-      D10 <- D9[sample(nrow(D9), size = n_i, replace = FALSE), ]
+      # handle cases when requested samples exceed available cells
+      if (n_i < nrow(D9)) {
+        D10 <- D9[sample(nrow(D9), size = n_i, replace = FALSE), ]
+      } else if (n_i == nrow(D9)) {
+        # take all available cells
+        D10 <- D9
+      } else {
+        # n_i > nrow(D9): take all unique then pad with replacement to reach n_i
+        extra <- n_i - nrow(D9)
+        sel_extra <- sample(1:nrow(D9), size = extra, replace = TRUE)
+        D10 <- D9[c(1:nrow(D9), sel_extra), ]
+        # if you prefer pure replacement sampling use:
+        # D10 <- D9[sample(nrow(D9), size = n_i, replace = TRUE), ]
+      }
+      
       D10 <- D10[, c('Lon', 'Lat', 'cell', 'strata')]
       D10$sur <- sur
       
@@ -344,15 +357,25 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     # Create an empty list to store the results
     dfspb <- foreach(sur = 1:rep_sur, .combine = rbind) %dopar% {
       
-      #cat(paste(" #############  spatially-balanced sampling", '- survey', sur, " #############\n"))
-      
-      s_pwd_la <- Spbsampling::pwd(dis = stand_dist_la_pwd, n = n_i)$s
-      D10 <- D9[s_pwd_la[1, ], ]
+      if (n_i < nrow(D9)) {
+        # valid for pwd
+        s_pwd_la <- Spbsampling::pwd(dis = stand_dist_la_pwd, n = n_i)$s
+        idx <- s_pwd_la[1, ]
+        D10 <- D9[idx, ]
+        
+      } else if (n_i == nrow(D9)) {
+        # pwd cannot run when n == N, so return all cells
+        D10 <- D9
+        
+      } else {
+        # n_i > N, fallback
+        extra <- n_i - nrow(D9)
+        sel_extra <- sample(1:nrow(D9), size = extra, replace = TRUE)
+        D10 <- D9[c(1:nrow(D9), sel_extra), ]
+      }
       
       D10$sur <- sur
-      # spatially-balancing strata samples
       spbsamp <- D10[, c('Lon', 'Lat', 'cell', 'strata', 'sur')]
-      
       return(spbsamp)
     }
     

@@ -523,8 +523,8 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         solution <- optimStrata(method = "continuous", #continous variables
                                 errors = cv_df,  #precision level - maximum allowable coefficient of variation set by the simple random sampling 
                                 framesamp = frame, #df of input variables 
-                                iter = 30,#150, #30, #300 #maximum number of iterations
-                                pops = 10,#50,#10, #100  #dimension of each generations
+                                iter = 150,#150, #30, #300 #maximum number of iterations
+                                pops = 50,#50,#10, #100  #dimension of each generations
                                 elitism_rate = 0.1, #0.1
                                 mut_chance = 1 / (no_strata[1] + 1), #mutation chance
                                 nStrata = c(no_strata), #maximum strata
@@ -1291,7 +1291,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 # cowplot::ggdraw(legend)
 
 #plots
-agg_png(paste0('./figures slope/sampling intensity survey designs.png'), width = 9, height = 13, units = "in", res = 300)
+agg_png(paste0('./figures slope/sampling intensity survey designs_dens.png'), width = 9, height = 13, units = "in", res = 300)
 plot_grid(plotlist = plot_list[13:24],nrow = 4)
 dev.off()
 1
@@ -1299,9 +1299,9 @@ dev.off()
 
 #check
 samp_df
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn1_all.RData"))
+load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn1_alldens.RData"))
 all$cv #ebs
-load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn3_all.RData"))
+load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn3_alldens.RData"))
 all$cv #with nbs
 load(file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_scn5_all.RData"))
 all$cv #with slope

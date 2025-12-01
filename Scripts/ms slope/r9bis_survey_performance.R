@@ -1,3 +1,8 @@
+#check scenarios (now its from 1-16 i think now there are less of them)
+#check outputs to share
+#apply figures changes to all figures (including tyop legend)
+
+
 ####################################################################
 #    compare and plot design estimates vs true estimates
 #    danielvilasgonzalez@gmail.com/dvilasg@uw.edu
@@ -756,10 +761,12 @@ y_scale$scn<-'scn1'
     
     # Compute relative bias
     ind4[, rel_bias := 100*((index - true_index) / true_index)]
-    
+    ind4[, rel_log_bias := log10(index / true_index) ]
+ 
     # Compute mean relative bias and RRMSE by spp, year, and scenario
     rb <- ind4[, .(
       rel_bias = mean(rel_bias, na.rm = TRUE),
+      rel_log_bias = mean(rel_bias, na.rm = TRUE),
       rrmse = sqrt(mean((index - true_index)^2, na.rm = TRUE)) / mean(true_index, na.rm = TRUE)
     ), by = .(spp, year, scn, approach, regime)]
     
@@ -2180,7 +2187,7 @@ y_scale$scn<-'scn1'
 y_scale$year<-2022
 y_scale$region<-'EBS'
 y_scale$strat_var<-'varSBT'
-
+y_scale$scn_label<-'EBS\ndepth'
 
 
 # Define the nesting
@@ -2237,12 +2244,9 @@ values_linetype <- c(
 
 legend_title <- "sampling allocation and design regime approach"
 
-
-# --------------------------------------------------------------------
-#                           UPDATED PLOT
-# --------------------------------------------------------------------
-
-p <- ggplot(df_summary) +
+#plot
+#p <- 
+  ggplot(df_summary) +
   
   geom_errorbar(
     aes(
@@ -2301,10 +2305,7 @@ scale_fill_manual(
     labels = labels_shared,
     name = legend_title
   ) +
-  
-  
-  # ------------------------------------------------------------------
-scale_y_continuous(
+  scale_y_continuous(
   expand = c(0, 0),
   limits = c(0, NA),
   labels = scales::label_number(accuracy = 0.01)
