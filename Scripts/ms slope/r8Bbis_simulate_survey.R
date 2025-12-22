@@ -34,7 +34,7 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #list of sp
@@ -137,24 +137,8 @@ BSS_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'BSS'),'Are
 # Sampling designs (from script #11) 
 ###################################
 
-#sampling scenarios
-samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+BSS','EBS+NBS+BSS'),
-                     strat_var=c('varSBT','depth'), #,'varSBT_forced','depth_forced' #LonE and combinations
-                     target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
-                     n_strata=c(10),
-                     domain=1) #c(5,10,15)
-
-#samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("BSS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
-
-#add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
-
-#add scenario number
-samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
+#load table that relate survey design (here scn) to variables
+load(file='./tables/samp_df_dens.RData') #samp_df
 
 ################
 # SAMPLES PER REGION
@@ -184,7 +168,7 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   #r<-regime[1]  
   cat(paste0('########## ',s,' - ',r,' ##########\n'))    
   #scn_allocations
-  load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
+  load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   
   for (sur in 1:n_sur) {
     
@@ -259,113 +243,182 @@ library(ggh4x)
 df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
 
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
-df_summary <- aggregate(value ~ region + combined_label + scn1 + regime + strat_var, 
+df_summary <- aggregate(value ~ region + combined_label + scn1 + 
+                          regime + strat_var, 
                         data = df_sub, 
-                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), 
-                                            q10 = quantile(x, 0.10, na.rm = TRUE), 
-                                            q90 = quantile(x, 0.90, na.rm = TRUE)))
+                        FUN = function(x) c(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE)))
 
-# Extract the values into separate columns
+# Convert matrix columns to separate numeric columns
 df_summary$mean_value <- df_summary$value[, "mean"]
-df_summary$q10 <- df_summary$value[, "q10.10%"]
-df_summary$q90 <- df_summary$value[, "q90.90%"]
+df_summary$sd_value <- df_summary$value[, "sd"]
 df_summary$value <- NULL  # Remove old column
-
 
 df_summary$region1<-gsub('+','\n',df_summary$region)
 #levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
 df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
+# Define the nesting
+region_ranges<-
+  data.frame('key'=c('depth','varSBT'),
+             'start'=c(0.5,2.6),
+             'end'=c(2.4,4.5))
+# Suppose your region labels
+regions <- unique(df_summary$region)
+
+# Convert to a list of element_text
+levels_text_list <- lapply(regions, function(x) element_text())
+
+
 #plot 2slope
-#pBSS2<-
-ggplot(data=df_summary)+
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  #geom_boxplot(aes(x=scn1,y=mean_value/BSS_km2*1000,fill=combined_label,linetype=combined_label),color='black',alpha=0.7,position=position_dodge(width=0.9))+ # fill='grey90'
-  scale_y_continuous(expression(atop("sampling effort in the " * bold("BSS"), "(sampling stations/1,000 km²)")),
-                     labels = scales::label_number(accuracy = 0.1),
-                     limits = c(0, NA),
-                     expand = expansion(mult = c(0, 0.1)))+
-  geom_errorbar(aes(x = interaction(region, strat_var), 
-                    ymin = q10/BSS_km2*1000, 
-                    ymax = q90/BSS_km2*1000, 
-                    group = interaction(scn1, regime, combined_label)), 
-                width = 0.3, 
-                position = position_dodge(width = 0.9), 
-                color = "black")+
-geom_point(aes(x = interaction(region,strat_var), y = mean_value/BSS_km2*1000, fill = combined_label, 
-                 group = interaction(scn1, regime,combined_label), 
-                 shape = combined_label), 
-             size = 3, position = position_dodge(width = 0.9), color = "black") + 
-  
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-  theme_bw()+
-  theme(axis.title.x = element_blank())+
-  #geom_vline(xintercept = 2.5, color = 'grey70', linetype = 'dashed') +
-  scale_fill_manual(values = c(
-    'rand - all' = 'grey30',
-    'sb - all' = 'grey30',
-    'rand - cold' = '#1675ac',
-    'sb - cold' = '#1675ac',
-    'rand - warm' = "#cc1d1f",
-    'sb - warm' = "#cc1d1f"), 
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\ndynamic cold',
-              'balanced random\ndynamic cold',
-              'random\ndynamic warm',
-              'balanced random\ndynamic warm'),
-    name = "sampling allocation\nregime approach") +
-  
-  scale_linetype_manual(values = c('rand - all' = 'solid',
-                                   'sb - all' = 'dashed',
-                                   'rand - cold' = 'solid',
-                                   'sb - cold' = 'dashed',
-                                   'rand - warm' = 'solid',
-                                   'sb - warm' = 'dashed'),
-                        label = c('random\nstatic',
-                                  'balanced random\nstatic',
-                                  'random\ndynamic cold',
-                                  'balanced random\ndynamic cold',
-                                  'random\ndynamic warm',
-                                  'balanced random\ndynamic warm'),
-                        name = "sampling allocation\nregime approach") +
-  
-  scale_shape_manual(values = c('rand - all' = 21,
-                                'sb - all' = 24,
-                                'rand - cold' = 21,
-                                'sb - cold' = 24,
-                                'rand - warm' = 21,
-                                'sb - warm' = 24),
-                     label = c('random\nstatic',
-                               'balanced random\nstatic',
-                               'random\ndynamic cold',
-                               'balanced random\ndynamic cold',
-                               'random\ndynamic warm',
-                               'balanced random\ndynamic warm'),
-                     name = "sampling allocation\nregime approach") +
+pBSS2<-
+ggplot(data = df_summary) +
+  scale_y_continuous(
+    expression(atop("sampling effort in the " * bold("BSS"), "(sampling stations/1,000 km²)")),
+    labels = scales::label_number(accuracy = 0.1),
+    limits = c(0, NA),
+    expand = expansion(mult = c(0, 0.1)),
+    sec.axis = sec_axis(
+      ~ . * BSS_km2 / 1000,
+      name = "(n sampling stations)",
+      labels = scales::label_number(accuracy = 1)
+    )
+  ) +
+  geom_errorbar(
+    aes(
+      x = interaction(region, strat_var),
+      ymin = (mean_value - sd_value) / BSS_km2 * 1000,
+      ymax = (mean_value + sd_value) / BSS_km2 * 1000,
+      group = interaction(scn1, regime, combined_label),
+      color = combined_label
+    ),
+    width = 0.3,size=1,
+    position = position_dodge(width = 0.9),
+    #color = "black"
+  ) +
+  geom_point(
+    aes(
+      x = interaction(region, strat_var),
+      y = mean_value / BSS_km2 * 1000,
+      fill = combined_label,
+      group = interaction(scn1, regime, combined_label),
+      shape = combined_label
+    ),
+    size = 3,
+    position = position_dodge(width = 0.9),
+    color = "black"
+  ) +
+  scale_x_discrete(labels = function(x) {
+    # Keep everything before the first dot
+    x <- sub("\\..*$", "", x)
+    # Replace + with line break
+    x <- gsub("\\+", "\n", x)
+    return(x)
+  })+
+  theme_bw() +
+  theme(axis.title.x = element_blank()) +
+  scale_fill_manual(
+    values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"
+    ),
+    label = c(
+      'random\nstatic',
+      'balanced random\nstatic',
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
+    ),
+    name = "sampling allocation\ndesign regime approach"
+  ) +
+  scale_color_manual(
+    values = c(
+      'rand - all' = 'grey30',
+      'sb - all' = 'grey30',
+      'rand - cold' = '#1675ac',
+      'sb - cold' = '#1675ac',
+      'rand - warm' = "#cc1d1f",
+      'sb - warm' = "#cc1d1f"
+    ),
+    label = c(
+      'random\nstatic',
+      'balanced random\nstatic',
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
+    ),
+    name = "sampling allocation\ndesign regime approach"
+  ) +
+  scale_linetype_manual(
+    values = c(
+      'rand - all' = 'solid',
+      'sb - all' = 'dashed',
+      'rand - cold' = 'solid',
+      'sb - cold' = 'dashed',
+      'rand - warm' = 'solid',
+      'sb - warm' = 'dashed'
+    ),
+    label = c(
+      'random\nstatic',
+      'balanced random\nstatic',
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
+    ),
+    name = "sampling allocation\ndesign regime approach"
+  ) +
+  scale_shape_manual(
+    values = c(
+      'rand - all' = 21,
+      'sb - all' = 24,
+      'rand - cold' = 21,
+      'sb - cold' = 24,
+      'rand - warm' = 21,
+      'sb - warm' = 24
+    ),
+    label = c(
+      'random\nstatic',
+      'balanced random\nstatic',
+      'random\nadaptive cold',
+      'balanced random\nadaptive cold',
+      'random\nadaptive warm',
+      'balanced random\nadaptive warm'
+    ),
+    name = "sampling allocation\ndesign regime approach"
+  ) +
   theme(
     panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
     legend.key.width = unit(1, "lines"),
     legend.key.size = unit(35, 'points'),
     legend.text = element_text(size = 11),
     legend.title = element_text(size = 12),
-    legend.spacing.y = unit(5, "cm"),       # Vertical spacing between legend items
-    legend.spacing = unit(5, "cm"),         # Spacing between legend sections
+    legend.spacing.y = unit(5, "cm"),
+    legend.spacing = unit(5, "cm"),
     legend.box.spacing = unit(0.5, "cm"),
     strip.background = element_blank(),
     legend.background = element_blank(),
-    panel.spacing.x = unit(0.5, "lines"), 
+    panel.spacing.x = unit(0.5, "lines"),
     panel.spacing.y = unit(0.7, "lines"),
     strip.text = element_blank(),
     axis.title.x = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    axis.text = element_text(size = 10)) +
+    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    axis.text = element_text(size = 10)
+  ) +
   guides(
-    shape = guide_legend(override.aes = list(size = 4)),  # Increase legend symbol size
-    fill = guide_legend(override.aes = list(size = 4))   # Ensure fill symbols are also enlarged
-  )
-
+    shape = guide_legend(override.aes = list(size = 4)),
+    fill = guide_legend(override.aes = list(size = 4)),
+      x = legendry::guide_axis_nested(key = key_range_manual(
+        region_ranges$key,
+        start = region_ranges$start,
+        end = region_ranges$end,
+      ),levels_text = levels_text_list,
+      angle = 0))
 
 
 #for NBS
@@ -417,103 +470,159 @@ df_summary$region1<-gsub('+','\n',df_summary$region)
 df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
 
-#plot 2nbs
-pnbs2<-
-ggplot(data=df_summary)+
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  #geom_boxplot(aes(x=scn1,y=value/nbs_km2*1000,fill=combined_label,linetype=combined_label),alpha=0.7,position=position_dodge(width=0.9), color='black')+
-  scale_y_continuous(expression(atop("sampling effort in the " * bold("NBS"), "(sampling stations/1,000 km²)")),
-                     labels = scales::label_number(accuracy = 0.1),
-                     limits = c(0, NA),
-                     expand = expansion(mult = c(0, 0.1)))+
-geom_errorbar(aes(x = interaction(region,strat_var), ymin = (mean_value - sd_value)/nbs_km2*1000, ymax = (mean_value + sd_value)/nbs_km2*1000, 
-                    group = interaction(scn1, regime,combined_label)),
-                width = 0.3, position = position_dodge(width = 0.9), color = "black") + 
-  geom_point(aes(x = interaction(region,strat_var), y = mean_value/nbs_km2*1000, fill = combined_label, 
-                 group = interaction(scn1, regime,combined_label), 
-                 shape = combined_label), 
-             size = 3, position = position_dodge(width = 0.9), color = "black") + 
+# ensure factor levels
+df_summary$combined_label <- factor(
+  df_summary$combined_label,
+  levels = c("rand - all",
+             "sb - all",
+             "rand - cold",
+             "sb - cold",
+             "rand - warm",
+             "sb - warm")
+)
+
+# ensure combined_label is a factor
+df_summary$combined_label <- factor(df_summary$combined_label,
+                                    levels = c("rand - all","sb - all","rand - cold",
+                                               "sb - cold","rand - warm","sb - warm"))
+
+labels_vec <- c("random\nstatic","balanced random\nstatic",
+                "random\nadaptive cold","balanced random\nadaptive cold",
+                "random\nadaptive warm","balanced random\nadaptive warm")
+
+pnbs2 <- 
+ggplot(data = df_summary) +
   
-  #geom_point(aes(x=scn,y=value,color=regime,shape=variable),size=3,alpha=0.7,position=position_dodge(width=0.5))+
-  scale_x_discrete(guide = guide_axis_nested(angle=0),labels = function(x) gsub("\\+", "\n", x))+
-  theme_bw()+
-  theme(axis.title.x = element_blank())+
-  #geom_vline(xintercept = 2.5, color = 'grey70', linetype = 'dashed') +
+  geom_errorbar(aes(
+    x = interaction(region, strat_var),
+    ymin = (mean_value - sd_value) / nbs_km2 * 1000,
+    ymax = (mean_value + sd_value) / nbs_km2 * 1000,
+    group = interaction(scn1, regime, combined_label),
+    color = combined_label,
+    #linetype = combined_label
+  ),
+  width = 0.3, position = position_dodge(width = 0.9), size = 1
+  ) +
+  
+  geom_point(aes(
+    x = interaction(region, strat_var),
+    y = mean_value / nbs_km2 * 1000,
+    fill = combined_label,
+    group = interaction(scn1, regime, combined_label),
+    shape = combined_label
+  ),
+  size = 3, position = position_dodge(width = 0.9), color = "black"
+  ) +
+  
+  scale_x_discrete(labels = function(x) {
+    x <- sub("\\..*$", "", x)
+    x <- gsub("\\+", "\n", x)
+    x
+  }) +
+  
+  scale_y_continuous(
+    expression(atop("sampling effort in the " * bold("NBS"), "(sampling stations/1,000 km²)")),
+    labels = scales::label_number(accuracy = 0.1),
+    limits = c(0, NA),
+    expand = expansion(mult = c(0, 0.1)),
+    sec.axis = sec_axis(
+      ~ . * nbs_km2 / 1000,
+      name = "(n sampling stations)",
+      labels = scales::label_number(accuracy = 1)
+    )
+  ) +
+  
+  # unified manual scales
   scale_fill_manual(values = c(
     'rand - all' = 'grey30',
     'sb - all' = 'grey30',
     'rand - cold' = '#1675ac',
     'sb - cold' = '#1675ac',
     'rand - warm' = "#cc1d1f",
-    'sb - warm' = "#cc1d1f"), 
-    label = c('random\nstatic',
-              'balanced random\nstatic',
-              'random\ndynamic cold',
-              'balanced random\ndynamic cold',
-              'random\ndynamic warm',
-              'balanced random\ndynamic warm'),
-    name = "sampling allocation\nregime approach") +
+    'sb - warm' = "#cc1d1f"
+  ),
+  labels = labels_vec,
+  name = "sampling allocation\ndesign regime approach",
+  guide = "legend"
+  ) +
   
-  scale_linetype_manual(values = c('rand - all' = 'solid',
-                                   'sb - all' = 'dashed',
-                                   'rand - cold' = 'solid',
-                                   'sb - cold' = 'dashed',
-                                   'rand - warm' = 'solid',
-                                   'sb - warm' = 'dashed'),
-                        label = c('random\nstatic',
-                                  'balanced random\nstatic',
-                                  'random\ndynamic cold',
-                                  'balanced random\ndynamic cold',
-                                  'random\ndynamic warm',
-                                  'balanced random\ndynamic warm'),
-                        name = "sampling allocation\nregime approach") +
+  scale_color_manual(values = c(
+    'rand - all' = 'grey30',
+    'sb - all' = 'grey30',
+    'rand - cold' = '#1675ac',
+    'sb - cold' = '#1675ac',
+    'rand - warm' = "#cc1d1f",
+    'sb - warm' = "#cc1d1f"
+  ),
+  labels = labels_vec,
+  name = "sampling allocation\ndesign regime approach",
+  guide = "legend"
+  ) +
   
-  scale_shape_manual(values = c('rand - all' = 21,
-                                'sb - all' = 24,
-                                'rand - cold' = 21,
-                                'sb - cold' = 24,
-                                'rand - warm' = 21,
-                                'sb - warm' = 24),
-                     label = c('random\nstatic',
-                               'balanced random\nstatic',
-                               'random\ndynamic cold',
-                               'balanced random\ndynamic cold',
-                               'random\ndynamic warm',
-                               'balanced random\ndynamic warm'),
-                     name = "sampling allocation\nregime approach") +
+  scale_shape_manual(values = c(
+    'rand - all' = 21,
+    'sb - all' = 24,
+    'rand - cold' = 21,
+    'sb - cold' = 24,
+    'rand - warm' = 21,
+    'sb - warm' = 24
+  ),
+  labels = labels_vec,
+  guide = "legend"
+  ) +
+  
+  theme_bw() +
   theme(
-    panel.grid.minor = element_line(linetype = 2, color = 'grey90'),
+    axis.title.x = element_blank(),
+    axis.text = element_text(size = 10),
     legend.key.width = unit(1, "lines"),
     legend.key.size = unit(35, 'points'),
     legend.text = element_text(size = 11),
     legend.title = element_text(size = 12),
-    legend.spacing.y = unit(5, "cm"),       # Vertical spacing between legend items
-    legend.spacing = unit(5, "cm"),         # Spacing between legend sections
-    legend.box.spacing = unit(0.5, "cm"),
-    strip.background = element_blank(),
-    legend.background = element_blank(),
-    panel.spacing.x = unit(0.5, "lines"), 
-    panel.spacing.y = unit(0.7, "lines"),
-    strip.text = element_blank(),
-    axis.title.x = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    axis.text = element_text(size = 10)) +
-  guides(
-    shape = guide_legend(override.aes = list(size = 4)),  # Increase legend symbol size
-    fill = guide_legend(override.aes = list(size = 4))   # Ensure fill symbols are also enlarged
-  )
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    panel.grid.minor = element_line(linetype = 2, color = 'grey90')
+  ) +
+  
+    guides(
+      fill = guide_legend(
+        override.aes = list(
+          shape = c(21, 24, 21, 24, 21, 24),
+          #color = "black",
+          size = 3),        title = "sampling allocation\ndesign regime approach"),
+      color= guide_legend(
+        override.aes = list(
+          shape = c(21, 24, 21, 24, 21, 24),
+          #color = "black",
+          size = 3),        title = "sampling allocation\ndesign regime approach"),
+      shape= guide_legend(
+        override.aes = list(
+          shape = c(21, 24, 21, 24, 21, 24),
+          #color = "black",
+          size = 3),        title = "sampling allocation\ndesign regime approach"),
+    x = legendry::guide_axis_nested(key = key_range_manual(
+      region_ranges$key,
+      start = region_ranges$start,
+      end = region_ranges$end,
+    ),levels_text = levels_text_list,
+    angle = 0))
+    #fill = guide_legend(override.aes = list(size = 4)),
+    #color = guide_legend(override.aes = list(size = 4)),
+    #shape = guide_legend(override.aes = list(size = 4)),
+    #linetype = guide_legend(override.aes = list(size = 1))
+  #)
 
 
 # Extract the legend from one of the plots
-shared_legend <- get_legend(
+shared_legend <- cowplot::get_legend(
   pnbs2 + theme(legend.position = "right")
 )
 
 
 # Combine plots and the shared legend
 final_plot <- 
-plot_grid(
-  plot_grid(pnbs2 + theme(legend.position = "none"),
+cowplot::plot_grid(
+  cowplot::plot_grid(pnbs2 + theme(legend.position = "none"),
             pBSS2 + theme(legend.position = "none"),
             ncol = 1,
             align = 'v'),
@@ -522,7 +631,7 @@ plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area.png'), width = 7, height = 6, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sampling_effort_area_dens.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
@@ -613,7 +722,7 @@ for (sim in 1:n_sim_hist) {
         #r<-'all'
         
         #load optimization results
-        load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+        load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
         
         #area
         area_cell<-merge(all$result_list$solution$indices, grid3, by.x='ID',by.y='cell')
@@ -639,7 +748,7 @@ for (sim in 1:n_sim_hist) {
       alloc<-samp_df$n_samples[s]
       
       #load survey allocations by sampling design
-        load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
+        load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
         #scn_allocations
       #dimnames(scn_allocations)[[3]]<-c('rand','sb')
       
@@ -770,12 +879,12 @@ for (sim in 1:n_sim_hist) {
       }
     }
   
-  save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist.RData'))  
+  save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist_dens.RData'))  
 
 }
 
 
-load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist.RData'))   #index_hist
+load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
 index_hist[,,'y2003','rand',1,'scn4','cold']
 #samp_df
 

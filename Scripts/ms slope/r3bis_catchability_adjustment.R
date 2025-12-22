@@ -171,6 +171,39 @@ ggplot()+
   geom_point(data=data_sratio_summary,aes(x=SIZE_BIN,y=p10,group=SIZE_BIN),color='blue')+
   facet_wrap(~scientific_name)
 
+
+p<-
+ggplot(data_sratio_summary, aes(x = SIZE_BIN, y = mean)) +
+  geom_hline(yintercept = 1,linetype='dashed',alpha=0.5)+
+  
+  # Add ribbon for uncertainty between p10 and p90
+  geom_ribbon(aes(ymin = p10, ymax = p90),fill='grey30', alpha = 0.3) +
+  # Add smoothed line over mean values
+  #geom_smooth(se = FALSE, color = "black") +
+  
+  # Optionally, show the original mean points
+  geom_line() +
+  
+  # Facet by species
+  facet_wrap(~scientific_name,nrow=2,scales='free_x') +
+  scale_y_continuous(limits = c(0,5.5))+
+  # Optional theme
+  theme_bw() +
+  theme(
+    strip.text = element_text(size = 12),
+    strip.background = element_blank(),
+    text = element_text(size = 12)
+  ) +
+  labs(x = "length (cm)", y = "SR")
+
+
+#save plot
+ragg::agg_png(paste0('./figures slope/sr2.png'), width = 10, height = 5, units = "in", res = 300)
+#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+p
+dev.off()
+
+
 #plot
 #ggplot()+
 #  #geom_point(data=data_sratio,aes(x=SIZE_BIN,y=s12))+
@@ -393,6 +426,10 @@ length_bss_clean <- length_bss[is.finite(length_bss$SR), ]
 ggplot() +
   geom_boxplot(data = length_bss_clean, aes(x = scientific_name, y = SR))
 
+#mean values of species over lengths classes
+meansr<-unique(length_bss_clean[,c("scientific_name",'LENGTH','SR')])
+aggregate(SR ~ scientific_name,meansr,mean)
+
 #weight by species for each haul
 wl<-aggregate(cbind(WEIGHT_FREQ,ADJ_WEIGHT_FREQ,ADJ_WEIGHT_FREQ90,ADJ_WEIGHT_FREQ10) ~ scientific_name + YEAR + HAULJOIN,length_bss,FUN=sum)
 
@@ -464,7 +501,7 @@ for (sp in spp_vect) {
   }
   
   #save data
-  saveRDS(data_geostat2,paste0('Data/data_processed/',sp,'/data_geostat_slope_adj.rds'))
+  #saveRDS(data_geostat2,paste0('Data/data_processed/',sp,'/data_geostat_slope_adj.rds'))
   
   #remove high value on greenland turbot for visualization purposes
   if (sp=='Reinhardtius hippoglossoides') {

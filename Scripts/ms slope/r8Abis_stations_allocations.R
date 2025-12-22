@@ -31,7 +31,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #' #selected species
@@ -151,24 +151,8 @@ dim(grid_ebs)
 # Sampling designs (from script #11) 
 ###################################
 
-#sampling scenarios
-samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
-                     region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
-                     strat_var=c('varTemp','Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
-                     target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=c(376), #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
-                     n_strata=c(10),
-                     domain=1) #c(5,10,15)
-
-#samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("SBS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
-
-#add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
-
-#add scenario number
-samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
+#load table that relate survey design (here scn) to variables
+load(file='./tables/samp_df_dens.RData') #samp_df
 
 #number of surveys
 n_sur<-100
@@ -224,7 +208,7 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     #r<-regime[1]
     
     #load results_optimization
-    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
     #load(file=paste0('./output slope/multisp_optimization_static_data.RData')) #df
     df<-df[,c("Lat",'Lon','cell')]
     
@@ -327,9 +311,22 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     
     # Parallelizing the loop
     dfrandom <- foreach(sur = 1:rep_sur, .combine=rbind) %dopar% {
-      #cat(paste(" #############  random sampling", '- survey', sur, " #############\n"))
       
-      D10 <- D9[sample(nrow(D9), size = n_i, replace = FALSE), ]
+      # handle cases when requested samples exceed available cells
+      if (n_i < nrow(D9)) {
+        D10 <- D9[sample(nrow(D9), size = n_i, replace = FALSE), ]
+      } else if (n_i == nrow(D9)) {
+        # take all available cells
+        D10 <- D9
+      } else {
+        # n_i > nrow(D9): take all unique then pad with replacement to reach n_i
+        extra <- n_i - nrow(D9)
+        sel_extra <- sample(1:nrow(D9), size = extra, replace = TRUE)
+        D10 <- D9[c(1:nrow(D9), sel_extra), ]
+        # if you prefer pure replacement sampling use:
+        # D10 <- D9[sample(nrow(D9), size = n_i, replace = TRUE), ]
+      }
+      
       D10 <- D10[, c('Lon', 'Lat', 'cell', 'strata')]
       D10$sur <- sur
       
@@ -360,15 +357,25 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     # Create an empty list to store the results
     dfspb <- foreach(sur = 1:rep_sur, .combine = rbind) %dopar% {
       
-      #cat(paste(" #############  spatially-balanced sampling", '- survey', sur, " #############\n"))
-      
-      s_pwd_la <- Spbsampling::pwd(dis = stand_dist_la_pwd, n = n_i)$s
-      D10 <- D9[s_pwd_la[1, ], ]
+      if (n_i < nrow(D9)) {
+        # valid for pwd
+        s_pwd_la <- Spbsampling::pwd(dis = stand_dist_la_pwd, n = n_i)$s
+        idx <- s_pwd_la[1, ]
+        D10 <- D9[idx, ]
+        
+      } else if (n_i == nrow(D9)) {
+        # pwd cannot run when n == N, so return all cells
+        D10 <- D9
+        
+      } else {
+        # n_i > N, fallback
+        extra <- n_i - nrow(D9)
+        sel_extra <- sample(1:nrow(D9), size = extra, replace = TRUE)
+        D10 <- D9[c(1:nrow(D9), sel_extra), ]
+      }
       
       D10$sur <- sur
-      # spatially-balancing strata samples
       spbsamp <- D10[, c('Lon', 'Lat', 'cell', 'strata', 'sur')]
-      
       return(spbsamp)
     }
     
@@ -469,6 +476,6 @@ for (s in 1:nrow(samp_df)) { #sampling designs
   rm(dfrandom,dfspb,str_alloc,rand,spb)
   
   #store station allocations
-  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
+  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   }
 }
