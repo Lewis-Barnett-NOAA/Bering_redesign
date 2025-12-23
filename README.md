@@ -18,7 +18,7 @@ In the second project we optimized designs that included the upper continental s
 The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the Bering Sea (the second analysis expanded to 19 groundfish and 4 crab):
 
 | Stock | Scientific Name | Common Name |
-|----|----|----|
+|------------------------|------------------------|-------------------------|
 | arrowtooth flounder | *Atheresthes stomias* | arrowtooth flounder |
 | Arctic cod | *Boreogadus saida* | Arctic cod |
 | Tanner crab | *Chionoecetes bairdi* | Tanner crab |
@@ -41,7 +41,7 @@ The species and stocks set included in the first manuscript are 10 groundfish an
 Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 and 520 in the second analysis. The second analysis focused on depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
-|----|----|----|
+|------------------|----------------------------------|--------------------|
 | existing | depth and geographical subregion | fixed |
 | existing | depth and geographical subregion | balanced random |
 | existing | depth and geographical subregion | random |
@@ -57,7 +57,7 @@ Stratification scheme and station allocation information for each sampling desig
 
 ## Scripts
 
-The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the contental slope operating models:
+The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the continental slope operating models:
 
 -   r0. Creates figures of the study area, sampling stations, and existing sampling design.
 -   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models.
