@@ -133,6 +133,33 @@ nbs_km2<-sum(as.data.frame(northern_bering_sea_grid)$Area_in_survey_km2)
 ebs_km2<-sum(as.data.frame(eastern_bering_sea_grid)$Area_in_survey_km2)
 BSS_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'BSS'),'Area_in_survey_km2']) #adjust area BSS to represent <400km
 
+
+# Other Area source ####
+
+load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+grid_slp<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982')
+dim(grid_slp)
+dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
+ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
+rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
+
+###################################
+# Get SAMPLES DENSITY for the EBS and find for BSS and NBS
+###################################
+
+# EBS
+ebs_samples <- 376
+ebs_area <- sum(eastern_bering_sea_grid[,'Area_in_survey_km2'])
+ebs_dens <- ebs_samples / ebs_area   # samples per km2
+
+# SBS
+grid_slp1 <- subset(grid_slp, DepthGEBCO <= 400)
+sbs_area <- sum(grid_slp1[,'Area_in_survey_km2'])
+sbs_samples <- sbs_area * ebs_dens
+
+# NBS
+nbs_area <- sum(northern_bering_sea_grid[,'Area_in_survey_km2'])
+nbs_samples <- nbs_area * ebs_dens
 ###################################
 # Sampling designs (from script #11) 
 ###################################
@@ -412,13 +439,7 @@ ggplot(data = df_summary) +
   ) +
   guides(
     shape = guide_legend(override.aes = list(size = 4)),
-    fill = guide_legend(override.aes = list(size = 4)),
-      x = legendry::guide_axis_nested(key = key_range_manual(
-        region_ranges$key,
-        start = region_ranges$start,
-        end = region_ranges$end,
-      ),levels_text = levels_text_list,
-      angle = 0))
+    fill = guide_legend(override.aes = list(size = 4)))
 
 
 #for NBS
@@ -599,13 +620,7 @@ ggplot(data = df_summary) +
         override.aes = list(
           shape = c(21, 24, 21, 24, 21, 24),
           #color = "black",
-          size = 3),        title = "sampling allocation\ndesign regime approach"),
-    x = legendry::guide_axis_nested(key = key_range_manual(
-      region_ranges$key,
-      start = region_ranges$start,
-      end = region_ranges$end,
-    ),levels_text = levels_text_list,
-    angle = 0))
+          size = 3),        title = "sampling allocation\ndesign regime approach"))
     #fill = guide_legend(override.aes = list(size = 4)),
     #color = guide_legend(override.aes = list(size = 4)),
     #shape = guide_legend(override.aes = list(size = 4)),
@@ -887,4 +902,61 @@ for (sim in 1:n_sim_hist) {
 load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
 index_hist[,,'y2003','rand',1,'scn4','cold']
 #samp_df
+
+library(dplyr)
+library(dplyr)
+library(reshape2)
+
+all_sim_dfs <- list()
+
+for (i in 1:100) {
+  cat(paste0("### Simulation ", i, " ###\n"))
+  
+  file_path <- paste0('./output slope/ms_sim_survey_hist/sim',
+                      sprintf("%03d", i), '/index_hist_dens.RData')
+  load(file_path)  # creates 'index_hist'
+  
+  # Melt the 7D array into long-format
+  df <- melt(index_hist, value.name = "value")
+  
+  # Rename columns using dimnames
+  colnames(df) <- c("species", "metric", "year", "approach", "replicate", "scenario", "regime", "value")
+  
+  # Spread the metrics (STRS_mean, STRS_var, CV_sim) to separate columns
+  df <- df %>% 
+    tidyr::pivot_wider(names_from = metric, values_from = value)
+  
+  # Add simulation ID
+  df$sim <- i
+  
+  all_sim_dfs[[i]] <- df
+}
+
+# Combine all simulations
+combined_sim_df <- bind_rows(all_sim_dfs)
+dim(combined_sim_df)
+
+
+#load table that relate survey design (here scn) to variables
+load(file='./tables/samp_df_dens.RData') #samp_df
+
+# Make sure the column names match for joining
+samp_df_join <- samp_df %>%
+  select(samp_scn, region, n_samples)
+
+# Join on scenario (combined_sim_df) and samp_scn (samp_df)
+combined_sim_df <- combined_sim_df %>%
+  left_join(samp_df_join, by = c("scenario" = "samp_scn"))
+
+# Check
+head(combined_sim_df)
+dim(combined_sim_df)
+
+
+# Save
+write.csv(combined_sim_df, "./data processed/index_dens_all.csv", row.names = FALSE)
+
+
+
+
 

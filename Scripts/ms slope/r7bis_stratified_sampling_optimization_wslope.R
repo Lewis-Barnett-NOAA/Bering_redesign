@@ -1263,7 +1263,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     }
     
     #palette
-    pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
+    #pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
     
     #ragg::agg_png(paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
     #print(

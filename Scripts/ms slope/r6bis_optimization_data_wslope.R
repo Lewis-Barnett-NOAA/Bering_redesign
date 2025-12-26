@@ -33,7 +33,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
 setwd(out_dir)
 
@@ -405,7 +405,7 @@ save(dfdyn,file=paste0('./output slope/multisp_optimization_static_data_slope_dy
 # COMBINE DATA FROM SLOPE AND EBS_NBS FOR OPTIMIZATION
 #####################
 
-#DYNAMIC
+#DYNAMIC  
 load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_dyn.RData'))
 head(dfdyn)
 dim(dfdyn)
@@ -420,6 +420,7 @@ df_slope<-df_slope[order(df_slope$cell),]
 df<-rbind(df_ebs_nbs,df_slope)
 save(df,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
 load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
+dyn_df<-df
 
 #STATIC
 load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_st.RData'))
@@ -435,4 +436,20 @@ df_slope<-df_slope[order(df_slope$cell),]
 df<-rbind(df_ebs_nbs,df_slope)
 save(df,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
 load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
+st_df<-df
+
+
+#(./data processed/multisp_optimization_BSS_NBSEBS.csv)
+st_df$regime <- "all"
+# Get column order from dyn_df
+col_order <- colnames(dyn_df)
+
+# Reorder st_df columns to match dyn_df
+st_df <- st_df[, col_order]
+
+# Combine
+combined_df <- rbind(dyn_df, st_df)
+
+# Save as CSV
+write.csv(combined_df, "./data processed/multisp_optimization_BSS_NBSEBS.csv", row.names = FALSE)
 

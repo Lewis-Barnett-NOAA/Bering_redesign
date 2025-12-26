@@ -32,7 +32,7 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
 setwd(out_dir)
 
 #list of sp
@@ -413,6 +413,15 @@ for (sp in spp) {
 
 #store HIST simulated data
 save(sim_dens1, file = paste0('./output slope//species/ms_sim_dens_all.RData'))  
+
+# load the RData file
+load(file = './output slope/species/ms_sim_dens_all.RData')  # loads object sim_dens1
+
+# check the object name
+ls()  # should show sim_dens1
+
+# convert to CSV
+write.csv(sim_dens1, file = './data processed/ms_sim_dens_all.csv', row.names = FALSE)
 
 #checks
 dimnames(sim_dens1)

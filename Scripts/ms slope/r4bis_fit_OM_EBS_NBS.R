@@ -31,8 +31,8 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
-out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+#out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'  
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #version VAST (cpp)
@@ -255,4 +255,122 @@ if (!is.null(fit)) {
 gc()
 }
 
+#save all EBS+NBS data_geostat data ####
+#loop over species to fit models
+data_geostat_list <- vector("list", length(spp))
+names(data_geostat_list) <- spp
 
+for (sp in spp) {
+  
+  file_path <- paste(
+    out_dir,
+    'data processed/species',
+    sp,
+    "data_geostat_temp.rds",
+    sep = "/"
+  )
+  
+  if (file.exists(file_path)) {
+    
+    df1<- readRDS(file_path)
+    
+    #df1[which(df1$year==2020),'bottom_temp_c']<-NA
+    df2<-subset(df1,year %in% c(yrs,2020))
+    
+    #select rows and rename
+    df3<-df2[,c("lat_start","lon_start","year",'scientific_name','weight_kg','effort','depth_m','LogDepth',"ScaleLogDepth",'Scalebottom_temp_c','bottom_temp_c','survey_name')]
+    colnames(df3)<-c('Lat','Lon','Year','Species','Weight_kg','Swept_area','Depth','LogDepth','ScaleLogDepth','ScaleBotTemp','SBT_insitu','Region')
+    
+    #data geostat
+    df4<-subset(df3,Region %in% c("Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey",
+                                  "Northern Bering Sea Crab/Groundfish Survey - Eastern Bering Sea Shelf Survey Extension"))
+    
+    data_geostat<-df4[complete.cases(df4[,c('Weight_kg')]),]
+    data_geostat<-subset(data_geostat,Year %in% yrs)
+    
+    #if kamtchatka arrowtooth flounder only use data from 1991 because of missidentification issue
+    if (sp=='Atheresthes evermanni') {
+      data_geostat<-subset(data_geostat,Year %in% 1991:2022)
+    }
+    
+    #covariate data - filter by year and complete cases for env variables
+    #covariate_data<-subset(df2,Year>=yrs_region[1] & Year<=yrs_region[2])
+    covariate_data<-df3[complete.cases(df3[,c('SBT_insitu')]),] #,'ScaleLogDepth'
+    
+    #get grid_ebs_nbs
+    grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% unique(data_geostat$Year)),]
+    
+    #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
+    grid_df<-data.frame(Lat=grid_ebs$Lat,
+                        Lon=grid_ebs$Lon,
+                        Year=grid_ebs$Year,
+                        Species=rep(sp,times=nrow(grid_ebs)),
+                        Weight_kg=mean(data_geostat$Weight_kg),
+                        Swept_area=grid_ebs$Area_in_survey_km2,
+                        Depth=grid_ebs$Depth,
+                        SBT_insitu=grid_ebs$Temp,
+                        Region=grid_ebs$region,
+                        stringsAsFactors = T)
+    
+    #ha to km2
+    data_geostat$Swept_area<-data_geostat$Swept_area/100 #(from ha to km²)
+    
+    #rbind grid and data_geostat to get prediction into grid values when simulating data
+    data_geostat1<-rbind(data_geostat[,c("Lat","Lon","Year","Species","Weight_kg","Swept_area","Depth","SBT_insitu","Region")],
+                         grid_df)
+    
+    #to get predictions in locations but not influencing fit
+    pred_TF <- rep(1, nrow(data_geostat1))
+    #pred_TF[1:nrow(data_geostat)] <- 0
+    
+    data_geostat_list[[sp]] <- data_geostat1
+  }
+}
+
+
+# bind all species
+df2 <- dplyr::bind_rows(data_geostat_list)
+
+
+NBSEBS_data_geostat <- df2
+
+
+#save data
+saveRDS(NBSEBS_data_geostat,paste(out_dir,'data processed/data_geostat_NBSEBS.rds',sep='/'))
+
+# join data_geostat input VAST model for both regions ####
+# load BSS data
+BSS_data_geostat <- readRDS(
+  file.path(out_dir, "data processed", "data_geostat_BSS.rds")
+)
+
+# load EBS + NBS data
+NBSEBS_data_geostat <- readRDS(
+  file.path(out_dir, "data processed", "data_geostat_NBSEBS.rds")
+)
+
+# sanity check
+stopifnot(
+  identical(
+    names(BSS_data_geostat),
+    names(NBSEBS_data_geostat)
+  )
+)
+
+# bind all regions
+data_geostat_all <- dplyr::bind_rows(
+  BSS_data_geostat,
+  NBSEBS_data_geostat
+)
+
+# save combined object
+saveRDS(
+  data_geostat_all,
+  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.rds")
+)
+
+write.csv(
+  data_geostat_all,
+  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.csv"),
+  row.names = FALSE
+)

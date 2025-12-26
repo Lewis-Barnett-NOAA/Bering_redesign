@@ -36,7 +36,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #set working directory
 #out_dir<-'C:/Users/Daniel.Vilas/Work//Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 # Define plot extent (through trial end error) units km

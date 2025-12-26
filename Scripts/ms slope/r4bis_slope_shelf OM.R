@@ -28,7 +28,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<- '/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+out_dir<- '/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #version VAST (cpp)
@@ -81,51 +81,155 @@ spp_vect<-c("Atheresthes evermanni","Atheresthes stomias",
             "Hippoglossoides elassodon","Reinhardtius hippoglossoides",
             'Bathyraja aleutica')
 
+#add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
+load('./extrapolation grids/bering_sea_slope_grid.rda')
+names(bering_sea_slope_grid)[4]<-'Stratum'
+bering_sea_slope_grid$Stratum<-99
+
+#load grid per year for all EBS
+load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year %in% 2002:2016) #yrs
+
+splist <- vector("list", length(spp))
+names(splist) <- spp
 
 for (sp in spp) {
-
- #example
- #sp<-'Reinhardtius hippoglossoides'
- #sp<-'Atheresthes stomias'
-
-  #sp<-spp[1]
-   
   
+  # read data
   if (sp %in% spp_vect) {
-    df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
-    
+    df1 <- readRDS(
+      paste0("./data processed/species/", sp, "/data_geostat_slope_adj.rds")
+    )
   } else {
-    
-    df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
-    df1<-cbind(df1,"ADJ_WEIGHT_FREQ"=NA,"ADJ_KG_HA"=NA)
+    df1 <- readRDS(
+      paste0("./data processed/species/", sp, "/data_geostat.rds")
+    )
+    df1$ADJ_KG_HA <- NA_real_
   }
   
+  # slope only
+  df1 <- subset(
+    df1,
+    survey_name == "Eastern Bering Sea Slope Bottom Trawl Survey"
+  )
+  df1$survey_name <- "slope"
+  
+  yrs <- unique(df1$year)
+  df1 <- subset(df1, year %in% yrs)
+  
+  # unified CPUE
+  df1$Cpue_kgha <- ifelse(
+    sp %in% spp_vect,
+    df1$ADJ_KG_HA,
+    df1$cpue_kgha
+  )
+  
+  # standard columns
+  df1 <- df1[, c(
+    "lat_start",
+    "lon_start",
+    "year",
+    "scientific_name",
+    "Cpue_kgha",
+    "effort",
+    "depth_m",
+    "survey_name"
+  )]
+  
+  colnames(df1) <- c(
+    "Lat",
+    "Lon",
+    "Year",
+    "Species",
+    "Cpue_kgha",
+    "Effort",
+    "Depth",
+    "Region"
+  )
+  
+  # weight
+  df1$Weight_kg <- df1$Cpue_kgha * df1$Effort
+  df1$CPUEkgkm  <- df1$Cpue_kgha
+  
+  # grid for predictions
+  grids <- data.frame(
+    Lat        = grid_ebs$Lat,
+    Lon        = grid_ebs$Lon,
+    Year       = grid_ebs$Year,
+    Species    = sp,
+    Weight_kg  = mean(df1$Weight_kg, na.rm = TRUE),
+    Effort     = grid_ebs$Area_in_survey_km2,
+    Depth      = grid_ebs$DepthGEBCO,
+    Region     = grid_ebs$region,
+    CPUEkgkm   = mean(df1$Cpue_kgha, na.rm = TRUE),
+    stringsAsFactors = TRUE
+  )
+  
+  # bind observations and grid
+  df1 <- rbind(
+    df1[, c(
+      "Lat",
+      "Lon",
+      "Year",
+      "Species",
+      "Weight_kg",
+      "Effort",
+      "Depth",
+      "Region",
+      "CPUEkgkm"
+    )],
+    grids
+  )
+  
+  splist[[sp]] <- df1
+}
 
-#for slope data
-df11<-subset(df1,survey_name== "Eastern Bering Sea Slope Bottom Trawl Survey")
-df11$survey_name[df11$survey_name == 'Eastern Bering Sea Slope Bottom Trawl Survey'] <- 'slope'
-#yrs only for slope
-yrs<-unique(df11$year)
+# bind all species
+df2 <- dplyr::bind_rows(splist)
 
-# #for shelf data
-# df12<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey")
-# df12$survey_name[df12$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- 'EBS shelf'
-# 
-# #for shelf data deeper than 106 (3rd quartile)
-# df13<-subset(df1,survey_name== "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey" & depth_m>=100)
-# df13$survey_name[df13$survey_name == 'Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey'] <- '>100 EBS shelf'
 
-#rbind region specific df
-df1<-df11
-df1<-subset(df1, year %in% yrs)
+BSS_data_geostat <- df2
 
-#store df
-splist[[sp]]<-df1
+# add missing environmental covariate
+BSS_data_geostat$SBT_insitu <- NA_real_
 
-} 
- 
-#rbind list dfs
-df2<-dplyr::bind_rows(splist, .id = "column_label")
+# remove missing weights
+BSS_data_geostat <- BSS_data_geostat[
+  complete.cases(BSS_data_geostat$Weight_kg),
+]
+
+# area from ha to km2
+BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100
+
+# final layout
+BSS_data_geostat <- BSS_data_geostat[, c(
+  "Lat",
+  "Lon",
+  "Year",
+  "Species",
+  "Weight_kg",
+  "Effort",
+  "Depth",
+  "SBT_insitu",
+  "Region"
+)]
+
+colnames(BSS_data_geostat) <- c(
+  "Lat",
+  "Lon",
+  "Year",
+  "Species",
+  "Weight_kg",
+  "Swept_area",
+  "Depth",
+  "SBT_insitu",
+  "Region"
+)
+
+BSS_data_geostat$Region <- "BSS"
+
+#save rds all species BSS data_geostat####
+saveRDS(BSS_data_geostat,paste(out_dir,'data processed/data_geostat_BSS.rds',sep='/'))
 
 #check
 splist$`Gadus macrocephalus`
@@ -605,3 +709,41 @@ sim_bio <-matrix(data = Sim1$b_i[pred_TF == 1], #kg
                  nrow = nrow(bering_sea_slope_grid),
                  ncol = length(unique(unique(data_geostat1$Year))))
 
+
+
+# join data_geostat input VAST model for both regions ####
+# load BSS data
+BSS_data_geostat <- readRDS(
+  file.path(out_dir, "data processed", "data_geostat_BSS.rds")
+)
+
+# load EBS + NBS data
+NBSEBS_data_geostat <- readRDS(
+  file.path(out_dir, "data processed", "data_geostat_NBSEBS.rds")
+)
+
+# sanity check
+stopifnot(
+  identical(
+    names(BSS_data_geostat),
+    names(NBSEBS_data_geostat)
+  )
+)
+
+# bind all regions
+data_geostat_all <- dplyr::bind_rows(
+  BSS_data_geostat,
+  NBSEBS_data_geostat
+)
+
+# save combined object
+saveRDS(
+  data_geostat_all,
+  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.rds")
+)
+
+write.csv(
+  data_geostat_all,
+  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.csv"),
+  row.names = FALSE
+)
