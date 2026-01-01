@@ -74,12 +74,11 @@ The analysis is coded into 12 scripts and can be found in Bering_redesign/Script
 
 ## Data
 
--   baseline_strata.RData contains the existing sampling design data.
--   multisp_optimization_static_data.RData is the input data to run the multispecies optimization process.
+-   Organizing files, TBD
 
-## Additional data
+## Archived output
 
-Additional output data on true and estimated historical and projected indices, CV, and RRMSE of CV for project 1 can be found at:
+Additional outputs containing true and estimated historical and projected indices, CV, and RRMSE of CV for project 1 can be found at:
 
 <https://figshare.com/s/8e13d006d9822ef4334d>
 
