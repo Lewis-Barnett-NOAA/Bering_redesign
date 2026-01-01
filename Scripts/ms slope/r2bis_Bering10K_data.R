@@ -111,17 +111,19 @@ files.2<-googledrive::drive_ls(id.data$id)
 #create directory
 dir.create('./data raw/',showWarnings = FALSE)
 
-#get haul (stations) data
-file<-files.2[grep('haul',files.2$name),]
-#file.id<-files.2[which(files.2$name %in% file),]
-
-#download file
-googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
-                            overwrite = TRUE)
+# #get haul (stations) data
+# file<-files.2[grep('haul',files.2$name),]
+# #file.id<-files.2[which(files.2$name %in% file),]
+# 
+# #download file
+# googledrive::drive_download(file=file$id,
+#                             path = paste0('./data raw/',file$name),
+#                             overwrite = TRUE)
 
 #read csv file
 haul<-readRDS(paste0('./data raw/',file$name))
+haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
+
 dim(haul);length(unique(haul$hauljoin))
 
 #get year and month from haul
@@ -162,23 +164,23 @@ aggregate(Area_in_survey_km2 ~ region, grid.ebs,FUN=sum)
 # Add GEBCO depth (downloaded on August 2022)
 #####################################
 
-#create directory
-dir.create('./bathymetry/',showWarnings = FALSE)
-
-#get raster depth from gebco (https://download.gebco.net/)
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bathymetry'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc'),]
-
-googledrive::drive_download(file=id.data$id,
-                            path = paste0('./bathymetry/',id.data$name),
-                            overwrite = TRUE)
+# #create directory
+# dir.create('./bathymetry/',showWarnings = FALSE)
+# 
+# #get raster depth from gebco (https://download.gebco.net/)
+# #get id shared folder from google drive
+# id.bering.folder<-files[which(files$name=='Bathymetry'),'id']
+# 
+# #list of files and folder
+# files.1<-googledrive::drive_ls(id.bering.folder$id)
+# id.data<-files.1[which(files.1$name=='gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc'),]
+# 
+# googledrive::drive_download(file=id.data$id,
+#                             path = paste0('./bathymetry/',id.data$name),
+#                             overwrite = TRUE)
 
 #read raster GEBCO data
-r<-raster('./bathymetry/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
+r<-raster('./data raw/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
 
 #extract depth values for each station of grid - using GEBCO data
 rr<-raster::extract(r, SpatialPoints(cbind(grid.ebs$Lon,grid.ebs$Lat)))
@@ -191,20 +193,41 @@ EBSgrid<-grid.ebs
 # Loop over years to get the temperature for each year in each sampling station (from ROMS)
 ##########################################################################
 
-#create directory
-dir.create('./bering 10k roms/',showWarnings = FALSE)
+# #create directory
+# dir.create('./bering 10k roms/',showWarnings = FALSE)
+# 
+# #get id shared folder from google drive
+# id.roms.folder<-files[which(files$name=='Bering 10K ROMS'),'id']
+# 
+# #list of files and folder of netcd files
+# files.1<-googledrive::drive_ls(id.roms.folder$id)
+# id.data<-files.1[which(files.1$name=='netcdf_historical'),'id']
+# nc_histfiles<-googledrive::drive_ls(id.data$id)
+# id.data<-files.1[which(files.1$name=='netcdf_forecast'),'id']
+# nc_forfiles<-googledrive::drive_ls(id.data$id)
+# files.hist<-sort(nc_histfiles$name)
+# files.for<-sort(nc_forfiles$name)
 
-#get id shared folder from google drive
-id.roms.folder<-files[which(files$name=='Bering 10K ROMS'),'id']
+# list local netcdf files
+base_dir <- "./bering_10k_roms"
 
-#list of files and folder of netcd files
-files.1<-googledrive::drive_ls(id.roms.folder$id)
-id.data<-files.1[which(files.1$name=='netcdf_historical'),'id']
-nc_histfiles<-googledrive::drive_ls(id.data$id)
-id.data<-files.1[which(files.1$name=='netcdf_forecast'),'id']
-nc_forfiles<-googledrive::drive_ls(id.data$id)
-files.hist<-sort(nc_histfiles$name)
-files.for<-sort(nc_forfiles$name)
+hist_dir <- file.path(base_dir, "netcdf_historical")
+for_dir  <- file.path(base_dir, "netcdf_forecast")
+
+stopifnot(dir.exists(hist_dir))
+stopifnot(dir.exists(for_dir))
+
+files.hist <- sort(list.files(
+  hist_dir,
+  pattern = "\\.nc$",
+  full.names = FALSE
+))
+
+files.for <- sort(list.files(
+  for_dir,
+  pattern = "\\.nc$",
+  full.names = FALSE
+))
 
 #create df to store results
 grid.ebs_year<-data.frame(matrix(nrow = 0,
@@ -212,6 +235,21 @@ grid.ebs_year<-data.frame(matrix(nrow = 0,
 colnames(grid.ebs_year)<-c(colnames(EBSgrid),
                            'Temp',
                            'Year')
+get_roms_file <- function(y, files.hist, files.for) {
+  
+  if (y >= 1980 && y <= 1984) return(list(type = "hist", file = files.hist[1]))
+  if (y >= 1985 && y <= 1989) return(list(type = "hist", file = files.hist[2]))
+  if (y >= 1990 && y <= 1994) return(list(type = "hist", file = files.hist[3]))
+  if (y >= 1995 && y <= 1999) return(list(type = "hist", file = files.hist[4]))
+  if (y >= 2000 && y <= 2004) return(list(type = "hist", file = files.hist[5]))
+  if (y >= 2005 && y <= 2009) return(list(type = "hist", file = files.hist[6]))
+  if (y >= 2010 && y <= 2014) return(list(type = "hist", file = files.hist[7]))
+  if (y >= 2015 && y <= 2019) return(list(type = "hist", file = files.hist[8]))
+  if (y == 2020)              return(list(type = "hist", file = files.hist[9]))
+  if (y >= 2021 && y <= 2024) return(list(type = "for",  file = files.for[1]))
+  
+  stop("Year not covered")
+}
 
 #loop over years to incorporate values into the Bering Sea grid
 for (y in 1982:2024) {
@@ -221,49 +259,21 @@ for (y in 1982:2024) {
   #print year to check progress
   cat(paste("    ----- year", y, "-----\n"))  
   
-  #open netcdf file for each year
-  if (y %in% c(1980:1984)) {
-    f<-files.hist[1]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else  if (y %in% c(1985:1989)) {
-    f<-files.hist[2]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else  if (y %in% c(1990:1994)) {
-    f<-files.hist[3]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else  if (y %in% c(1995:1999)) {
-    f<-files.hist[4]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2000:2004)) {
-    f<-files.hist[5]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2005:2009)) {
-    f<-files.hist[6]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2010:2014)) {
-    f<-files.hist[7]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2015:2019)) {
-    f<-files.hist[8]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2020)) {
-    f<-files.hist[9]
-    file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-  } else if (y %in% c(2021:2024)) {
-    f<-files.for[1]
-    file.id<-nc_forfiles[which(nc_forfiles$name==f),'id']} #for year>2020 have to select projection
   
-  #if not file, download
-  if (!(f %in% list.files('./bering 10k roms/'))) {
-    
-    #download file into temp folder
-    googledrive::drive_download(file=file.id$id,
-                                path = paste0('./bering 10k roms/',f),
-                                overwrite = TRUE)
+  sel <- get_roms_file(y, files.hist, files.for)
+  
+  if (sel$type == "hist") {
+    file_path <- file.path(hist_dir, sel$file)
+  } else {
+    file_path <- file.path(for_dir, sel$file)
   }
   
-  #open netcdf
-  nc<-nc_open(paste0('./bering 10k roms/',f))
+  if (!file.exists(file_path)) {
+    stop(paste("Missing file:", file_path))
+  }
+  
+  # open NetCDF
+  nc <- ncdf4::nc_open(file_path)
   
   #nc<-nc_open('/Users/daniel/Downloads/B10K-K20P19_CORECFS_1970-1974_average_Cop_integrated.nc')
   names(nc$var)
