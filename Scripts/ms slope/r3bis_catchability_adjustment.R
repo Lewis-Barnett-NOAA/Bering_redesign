@@ -89,9 +89,10 @@ spp1<-c('Yellowfin sole',
 #read catchability data
 #s12 Selectivity ratio > 1 means the slope gear and protocol had higher selectivity
 #so, we need to divide slope data by the sr index
-#471 is for Alaska skate - while we are using Aleutian skate 472
-#data_sratio<-readRDS('Data/data_raw/shelf_slope_sratio_bootstrap.rds')
-data_sratio<-readRDS('./data raw/shelf_slope_sratio_bootstrap.rds')
+#471 is for Alaska skate - which we will use to represent SR values for
+#Aleutian skate 472 given lack of species-specific data but similar morphology
+data_sratio<-readRDS('Data/data_raw/shelf_slope_sratio_bootstrap.rds')
+#data_sratio<-readRDS('./data raw/shelf_slope_sratio_bootstrap.rds')
 unique(data_sratio$SPECIES_CODE)
 
 #convert SR of one speccies into another
@@ -99,7 +100,7 @@ data_sratio[which(data_sratio$SPECIES_CODE=='471'),'SPECIES_CODE']<-'472'
 
 #read length raw data
 #data_length<-readRDS('Data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
-data_length<-readRDS('./data raw/ak_bts_ebs_nbs_slope.rds') #data_length
+data_length<-readRDS('Data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
 head(data_length)
 head(data_length$specimen)
 dim(data_length$specimen)
@@ -268,8 +269,8 @@ for (r in 1:nrow(coef_wl)) {
 }
 
 #add coeff of Aleutian skate
-lwgoa<-read.csv('./data raw/LenWtParams_GOA.csv')
-lwai<-read.csv('./data raw/LenWtParams_AI.csv')
+lwgoa<-read.csv('Data/data_raw/LenWtParams_GOA.csv')
+lwai<-read.csv('Data/data_raw/LenWtParams_AI.csv')
 ilwgoa<-lwgoa[which(lwgoa$species=='472'),]
 ilwai<-lwai[which(lwai$species=='472'),]
 
