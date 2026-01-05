@@ -79,8 +79,8 @@ Project 2 also includes the following visualization scripts
 
 ## Data
 
--   shelf_slope_sratio_bootstrap contains bootstrapped estimates of selectivity ratios between shelf and slope gears
--   other data via axiom
+-   shelf_slope_sratio_bootstrap.rds contains bootstrapped estimates of selectivity ratios between shelf and slope gears
+-   other data via axiom (including .csv versions)
 
 ## Archived output
 
