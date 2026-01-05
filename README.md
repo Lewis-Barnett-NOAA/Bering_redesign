@@ -57,24 +57,30 @@ Stratification scheme and station allocation information for each sampling desig
 
 ## Scripts
 
-The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the continental slope operating models:
+The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the continental slope operating models (and including additional scripts appended by \_wslope for slope models, as opposed to shelf models):
 
 -   r0. Creates figures of the study area, sampling stations, and existing sampling design.
 -   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models.
--   r2. Exports SBT data from Bering 10K ROMS into the dataset.
+-   r2. Exports SBT data from Bering 10K ROMS into the dataset. (r1 is combined into r2 for project 2)
 -   r3. Prepares data for projecting models into the future.
 -   r4. Fits operating models.
 -   r5. Simulates data from OM for historical and projected years.
--   r6. Retrieves true indices from the OM, and prepares EBS+NBS data for optimization.
--   r7A. Runs sampling optimization based on predicted densities from VAST OM EBS+NBS and calculates stratification boundaries and sample allocations for each sampling design.
--   r7B. Plots stratification maps and comparisons.
+-   r6. Retrieves true indices from the OM, and prepares data for optimization.
+-   r7A. Runs sampling optimization based on predicted densities from VAST OM and calculates stratification boundaries and sample allocations for each sampling design.
+-   r7B. Plots stratification maps and comparisons. (combined into single r7 script in project 2)
 -   r8A. Simulates station allocations for each sampling design.
 -   r8B. Simulates data and surveys for historical and projected years and prepares estimates to compute design-based indices for groundfish and crab species.
 -   r9. Compares and plots design estimates versus true estimates.
 
+Project 2 also includes the following visualization scripts
+
+-   figures_simulated_data_distributions.R which plots metrics of distribution change
+-   sensitivity_analysisSR.R which performs a sensitivity analysis of catchability to selectivity ratio estimates
+
 ## Data
 
--   Organizing files, TBD
+-   shelf_slope_sratio_bootstrap contains bootstrapped estimates of selectivity ratios between shelf and slope gears
+-   other data via axiom
 
 ## Archived output
 
