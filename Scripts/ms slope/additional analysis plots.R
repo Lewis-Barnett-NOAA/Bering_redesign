@@ -1,9 +1,10 @@
+setwd('/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/')
+
 load('./extrapolation grids/eastern_bering_sea_grid.rda')
 grid <- data.frame(eastern_bering_sea_grid)
 #grid1<-data.frame(grid[78:95,])
+grid1<-subset(data.frame(grid),Area_in_survey_km2>13.6 & Area_in_survey_km2<13.8)
 
-
-  grid1<-subset(data.frame(grid),Area_in_survey_km2>13.6 & Area_in_survey_km2<13.8)
 # Sort unique longitudes and latitudes
 lon_res <- mean(diff(sort(unique(grid1[,'Lon']))))
 lat_res <- mean(diff(sort(unique(grid1[,'Lat']))))
@@ -21,6 +22,8 @@ gridnbs <- data.frame(northern_bering_sea_grid)
 
 load('./extrapolation grids/bering_sea_slope_grid.rda')
 gridslope <- data.frame(bering_sea_slope_grid)
+
+library(ggplot2)
 
 p<-
 ggplot() +
