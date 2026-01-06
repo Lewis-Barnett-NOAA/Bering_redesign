@@ -9,7 +9,7 @@ This repository provides the code used for two interrelated projects:
 
 ## Material and Methods
 
-We investigated whether defining survey boundaries based on historical and future environmental conditions improves the precision and accuracy of abundance estimates in a multispecies survey. In the first project, we fitted univariate spatiotemporal species distribution models to 16 stocks (14 species) using historical observations of fishery-independent bottom trawl survey catch-per-unit-effort and sea bottom temperature in the eastern and northern Bering Sea from 1982 to 2022. We used spatiotemporal models to simulate historical and future survey data from these models and optimize stratum boundaries and sample allocation for abundance estimation under a variety of environmental conditions. We then compared simulated abundance estimates to the simulated true abundance among sampling designs and future temperature scenarios.
+We investigated whether defining survey boundaries based on historical and future environmental conditions improves the precision and accuracy of abundance estimates in a multispecies survey. In the first project, we fitted univariate spatiotemporal species distribution models to 16 stocks (14 species) using historical observations of fishery-independent bottom trawl survey catch-per-unit-effort and sea bottom temperature in the eastern and northern Bering Sea from 1982 to 2022. We used spatiotemporal models to simulate historical and future survey data from these models and optimize stratum boundaries and sample allocation for abundance estimation under a variety of environmental conditions (SBT scenarios folder; only applicable to project 1). We then compared simulated abundance estimates to the simulated true abundance among sampling designs and future temperature scenarios.
 
 In the second project we optimized designs that included the upper continental slope, for years when both the shelf and slope surveys were conducted. We also evaluated distribution shifts by depth and latitude to determine how best to provide survey coverage for shifting stocks. This included an expanded species set and an analysis of whether the survey could be extended with only the original number of stations used to survey the EBS shelf. In addition, this included a correction for differences in selectivity between shelf and slope survey gears.
 
@@ -60,11 +60,11 @@ Stratification scheme and station allocation information for each sampling desig
 The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the continental slope operating models (and including additional scripts appended by \_wslope for slope models, as opposed to shelf models):
 
 -   r0. Creates figures of the study area, sampling stations, and existing sampling design.
--   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models.
--   r2. Exports SBT data from Bering 10K ROMS into the dataset. (r1 is combined into r2 for project 2)
--   r3. Prepares data for projecting models into the future.
+-   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models. (r1 is combined into r2 for project 2)
+-   r2. Exports SBT data from Bering 10K ROMS into the dataset.
+-   r3. Prepares data for projecting models into the future (project 1) or performs catchability correction between gears (project 2)
 -   r4. Fits operating models.
--   r5. Simulates data from OM for historical and projected years.
+-   r5. Simulates data from OM.
 -   r6. Retrieves true indices from the OM, and prepares data for optimization.
 -   r7A. Runs sampling optimization based on predicted densities from VAST OM and calculates stratification boundaries and sample allocations for each sampling design.
 -   r7B. Plots stratification maps and comparisons. (combined into single r7 script in project 2)
