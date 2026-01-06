@@ -1,3 +1,5 @@
+# plot extrapolation grids -----
+
 load('./extrapolation grids/eastern_bering_sea_grid.rda')
 grid <- data.frame(eastern_bering_sea_grid)
 #grid1<-data.frame(grid[78:95,])
@@ -45,6 +47,7 @@ p
 dev.off()
 
 
+# gather VAST model settings for OMs
 
 # Set working directory
 setwd('/Volumes/MAC drive/Redesign survey LB/OM SBS/')
@@ -137,7 +140,7 @@ for (i in ld) {
     )
     
   } else {
-    warning(paste("Missing fit_st.RData in:", i))
+    warning(paste("Missing fit.RData in:", i))
   }
 }
 
