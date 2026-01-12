@@ -234,14 +234,15 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
 #####################
 
 #for SLOPE
-samp_df2<-subset(region_cells,region %in% c("EBS+BSS",'EBS+NBS+BSS'))
+samp_df2<-subset(region_cells,region %in% c("EBS+SBS",'EBS+NBS+SBS'))
 samp_df21<-reshape2::melt(samp_df2,id.vars=c(names(samp_df2)[7:12]))
 samp_df21<-samp_df21[grepl("BSS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('depth','varSBT',"depth_dummy",'varSBT_dummy'))
-levels(samp_df21$strat_var)<-c('depth','varSBT',"depth_dummy",'varSBT_dummy')
+#samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('depth','varSBT',"depth_dummy",'varSBT_dummy'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth',"Depth_dummy"))
+levels(samp_df21$strat_var)<-c('depth',"depth_dummy")
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
@@ -263,12 +264,9 @@ samp_df21$combined_label<-factor(samp_df21$combined_label,levels=c('rand - all' 
                                                        'sb - warm' ) )
 
 
-library(ggh4x)
-
-
 # Subset the data
-df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
-
+#df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
+df_sub<-samp_df21
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
 df_summary <- aggregate(value ~ region + combined_label + scn1 + 
                           regime + strat_var, 
@@ -284,17 +282,27 @@ df_summary$region1<-gsub('+','\n',df_summary$region)
 #levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
 df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
 
-# Define the nesting
-region_ranges<-
-  data.frame('key'=c('depth','varSBT'),
-             'start'=c(0.5,2.6),
-             'end'=c(2.4,4.5))
+# # Define the nesting
+# region_ranges<-
+#   data.frame('key'=c('depth','depth_dummy'),
+#              'start'=c(0.5,2.6),
+#              'end'=c(2.4,4.5))
+
 # Suppose your region labels
 regions <- unique(df_summary$region)
 
 # Convert to a list of element_text
 levels_text_list <- lapply(regions, function(x) element_text())
 
+#convert all NAs into depth_dummy for strat_var
+df_summary$strat_var = ifelse(is.na(df_summary$strat_var), "depth_dummy", df_summary$strat_var)
+
+#change all SBS to BSS
+cols <- c("region", "combined_label", "region1")
+
+df_summary[cols] <- lapply(df_summary[cols], function(x) {
+  gsub("SBS", "BSS", x)
+})
 
 #plot 2slope
 pBSS2<-
@@ -334,13 +342,24 @@ ggplot(data = df_summary) +
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
-  scale_x_discrete(labels = function(x) {
-    # Keep everything before the first dot
-    x <- sub("\\..*$", "", x)
-    # Replace + with line break
-    x <- gsub("\\+", "\n", x)
-    return(x)
-  })+
+  scale_x_discrete(
+    labels = function(x) {
+      
+      # Flag depth_dummy
+      is_dummy <- grepl("depth_dummy", x)
+      
+      # Keep everything before the first dot
+      lab <- sub("\\..*$", "", x)
+      
+      # Replace + with line break
+      lab <- gsub("\\+", "\n", lab)
+      
+      # Add extra line for depth_dummy
+      lab[is_dummy] <- paste(lab[is_dummy], "forced BSS", sep = "\n")
+      
+      lab
+    }
+  )+
   theme_bw() +
   theme(axis.title.x = element_blank()) +
   scale_fill_manual(
@@ -443,13 +462,14 @@ ggplot(data = df_summary) +
 
 
 #for NBS
-samp_df2<-subset(region_cells,region %in% c("EBS+NBS",'EBS+NBS+BSS'))
+samp_df2<-subset(region_cells,region %in% c("EBS+NBS",'EBS+NBS+SBS'))
 samp_df21<-reshape2::melt(samp_df2,id.vars=c(names(samp_df2)[7:12]))
 samp_df21<-samp_df21[grepl("NBS", samp_df21$variable), ]
 
 samp_df21$scn<-paste0(samp_df21$region,'\n',samp_df21$strat_var,'\n',samp_df21$type)
 
-samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('depth','varSBT',"depth_dummy",'varSBT_dummy'))
+samp_df21$strat_var<-factor(samp_df21$strat_var,levels = c('Depth',"Depth_dummy"))
+levels(samp_df21$strat_var)<-c('depth',"depth_dummy")
 samp_df21$type<-factor(samp_df21$type,levels = c('static','dynamic'))
 
 # Convert 'scn' to a factor based on 'region'
@@ -473,8 +493,8 @@ samp_df21$combined_label<-factor(samp_df21$combined_label,levels=c('rand - all' 
 
 
 # Subset the data
-df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
-
+#df_sub <- samp_df21[!grepl('dummy',samp_df21$scn1),]
+df_sub <- samp_df21
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
 df_summary <- aggregate(value ~ region + combined_label + scn1 + 
                           regime + strat_var, 
@@ -488,7 +508,7 @@ df_summary$value <- NULL  # Remove old column
 
 df_summary$region1<-gsub('+','\n',df_summary$region)
 #levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
-df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','depth_dummy'))
 
 
 # ensure factor levels
@@ -510,6 +530,13 @@ df_summary$combined_label <- factor(df_summary$combined_label,
 labels_vec <- c("random\nstatic","balanced random\nstatic",
                 "random\nadaptive cold","balanced random\nadaptive cold",
                 "random\nadaptive warm","balanced random\nadaptive warm")
+
+#change all SBS to BSS
+cols <- c("region", "combined_label", "region1")
+
+df_summary[cols] <- lapply(df_summary[cols], function(x) {
+  gsub("SBS", "BSS", x)
+})
 
 pnbs2 <- 
 ggplot(data = df_summary) +
@@ -535,11 +562,24 @@ ggplot(data = df_summary) +
   size = 3, position = position_dodge(width = 0.9), color = "black"
   ) +
   
-  scale_x_discrete(labels = function(x) {
-    x <- sub("\\..*$", "", x)
-    x <- gsub("\\+", "\n", x)
-    x
-  }) +
+  scale_x_discrete(
+    labels = function(x) {
+      
+      # Flag depth_dummy
+      is_dummy <- grepl("depth_dummy", x)
+      
+      # Keep everything before the first dot
+      lab <- sub("\\..*$", "", x)
+      
+      # Replace + with line break
+      lab <- gsub("\\+", "\n", lab)
+      
+      # Add extra line for depth_dummy
+      lab[is_dummy] <- paste(lab[is_dummy], "forced BSS", sep = "\n")
+      
+      lab
+    }
+  )+
   
   scale_y_continuous(
     expression(atop("sampling effort in the " * bold("NBS"), "(sampling stations/1,000 km²)")),
@@ -646,7 +686,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area_dens.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
