@@ -9,7 +9,7 @@ This repository provides the code used for two interrelated projects:
 
 ## Material and Methods
 
-We investigated whether defining survey boundaries based on historical and future environmental conditions improves the precision and accuracy of abundance estimates in a multispecies survey. In the first project, we fitted univariate spatiotemporal species distribution models to 16 stocks (14 species) using historical observations of fishery-independent bottom trawl survey catch-per-unit-effort and sea bottom temperature in the eastern and northern Bering Sea from 1982 to 2022. We used spatiotemporal models to simulate historical and future survey data from these models and optimize stratum boundaries and sample allocation for abundance estimation under a variety of environmental conditions (SBT scenarios folder; only applicable to project 1). We then compared simulated abundance estimates to the simulated true abundance among sampling designs and future temperature scenarios.
+We investigated whether defining survey boundaries based on historical and future environmental conditions improves the precision and accuracy of abundance estimates in a multispecies survey. This repository includes code for two projects building toward this goal. In the first project, we fitted univariate spatiotemporal species distribution models to 16 stocks (14 species) using historical observations of fishery-independent bottom trawl survey catch-per-unit-effort and sea bottom temperature in the eastern and northern Bering Sea from 1982 to 2022. We used spatiotemporal models to simulate historical and future survey data from these models and optimize stratum boundaries and sample allocation for abundance estimation under a variety of environmental conditions (SBT scenarios folder; only applicable to project 1). We then compared simulated abundance estimates to the simulated true abundance among sampling designs and future temperature scenarios.
 
 In the second project we optimized designs that included the upper continental slope, for years when both the shelf and slope surveys were conducted. We also evaluated distribution shifts by depth and latitude to determine how best to provide survey coverage for shifting stocks. This included an expanded species set and an analysis of whether the survey could be extended with only the original number of stations used to survey the EBS shelf. In addition, this included a correction for differences in selectivity between shelf and slope survey gears.
 
@@ -18,7 +18,7 @@ In the second project we optimized designs that included the upper continental s
 The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the Bering Sea (the second analysis expanded to 19 groundfish and 4 crab):
 
 | Stock | Scientific Name | Common Name |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | arrowtooth flounder | *Atheresthes stomias* | arrowtooth flounder |
 | Arctic cod | *Boreogadus saida* | Arctic cod |
 | Tanner crab | *Chionoecetes bairdi* | Tanner crab |
@@ -41,7 +41,7 @@ The species and stocks set included in the first manuscript are 10 groundfish an
 Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 and 520 in the second analysis. The second analysis focused on depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | existing | depth and geographical subregion | fixed |
 | existing | depth and geographical subregion | balanced random |
 | existing | depth and geographical subregion | random |
@@ -79,8 +79,7 @@ Project 2 also includes the following visualization scripts
 
 ## Data
 
--   shelf_slope_sratio_bootstrap.rds contains bootstrapped estimates of selectivity ratios between shelf and slope gears
--   other data via axiom (including .csv versions)
+-   data via axiom (including .csv versions)
 
 ## Archived output
 
