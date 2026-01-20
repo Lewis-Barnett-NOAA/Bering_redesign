@@ -59,6 +59,7 @@ ak_sppoly<-as(ebs_layers$akland, 'Spatial')
 #####################################
 # Polygon regions shapefiles (EBS, NBS and slope)
 #####################################
+# (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/inst/region_shapefiles)
 
 #create directory
 dir.create('./shapefiles/',showWarnings = FALSE)
