@@ -5,7 +5,7 @@
 This repository provides the code used for two interrelated projects:
 
 1.  Vilas, D, Barnett, LAK, Punt, AE, Oyafuso, ZS, DeFilippo, LB, Siple, MC, Zacher, L & S Kotwicki. 2025. [Optimized stratified random surveys best estimate multispecies abundance in a rapidly changing ecosystem](https://doi.org/10.1093/icesjms/fsae158). *ICES Journal of Marine Science* 82(6): fsae158.
-2.  Vilas, D, Barnett, LAK, Punt, AE, Oyafuso, ZS, DeFilippo, LB, Siple, MC, Hennessey, SM & S Kotwicki . In prep. "Can expanding spatial coverage of survey designs improve abundance estimation in a warming Arctic?"
+2.  Vilas, D, Barnett, LAK, Punt, AE, Oyafuso, ZS, DeFilippo, LB, Siple, MC, Hennessey, SM & S Kotwicki . In prep. "Can expanding spatial coverage of survey designs improve abundance estimation in a warming Arctic gateway?"
 
 ## Material and Methods
 
@@ -18,7 +18,7 @@ In the second project we optimized designs that included the upper continental s
 The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the Bering Sea (the second analysis expanded to 19 groundfish and 4 crab):
 
 | Stock | Scientific Name | Common Name |
-|------------------------|------------------------|-------------------------|
+|----|----|----|
 | arrowtooth flounder | *Atheresthes stomias* | arrowtooth flounder |
 | Arctic cod | *Boreogadus saida* | Arctic cod |
 | Tanner crab | *Chionoecetes bairdi* | Tanner crab |
@@ -41,7 +41,7 @@ The species and stocks set included in the first manuscript are 10 groundfish an
 Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 and 520 in the second analysis. The second analysis focused on depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
-|------------------|----------------------------------|--------------------|
+|----|----|----|
 | existing | depth and geographical subregion | fixed |
 | existing | depth and geographical subregion | balanced random |
 | existing | depth and geographical subregion | random |
