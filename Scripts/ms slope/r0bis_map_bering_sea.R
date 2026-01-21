@@ -43,11 +43,6 @@ setwd(out_dir)
 panel_extent <- data.frame(x = c(-1716559.21, -77636.05), #x = c(-1326559.21, -87636.05),
                            y = c(483099.5, 2194909.7)) #y = c(533099.5, 1894909.7))
 
-#get files from google drive and set up
-files<-googledrive::drive_find()
-?drive_find()
-3 #for dvilasg@uw.edu
-
 ################################################
 # Alaska land shapefile from afgfmaps package
 ################################################
@@ -67,28 +62,11 @@ dir.create('./shapefiles/',showWarnings = FALSE)
 #name shapefiles 
 shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
 
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Shapefiles'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-
 #loop over shapefiles
 for (i in shfiles) {
   
   #i=shfiles[1]
-  
-  # id.data<-files.1[which(grepl(i,files.1$name)),]
-  # 
-  # for (j in 1:nrow(id.data)) {
-  #   
-  #   #download data
-  #   googledrive::drive_download(file=id.data$id[j],
-  #                               path = paste0('./shapefiles/',id.data$name[j]),
-  #                               overwrite = TRUE)
-  #   
-  # }
-  
+
   #shapefile EBS
   sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
   

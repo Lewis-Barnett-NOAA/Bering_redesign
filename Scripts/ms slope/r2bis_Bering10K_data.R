@@ -30,7 +30,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
 setwd(out_dir)
 
@@ -92,18 +92,6 @@ spp1<-c('Yellowfin sole',
         'Rex sole',
         'Aleutian skate')
 
-#get files from google drive and set up
-files<-googledrive::drive_find()
-3 #for dvilasg@uw.edu
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='data'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
 #####################################
 # Get haul (sampling stations)
 #####################################
@@ -121,7 +109,7 @@ dir.create('./data raw/',showWarnings = FALSE)
 #                             overwrite = TRUE)
 
 #read csv file
-haul<-readRDS(paste0('./data raw/',file$name))
+#haul<-readRDS(paste0('./data raw/',file$name))
 haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
 
 dim(haul);length(unique(haul$hauljoin))
@@ -360,14 +348,32 @@ load(file = './data processed/grid_EBS_NBS.RData')
 # #list of files and folder of netcd files
 # files.1<-googledrive::drive_ls(id.roms.folder$id)
 # id.data<-files.1[which(files.1$name=='netcdf_historical'),'id']
+get_roms_file <- function(y, files.hist) {
+  
+  if (y >= 1980 && y <= 1984) return(list(type = "hist", file = files.hist[1]))
+  if (y >= 1985 && y <= 1989) return(list(type = "hist", file = files.hist[2]))
+  if (y >= 1990 && y <= 1994) return(list(type = "hist", file = files.hist[3]))
+  if (y >= 1995 && y <= 1999) return(list(type = "hist", file = files.hist[4]))
+  if (y >= 2000 && y <= 2004) return(list(type = "hist", file = files.hist[5]))
+  if (y >= 2005 && y <= 2009) return(list(type = "hist", file = files.hist[6]))
+  if (y >= 2010 && y <= 2014) return(list(type = "hist", file = files.hist[7]))
+  if (y >= 2015 && y <= 2019) return(list(type = "hist", file = files.hist[8]))
+  if (y >= 2020 && y <= 2024) return(list(type = "hist", file = files.hist[9]))
+
+}
+
 preys<-c('Cop','EupO','EupS','PhL','NCaO','NCaS')
 
 for (pr in preys) {
   
+
+  
+  cat(paste0(pr,'\n'))
   #pr<-preys[2]
   
-  nc_histfiles<-list.files(paste0('/Users/daniel/Downloads/',pr))
-  files.hist<-nc_histfiles
+  nc_histfiles<-list.files('./bering_10k_roms/netcdf preys')
+  files.hist<-nc_histfiles[grepl(pr, nc_histfiles)]
+  
 
   #create df to store results
   grid.ebs_year<-data.frame(matrix(nrow = 0,
@@ -377,61 +383,27 @@ for (pr in preys) {
                              'Year')
   
   #not eup for 2020 to 2024
-  yy<- c(1982:2019)
+  #yy<- c(1982:2019)
 
   
-#loop over years to incorporate values into the Bering Sea grid
-  for (y in yy) {
+  #loop over years to incorporate values into the Bering Sea grid
+  for (y in 1982:2024) {
     
-    #y<-yy[39]
+
+    
+    #y<-1982
     EBSgrid<-grid.ebs
+    
+    #y<-2019
     
     #print year to check progress
     cat(paste("    ----- year", y, "-----\n"))  
     
-    #open netcdf file for each year
-    if (y %in% c(1980:1984)) {
-      f<-files.hist[1]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else  if (y %in% c(1985:1989)) {
-      f<-files.hist[2]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else  if (y %in% c(1990:1994)) {
-      f<-files.hist[3]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else  if (y %in% c(1995:1999)) {
-      f<-files.hist[4]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else if (y %in% c(2000:2004)) {
-      f<-files.hist[5]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else if (y %in% c(2005:2009)) {
-      f<-files.hist[6]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else if (y %in% c(2010:2014)) {
-      f<-files.hist[7]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else if (y %in% c(2015:2019)) {
-      f<-files.hist[8]
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    } else if (y %in% c(2020:2024)) {
-      f<-files.hist[9]}
-      #file.id<-nc_histfiles[which(nc_histfiles$name==f),'id']
-    #} else if (y %in% c(2021:2024)) {
-    #  f<-files.for[1]}
-      #file.id<-nc_forfiles[which(nc_forfiles$name==f),'id']} #for year>2020 have to select projection
     
-    # #if not file, download
-    # if (!(f %in% list.files('./bering 10k roms/'))) {
-    #   
-    #   #download file into temp folder
-    #   googledrive::drive_download(file=file.id$id,
-    #                               path = paste0('./bering 10k roms/',f),
-    #                               overwrite = TRUE)
-    # }
+    sel <- get_roms_file(y, files.hist)
     
-    #open netcdf
-    nc<-nc_open(paste0('/Users/daniel/Downloads/',pr,'/',f))
+    # open NetCDF
+    nc <- ncdf4::nc_open(paste0('./bering_10k_roms/netcdf preys/',sel$file))
     
     #nc<-nc_open('/Users/daniel/Downloads/NCaO/B10K-K20P19_CORECFS_2020-2024_average_NCaO.nc')
     #nc<-nc_open('/Users/daniel/Downloads/B10K-K20P19_CORECFS_1970-1974_average_Cop_integrated.nc')
@@ -450,8 +422,8 @@ for (pr in preys) {
     #get longitude
     lons <- ncvar_get(nc,"lon_rho")
     
-    #get SBT
-    temp<-ncvar_get(nc,vv)
+    #get prey
+    prey<-ncvar_get(nc,vv)
     
     #get time
     t_axis<-ncvar_get(nc,"ocean_time")
@@ -459,7 +431,7 @@ for (pr in preys) {
     #convert time
     time_axis <- as.POSIXct(t_axis, origin = "1900-01-01", tz = "GMT") 
     
-    #get weekly temp slices from specific year y
+    #get weekly prey slices from specific year y
     nc_y<-ncvar_get(nc, vv)[,,which(grepl(paste0(y,'-'),time_axis))]
     
     #get mean matrix for this year
@@ -468,7 +440,7 @@ for (pr in preys) {
     #create dataframe with lats, lons and mean year SBT
     df_nc<-data.frame(Lat=as.vector(lats),
                       Lon=as.vector(lons),
-                      temp=as.vector(mean_nc))
+                      prey=as.vector(mean_nc))
     
     #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). longitude greater than 180 degrees
     df_nc1<-df_nc[which(df_nc$Lon>=180),]
@@ -493,13 +465,13 @@ for (pr in preys) {
     nn<-get.knnx(coordinates(df_nc3),coordinates(spg),1)
     nc_index<-nn$nn.index[,1]
     
-    #get SBT
-    temps<-as.data.frame(df_nc3)$temp[nc_index]
-    EBSgrid$Temp<-temps
+    #get prey
+    sprey<-as.data.frame(df_nc3)$prey[nc_index]
+    EBSgrid$Temp<-sprey
     EBSgrid$Year<-y
     names(EBSgrid)[ncol(EBSgrid)-1]<-pr
     
-    #incorporate SBT
+    #incorporate prey
     grid.ebs_year<-rbind(grid.ebs_year,as.data.frame(EBSgrid))
     }
     
