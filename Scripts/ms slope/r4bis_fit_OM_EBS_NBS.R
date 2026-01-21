@@ -32,8 +32,8 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'  
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
+# out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+# setwd(out_dir)
 
 #version VAST (cpp)
 version<-"VAST_v14_0_1" #if using "VAST_v13_1_0" follow covariate values
@@ -78,7 +78,7 @@ spp<-c('Limanda aspera',
 fol_region<-c('shelf EBS NBS VAST')
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('Data/data_processed/grid_EBS_NBS.RData')
 
 #dir create for slope region results
 dir.create(paste(out_dir,fol_region,sep='/'))

@@ -25,8 +25,8 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
-setwd(out_dir)
+# out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
+# setwd(out_dir)
 
 #range years of data
 # sta_y<-1982
@@ -474,8 +474,8 @@ for (sp in spp_vect) {
   #sp<-spp_vect[7]
   
   #add new estimates per haul
-  data_geostat<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
-  #data_geostat<-readRDS(paste0('Data/data_processed/',sp,'/data_geostat.rds'))
+  #data_geostat<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
+  data_geostat<-readRDS(paste0('Data/data_processed/',sp,'/data_geostat.rds'))
   data_geostat1<-subset(data_geostat,survey_name=='Eastern Bering Sea Slope Bottom Trawl Survey')
   #unique(data_geostat1$hauljoin)
   #unique(wl$HAULJOIN)

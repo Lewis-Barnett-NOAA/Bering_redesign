@@ -30,9 +30,9 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
+#out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
-setwd(out_dir)
+#setwd(out_dir)
 
 #range years of data
 sta_y<-1982
@@ -96,21 +96,10 @@ spp1<-c('Yellowfin sole',
 # Get haul (sampling stations)
 #####################################
 
-#create directory
-dir.create('./data raw/',showWarnings = FALSE)
-
-# #get haul (stations) data
-# file<-files.2[grep('haul',files.2$name),]
-# #file.id<-files.2[which(files.2$name %in% file),]
-# 
-# #download file
-# googledrive::drive_download(file=file$id,
-#                             path = paste0('./data raw/',file$name),
-#                             overwrite = TRUE)
-
 #read csv file
 #haul<-readRDS(paste0('./data raw/',file$name))
-haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
+#haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
+haul<-readRDS('Data/data_raw/afsc_haul_raw_2023_2_21.rds')
 
 dim(haul);length(unique(haul$hauljoin))
 
@@ -124,11 +113,11 @@ haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
 
 #https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data
 #load grids
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
 dim(eastern_bering_sea_grid)
-load('./extrapolation grids/northern_bering_sea_grid.rda')
+load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
 dim(northern_bering_sea_grid)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+load('Data/extrapolation_grids/bering_sea_slope_grid.rda')
 dim(bering_sea_slope_grid)
 
 #convert to dataframe and add region
@@ -168,7 +157,7 @@ aggregate(Area_in_survey_km2 ~ region, grid.ebs,FUN=sum)
 #                             overwrite = TRUE)
 
 #read raster GEBCO data
-r<-raster('./data raw/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
+r<-raster('Data/data_raw/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
 
 #extract depth values for each station of grid - using GEBCO data
 rr<-raster::extract(r, SpatialPoints(cbind(grid.ebs$Lon,grid.ebs$Lat)))
@@ -197,7 +186,7 @@ EBSgrid<-grid.ebs
 # files.for<-sort(nc_forfiles$name)
 
 # list local netcdf files
-base_dir <- "./bering_10k_roms"
+base_dir <- "Data/data_raw/bering_10k_roms"
 
 hist_dir <- file.path(base_dir, "netcdf_historical")
 for_dir  <- file.path(base_dir, "netcdf_forecast")
@@ -332,8 +321,8 @@ for (y in 1982:2024) {
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-save(grid.ebs_year,file = './data processed/grid_EBS_NBS.RData')
-load(file = './data processed/grid_EBS_NBS.RData')
+save(grid.ebs_year,file = 'Data/data_processed/grid_EBS_NBS.RData')
+load(file = 'Data/data_processed/grid_EBS_NBS.RData')
 
 ##########################################################################
 # Loop over years to get the prey!!!
@@ -476,15 +465,15 @@ for (pr in preys) {
     }
     
     names(grid.ebs_year)[ncol(grid.ebs_year)-1]<-pr
-    save(grid.ebs_year,file = paste0('./data processed/grid_EBS_NBS_',pr,'.RData'))
+    save(grid.ebs_year,file = paste0('Data/data_processed/grid_EBS_NBS_',pr,'.RData'))
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-#save(grid.ebs_year,file = './data processed/grid_EBS_NBS.RData')
-load(file = './data processed/grid_EBS_NBS.RData')
+#save(grid.ebs_year,file = 'Data/data_processed/grid_EBS_NBS.RData')
+load(file = 'Data/data_processed/grid_EBS_NBS.RData')
 grid.ebs_year
-#load(file='./data processed/grid_EBS_NBS.RData')
-lf<-list.files(path = './data processed/.',pattern = 'grid_EBS_NBS',full.names = TRUE)
+#load(file='Data/data_processed/grid_EBS_NBS.RData')
+lf<-list.files(path = 'Data/data_processed/.',pattern = 'grid_EBS_NBS',full.names = TRUE)
 lf<-lf[!grepl('grid_EBS_NBS_envs.RData',lf)]
 
 load(lf[7])
@@ -521,8 +510,8 @@ xx<-merge(x,envs_df,by=names(x)[c(1:7,9)])
 nrow(xx);nrow(x);nrow(envs_df)
 head(xx)
 
-save(xx,file = './data processed/grid_EBS_NBS_envs.RData')
-#load(file= './data processed/grid_EBS_NBS_envs.RData')
+save(xx,file = 'Data/data_processed/grid_EBS_NBS_envs.RData')
+#load(file= 'Data/data_processed/grid_EBS_NBS_envs.RData')
 # correlation_results <- xx %>%
 #   group_by(Year) %>%
 #   summarise(correlation = cor(Biomass, Environmental_Variable))
@@ -533,7 +522,7 @@ save(xx,file = './data processed/grid_EBS_NBS_envs.RData')
 # LOOP OVER SPP
 #####################################
 
-load(file = './data processed/grid_EBS_NBS.RData')
+load(file = 'Data/data_processed/grid_EBS_NBS.RData')
 
 #loop over species to add SBT to data_geostat
 for (sp in spp) {
@@ -542,13 +531,13 @@ for (sp in spp) {
   #sp<-spp[2]
   
   #load
-  load(file = './data processed/grid_EBS_NBS_envs.RData')
+  load(file = 'Data/data_processed/grid_EBS_NBS_envs.RData')
   
   #print species to check progress
   cat(paste(" ############# ", sp, " #############\n"))
   
   #open data_geostat
-  df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
+  df1<-readRDS(paste0('Data/data_processed/species/',sp,'/data_geostat.rds'))
   
   #structure
   dim(df1)
@@ -709,7 +698,7 @@ for (sp in spp) {
   
   #save data_geostat with SBT
   saveRDS(df1_all,
-          paste0('./data processed/species/',sp,'/data_geostat_envs.rds'))
+          paste0('Data/data_processed/species/',sp,'/data_geostat_envs.rds'))
   
 }
 
@@ -717,7 +706,7 @@ for (sp in spp) {
 #check temp ROMS vs temp in situ
 #save data_geostat with SBT
 data_geostat<-
-readRDS(paste0('./data processed/species/Gadus macrocephalus//data_geostat_envs.rds'))
+readRDS(paste0('Data/data_processed/species/Gadus macrocephalus//data_geostat_envs.rds'))
 
 #plot check temperatures
 plot(x=data_geostat$Temp,y=data_geostat$bottom_temp_c,xlab='ROMS',ylab='insitu')
@@ -731,19 +720,19 @@ ggplot(data_geostat, aes(x=Temp, y=bottom_temp_c)) +
 ##############################
 # add prey to the grid to evaluate 
 ##############################
-
-sp<-spp[c(2,3,5,13)][1]
-
-df_env<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_temp.rds'))
-df<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_envs.rds'))
-ggplot(df, aes(x=log(cpue_kgha), y=NCaS)) + 
-  geom_point(shape=18, color="blue")+
-  stat_cor(method = "pearson", label.x = 0, label.y = 20)+
-  geom_smooth(method=lm,  linetype="dashed",
-              color="darkred", fill="blue")#+
-  #facet_wrap(~year,scales='free_x')
-
-
-aggregate(cpue_kgha~year,df_env,FUN='mean')
+# 
+# sp<-spp[c(2,3,5,13)][1]
+# 
+# df_env<-readRDS(paste0('Data/data_processed/species/',sp,'/data_geostat_temp.rds'))
+# df<-readRDS(paste0('Data/data_processed/species/',sp,'/data_geostat_envs.rds'))
+# ggplot(df, aes(x=log(cpue_kgha), y=NCaS)) + 
+#   geom_point(shape=18, color="blue")+
+#   stat_cor(method = "pearson", label.x = 0, label.y = 20)+
+#   geom_smooth(method=lm,  linetype="dashed",
+#               color="darkred", fill="blue")#+
+#   #facet_wrap(~year,scales='free_x')
+# 
+# 
+# aggregate(cpue_kgha~year,df_env,FUN='mean')
 
 
