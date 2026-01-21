@@ -38,7 +38,7 @@ The species and stocks set included in the first manuscript are 10 groundfish an
 
 ## Sampling designs
 
-Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 and 520 in the second analysis. The second analysis focused on depth and variance of sea bottom temperature stratification factors alone.
+Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 in the second analysis. The second analysis focused on optimized designs with depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
 |------------------------|------------------------|------------------------|
@@ -63,7 +63,7 @@ The analysis is coded into 12 scripts and can be found in Bering_redesign/Script
 -   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models. (r1 is combined into r2 for project 2)
 -   r2. Exports SBT data from Bering 10K ROMS into the dataset.
 -   r3. Prepares data for projecting models into the future (project 1) or performs catchability correction between gears (project 2)
--   r4. Fits operating models.
+-   r4. Fits operating models (OMs). Project 2 includes separate files for for shelf (EBS_NBS) OMs, and for slope OMs.
 -   r5. Simulates data from OM.
 -   r6. Retrieves true indices from the OM, and prepares data for optimization.
 -   r7A. Runs sampling optimization based on predicted densities from VAST OM and calculates stratification boundaries and sample allocations for each sampling design.
