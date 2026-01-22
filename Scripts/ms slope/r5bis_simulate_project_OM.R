@@ -90,10 +90,10 @@ dir.create(paste0('./output slope//species/'))
  grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% yrs),]
  dim(grid_ebs)
  
- #load baseline strata and specify corner stations
- load('./output/baseline_strata.RData')
- baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
- baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
+ # #load baseline strata and specify corner stations
+ # load('./output/baseline_strata.RData')
+ # baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
+ # baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
  
 #  
 # #number of simulations

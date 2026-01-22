@@ -2,9 +2,8 @@
 ####################################################################
 ##
 ##    Script #0
-##    Plot sampling stations for each region
+##    Plot regions with depth, interannual variance of temperature, regimes
 ##    Figure 1
-##    Baseline strata - existing sampling design
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com/dvilasg@uw.edu/daniel.vilas@noaa.gov)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, Lukas Defilippo, Andre Punt
 ##    
@@ -36,15 +35,18 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #set working directory
 #out_dir<-'C:/Users/Daniel.Vilas/Work//Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
+#out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+#setwd(out_dir)
+
+#create directory
+dir.create('Data/data_raw/',showWarnings = FALSE)
 
 # Define plot extent (through trial end error) units km
 panel_extent <- data.frame(x = c(-1716559.21, -77636.05), #x = c(-1326559.21, -87636.05),
                            y = c(483099.5, 2194909.7)) #y = c(533099.5, 1894909.7))
 
 ################################################
-# Alaska land shapefile from afgfmaps package
+# Alaska land shapefile from akgfmaps package
 ################################################
 
 #Alaska land shapefile layer
@@ -57,7 +59,7 @@ ak_sppoly<-as(ebs_layers$akland, 'Spatial')
 # (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/inst/region_shapefiles)
 
 #create directory
-dir.create('./shapefiles/',showWarnings = FALSE)
+dir.create('Data/shapefiles/',showWarnings = FALSE)
 
 #name shapefiles 
 shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
@@ -68,15 +70,15 @@ for (i in shfiles) {
   #i=shfiles[1]
 
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
-  
-  if (i=='EBSslopeThorson') {
-    
-    #reproject shapefile
-    proj4string(sh) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") 
-    sh<-spTransform(sh,CRSobj = CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'))
-    
-  }
+  sh<-rgdal::readOGR(dsn='Data/shapefiles/',layer = i)
+
+  # if (i=='EBSslopeThorson') {
+  #   
+  #   #reproject shapefile
+  #   proj4string(sh) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") 
+  #   sh<-spTransform(sh,CRSobj = CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'))
+  #   
+  # }
   
   #shapefile name
   shname<-paste0(gsub('Thorson','',i),'_sh')
@@ -94,23 +96,8 @@ bs_sh<-raster::union(bs_sh1,EBSslope_sh)
 # Depth raster (from gebco) - downloaded in december 2022
 #####################################
 
-#create directory
-dir.create('./bathymetry/',showWarnings = FALSE)
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bathymetry'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='ak_bathy_NAD83.tiff'),]
-
-#download file
-googledrive::drive_download(file=id.data$id,
-                            path = paste0('./bathymetry/',id.data$name),
-                            overwrite = TRUE)
-
 #read raster
-ak_bathy_2<-raster('./bathymetry/ak_bathy_NAD83.tiff')
+ak_bathy_2<-raster('Data/data_raw/ak_bathy_NAD83.tiff')
 
 ## crop and mask
 ak_bathy_3 <- crop(ak_bathy_2, extent(bs_sh))
@@ -166,33 +153,30 @@ ak_bathy_5<-ak_bathy_5[complete.cases(ak_bathy_5$ak_bathy_NAD83),]
 # Sampling stations locations
 #####################################
 
-#create directory
-dir.create('./data raw/',showWarnings = FALSE)
+# #get id shared folder from google drive
+# id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
+# 
+# #list of files and folder
+# files.1<-googledrive::drive_ls(id.bering.folder$id)
+# id.data<-files.1[which(files.1$name=='data'),'id']
+# files.2<-googledrive::drive_ls(id.data$id)
+# 
+# #get haul (stations) data
+# file<-files.2[grep('haul',files.2$name),]
+# #file.id<-files.2[which(files.2$name %in% file),]
+# 
+# #download file
+# googledrive::drive_download(file=file$id,
+#                             path = paste0('./data raw/',file$name),
+#                             overwrite = TRUE)
 
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='data'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
-#get haul (stations) data
-file<-files.2[grep('haul',files.2$name),]
-#file.id<-files.2[which(files.2$name %in% file),]
-
-#download file
-googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
-                            overwrite = TRUE)
-
-#read csv file
-haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))#,file$name))
+#read haul data file
+haul<-readRDS(paste0('Data/data_raw/afsc_haul_raw_2023_2_21.rds'))#,file$name))
 dim(haul);length(unique(haul$hauljoin))
 
 haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
 
-#select year where slope sheld and nbs were carried out
+#select year where slope,  ebs shelf and nbs surveys were carried out
 haul1<-subset(haul,year=='2010')
 
 #convert to spatial object
@@ -255,30 +239,30 @@ ggplot() +
 # Baseline strata
 #####################################
 
-#load baseline strata
-load('./output/baseline_strata.RData')
-
-#corner stations
-baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
-baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
-#tapply(baseline_strata$locations$stratum, baseline_strata$locations$corner, function(x) {length(x[!is.na(x)])})
-#aggregate(baseline_strata$locations, by=list(baseline_strata$locations$stratum, baseline_strata$locations$corner), FUN=length)
-
-#sort
-baseline_strata$locations<-baseline_strata$locations[order(baseline_strata$locations$cell),]
-baseline_strata$locations$difference <- c( NA, diff( baseline_strata$locations$cell ) )
-mean(baseline_strata$locations$difference,na.rm=TRUE)/2 #so 50
-
-#baseline_strata
-pts<-baseline_strata$locations
+# #load baseline strata
+# load('./output/baseline_strata.RData')
+# 
+# #corner stations
+# baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
+# baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
+# #tapply(baseline_strata$locations$stratum, baseline_strata$locations$corner, function(x) {length(x[!is.na(x)])})
+# #aggregate(baseline_strata$locations, by=list(baseline_strata$locations$stratum, baseline_strata$locations$corner), FUN=length)
+# 
+# #sort
+# baseline_strata$locations<-baseline_strata$locations[order(baseline_strata$locations$cell),]
+# baseline_strata$locations$difference <- c( NA, diff( baseline_strata$locations$cell ) )
+# mean(baseline_strata$locations$difference,na.rm=TRUE)/2 #so 50
+# 
+# #baseline_strata
+# pts<-baseline_strata$locations
 
 #####################################
 # EBS+NBS+slope grid 
 #####################################
 
 #load grid of NBS and EBS (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data)
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #add col and row number
@@ -446,8 +430,9 @@ zoomout<-
     annotate("text", x = +3000000, y = 0, label = "USA",parse=TRUE,size=4)
 
 #save plot
-dir.create('./figures slope/')
-agg_png(paste0('./figures slope/map_bering2.png'), width = 7, height = 7, units = "in", res = 300)
+dir.create('./figures/')
+dir.create('./figures/slope/')
+agg_png(paste0('./figures-slope/map_bering2.png'), width = 7, height = 7, units = "in", res = 300)
 grid.newpage()
 vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
 vp_a <- viewport(width = 0.4, height = 0.3, x = 0.217, y = 0.846)  # the inset in upper left
@@ -565,86 +550,86 @@ dev.off()
 # CREATE DATA SAMPLING SCENARIO BASELINE (existing)
 #################################################
 
-#load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
-grid$cell<-1:nrow(grid)vv  
-#df to spatialpoint df
-coordinates(grid) <- ~ Lon + Lat
-crs(grid)<-c(crs='+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs')
-#reproject coordinates for plotting purposes
-D2_1<-grid
-D2_2<-data.frame(D2_1)
-#x and y cells
-xycells<-as.integer(sqrt(dim(D2_1)[1]))
-# create a template raster
-r1 <- raster(ext=extent(D2_1),ncol=xycells, nrow=xycells) #c(15800,15800) 7000
-#create raster
-r2<-rasterize(D2_1, r1 ,field='cell')
-#plot(r2)
-
-#EBS and NBS layer
-ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs", set.crs = "EPSG:3338")
-
-#baseline strata areas
-strata_areas<-as.data.frame(ebs_layers$survey.strata)
-sum(strata_areas$F_AREA)
-sum(strata_areas$Precise_Ar/1000000)
-
-#dataframe stratum and area
-strata_areas <- data.frame('Stratum'=strata_areas$Stratum,'Area_in_survey_km2'=strata_areas$Precise_Ar/1000000)
-sum(strata_areas$Area_in_survey_km2)
-
-#strata polygon
-strata_pol<-as(ebs_layers$survey.strata, 'Spatial')
-proj4string(strata_pol) <- CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs') 
-strata_pol<-spTransform(strata_pol,CRSobj = CRS("+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs "))
-
-#locations
-x<-ebs_layers$survey.grid
-st<-x$STATIONID
-xx<-st_geometry(x)
-xxx<-st_centroid(xx)
-#plot(xxx);class(xxx)
-coords <- st_coordinates(xxx)
-lat <- coords[, 2]
-lon <- coords[, 1]
-# plot(lon,lat)
-# text(lon, lat, st, pos = 3)
-baseline<-data.frame('Lat'=lat,'Lon'=lon,'stationid'=st)
-#corner stations
-corner<- c('GF','HG','IH','QP','JI','ON','PO')
-st.corner<-paste(corner,collapse = '|')
-baseline$corner<-ifelse(grepl(st.corner,baseline$stationid),TRUE,FALSE)
-#locations of stations
-locations <- as.data.frame(baseline)
-st<-baseline
-coordinates(st)<- ~ Lon + Lat
-proj4string(st) <- CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs') 
-st<-spTransform(st,CRSobj = CRS('+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs'))
-#cell
-locations$cell<-extract(r2,st)
-st1<-as.data.frame(st)[,c("coords.x1","coords.x2")]#[,c("Lon","Lat")]
-names(st1)<-c('x','y')
-xy<-st1
-sampled = apply(X = xy, MARGIN = 1, FUN = function(xy) r2@data@values[which.min(replace(distanceFromPoints(r2,xy), is.na(r2), NA))])
-locations$cell<-sampled
-locations$Stratum<-over(st,strata_pol)[,'Stratum']
-
-#number of samples per strata for random sampling
-y<-aggregate(locations$cell,by=list(locations$Stratum),length)
-yc<-aggregate(subset(locations,corner!=TRUE)[,'cell'],by=list(subset(locations,corner!=TRUE)[,'Stratum']),length)
-n_samples<-data.frame('stratum'=yc$Group.1,'scnbase'=y$x,'scnbase_bis'=yc$x)
-
-#list baseline strata
-baseline_strata<-list(strata_areas=strata_areas,locations=locations,n_samples=n_samples,cell_strata=as.data.frame(grid))
-
-#create directory
-dir.create('./output/',showWarnings = FALSE)
-
-#save data
-save(baseline_strata,file='./output/baseline_strata.RData')
+# #create directory
+# dir.create('./output/',showWarnings = FALSE)
+# 
+# #load grid of NBS and EBS
+# load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
+# load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
+# grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
+# grid$cell<-1:nrow(grid)
+# #df to spatialpoint df
+# coordinates(grid) <- ~ Lon + Lat
+# crs(grid)<-c(crs='+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs')
+# #reproject coordinates for plotting purposes
+# D2_1<-grid
+# D2_2<-data.frame(D2_1)
+# #x and y cells
+# xycells<-as.integer(sqrt(dim(D2_1)[1]))
+# # create a template raster
+# r1 <- raster(ext=extent(D2_1),ncol=xycells, nrow=xycells) #c(15800,15800) 7000
+# #create raster
+# r2<-rasterize(D2_1, r1 ,field='cell')
+# #plot(r2)
+# 
+# #EBS and NBS layer
+# ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs", set.crs = "EPSG:3338")
+# 
+# #baseline strata areas
+# strata_areas<-as.data.frame(ebs_layers$survey.strata)
+# sum(strata_areas$F_AREA)
+# sum(strata_areas$Precise_Ar/1000000)
+# 
+# #dataframe stratum and area
+# strata_areas <- data.frame('Stratum'=strata_areas$Stratum,'Area_in_survey_km2'=strata_areas$Precise_Ar/1000000)
+# sum(strata_areas$Area_in_survey_km2)
+# 
+# #strata polygon
+# strata_pol<-as(ebs_layers$survey.strata, 'Spatial')
+# proj4string(strata_pol) <- CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs') 
+# strata_pol<-spTransform(strata_pol,CRSobj = CRS("+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs "))
+# 
+# #locations
+# x<-ebs_layers$survey.grid
+# st<-x$STATIONID
+# xx<-st_geometry(x)
+# xxx<-st_centroid(xx)
+# #plot(xxx);class(xxx)
+# coords <- st_coordinates(xxx)
+# lat <- coords[, 2]
+# lon <- coords[, 1]
+# # plot(lon,lat)
+# # text(lon, lat, st, pos = 3)
+# baseline<-data.frame('Lat'=lat,'Lon'=lon,'stationid'=st)
+# #corner stations
+# corner<- c('GF','HG','IH','QP','JI','ON','PO')
+# st.corner<-paste(corner,collapse = '|')
+# baseline$corner<-ifelse(grepl(st.corner,baseline$stationid),TRUE,FALSE)
+# #locations of stations
+# locations <- as.data.frame(baseline)
+# st<-baseline
+# coordinates(st)<- ~ Lon + Lat
+# proj4string(st) <- CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs') 
+# st<-spTransform(st,CRSobj = CRS('+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs'))
+# #cell
+# locations$cell<-extract(r2,st)
+# st1<-as.data.frame(st)[,c("coords.x1","coords.x2")]#[,c("Lon","Lat")]
+# names(st1)<-c('x','y')
+# xy<-st1
+# sampled = apply(X = xy, MARGIN = 1, FUN = function(xy) r2@data@values[which.min(replace(distanceFromPoints(r2,xy), is.na(r2), NA))])
+# locations$cell<-sampled
+# locations$Stratum<-over(st,strata_pol)[,'Stratum']
+# 
+# #number of samples per strata for random sampling
+# y<-aggregate(locations$cell,by=list(locations$Stratum),length)
+# yc<-aggregate(subset(locations,corner!=TRUE)[,'cell'],by=list(subset(locations,corner!=TRUE)[,'Stratum']),length)
+# n_samples<-data.frame('stratum'=yc$Group.1,'scnbase'=y$x,'scnbase_bis'=yc$x)
+# 
+# #list baseline strata
+# baseline_strata<-list(strata_areas=strata_areas,locations=locations,n_samples=n_samples,cell_strata=as.data.frame(grid))
+# 
+# #save data
+# save(baseline_strata,file='./output/baseline_strata.RData')
 
 # #######################
 # # calculate distance from shore
