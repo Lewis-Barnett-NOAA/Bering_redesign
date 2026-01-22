@@ -1,6 +1,6 @@
 ########################
 ##
-## slope - shelf combination and exploration
+## slope operating model (shelf-slope combined model did not work)
 ##
 ########################
 
