@@ -15,10 +15,10 @@ In the second project we optimized designs that included the upper continental s
 
 ## Species/Stocks Included
 
-The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the Bering Sea (the second analysis expanded to 19 groundfish and 4 crab):
+The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the eastern Bering Sea:
 
 | Stock | Scientific Name | Common Name |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | arrowtooth flounder | *Atheresthes stomias* | arrowtooth flounder |
 | Arctic cod | *Boreogadus saida* | Arctic cod |
 | Tanner crab | *Chionoecetes bairdi* | Tanner crab |
@@ -36,12 +36,40 @@ The species and stocks set included in the first manuscript are 10 groundfish an
 | Bristol Bay red king crab | *Paralithodes camtschaticus* | red king crab |
 | Alaska plaice | *Pleuronectes quadrituberculatus* | Alaska plaice |
 
+The second analysis expanded to 19 groundfish and 4 crab species of the eastern Bering Sea:
+
+| Scientific name                     | Common name                        |
+|-------------------------------------|------------------------------------|
+| *Anoplopoma fimbria*                | Sablefish                          |
+| *Atheresthes evermanni*             | Kamchatka flounder                 |
+| *Atheresthes stomias*               | Arrowtooth flounder                |
+| *Bathyraja aleutica*                | Aleutian skate                     |
+| *Boreogadus saida*                  | Arctic cod                         |
+| *Chionoecetes bairdi*               | Tanner crab                        |
+| *Chionoecetes opilio*               | Snow crab                          |
+| *Eleginus gracilis*                 | Saffron cod                        |
+| *Gadus chalcogrammus*               | Alaska pollock                     |
+| *Gadus macrocephalus*               | Pacific cod                        |
+| *Glyptocephalus zachirus*           | Rex sole                           |
+| *Hippoglossoides elassodon*         | Flathead sole                      |
+| *Hippoglossoides robustus*          | Bering flounder                    |
+| *Lepidopsetta polyxystra*           | Northern rock sole                 |
+| *Limanda aspera*                    | Yellowfin sole                     |
+| *Paralithodes camtschaticus*        | Red king crab                      |
+| *Paralithodes platypus*             | Blue king crab                     |
+| *Pleuronectes quadrituberculatus*   | Alaska plaice                      |
+| *Reinhardtius hippoglossoides*      | Greenland turbot                   |
+| *Sebastes alutus*                   | Pacific ocean perch                |
+| *Sebastes borealis*                 | Shortraker rockfish                |
+| *Sebastes melanostictus/aleutianus* | Rougheye and blackspotted rockfish |
+| *Sebastolobus alascanus*            | Shortspine thornyhead              |
+
 ## Sampling designs
 
 Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 in the second analysis. The second analysis focused on optimized designs with depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | existing | depth and geographical subregion | fixed |
 | existing | depth and geographical subregion | balanced random |
 | existing | depth and geographical subregion | random |
