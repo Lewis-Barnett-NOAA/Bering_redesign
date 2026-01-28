@@ -90,7 +90,7 @@ The analysis is coded into 12 scripts and can be found in Bering_redesign/Script
 -   r0. Creates figures of the study area, sampling stations, and existing sampling design.
 -   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models. (r1 is combined into r2 for project 2)
 -   r2. Exports SBT data from Bering 10K ROMS into the dataset.
--   r3. Prepares data for projecting models into the future (project 1) or performs catchability correction between gears (project 2)
+-   r3. Prepares data for projecting models into the future (project 1) or performs calibration between gears (project 2).
 -   r4. Fits operating models (OMs). Project 2 includes separate files for for shelf (EBS_NBS) OMs, and for slope OMs.
 -   r5. Simulates data from OM.
 -   r6. Retrieves true indices from the OM, and prepares data for optimization.
@@ -103,7 +103,7 @@ The analysis is coded into 12 scripts and can be found in Bering_redesign/Script
 Project 2 also includes the following visualization scripts
 
 -   figures_simulated_data_distributions.R which plots metrics of distribution change
--   sensitivity_analysisSR.R which performs a sensitivity analysis of catchability to selectivity ratio estimates
+-   sensitivity_analysisSR.R which performs a sensitivity analysis to selectivity ratio estimates
 
 ## Data
 

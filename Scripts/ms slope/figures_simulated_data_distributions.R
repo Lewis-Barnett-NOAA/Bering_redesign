@@ -2618,14 +2618,14 @@ plot_df <- metrics_df %>%
   left_join(depth_labels, by = "common")
 
 plot_df$legend_label <- "depth range (Q10–Q90)"
-plot_df$point_label <- "depth niche (Q90 - Q10)"
+plot_df$point_label <- "depth niche width (Q90 - Q10)"
 # Keep labels as strings in your data frame
 plot_df$legend_label <- "depth range (Q10–Q90)"
-plot_df$point_label <- "depth niche (Q90 - Q10)"
+plot_df$point_label <- "depth niche width (Q90 - Q10)"
 
 # Define expression labels for the legend
 legend_label_expr <- expression("depth range"~(Q[10]*","*Q[90]))
-point_label_expr <- expression("depth niche"~(Q[90] - Q[10]))
+point_label_expr <- expression("depth niche width"~(Q[90] - Q[10]))
 
 p3<-
 ggplot(plot_df, aes(y = Year)) +
@@ -2675,7 +2675,7 @@ ggplot(plot_df, aes(y = Year)) +
   ) +
   scale_shape_manual(
     name = NULL,
-    values = c("depth niche (Q90 - Q10)" = 21),
+    values = c("depth niche width (Q90 - Q10)" = 21),
     labels = c(point_label_expr)
   ) +
   
