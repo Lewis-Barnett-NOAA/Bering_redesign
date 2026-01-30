@@ -39,7 +39,7 @@ pacman::p_load(pack_cran,character.only = TRUE)
 #setwd(out_dir)
 
 #create directory
-dir.create('Data/data_raw/',showWarnings = FALSE)
+dir.create('data/data_raw/',showWarnings = FALSE)
 
 # Define plot extent (through trial end error) units km
 panel_extent <- data.frame(x = c(-1716559.21, -77636.05), #x = c(-1326559.21, -87636.05),
@@ -59,7 +59,7 @@ ak_sppoly<-as(ebs_layers$akland, 'Spatial')
 # (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/inst/region_shapefiles)
 
 #create directory
-dir.create('Data/shapefiles/',showWarnings = FALSE)
+dir.create('data/shapefiles/',showWarnings = FALSE)
 
 #name shapefiles 
 shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
@@ -70,7 +70,7 @@ for (i in shfiles) {
   #i=shfiles[1]
 
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='Data/shapefiles/',layer = i)
+  sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
 
   # if (i=='EBSslopeThorson') {
   #   
@@ -97,7 +97,7 @@ bs_sh<-raster::union(bs_sh1,EBSslope_sh)
 #####################################
 
 #read raster
-ak_bathy_2<-raster('Data/data_raw/ak_bathy_NAD83.tiff')
+ak_bathy_2<-raster('data/data_raw/ak_bathy_NAD83.tiff')
 
 ## crop and mask
 ak_bathy_3 <- crop(ak_bathy_2, extent(bs_sh))
@@ -171,7 +171,7 @@ ak_bathy_5<-ak_bathy_5[complete.cases(ak_bathy_5$ak_bathy_NAD83),]
 #                             overwrite = TRUE)
 
 #read haul data file
-haul<-readRDS(paste0('Data/data_raw/afsc_haul_raw_2023_2_21.rds'))#,file$name))
+haul<-readRDS(paste0('data/data_raw/afsc_haul_raw_2023_2_21.rds'))#,file$name))
 dim(haul);length(unique(haul$hauljoin))
 
 haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
@@ -261,8 +261,8 @@ ggplot() +
 #####################################
 
 #load grid of NBS and EBS (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data)
-load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #add col and row number
@@ -554,8 +554,8 @@ dev.off()
 # dir.create('./output/',showWarnings = FALSE)
 # 
 # #load grid of NBS and EBS
-# load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
-# load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
+# load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+# load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 # grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 # grid$cell<-1:nrow(grid)
 # #df to spatialpoint df

@@ -69,7 +69,7 @@ spp<-c('Limanda aspera',
 #read csv file
 #haul<-readRDS(paste0('./data raw/',file$name))
 #haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
-haul<-readRDS('Data/data_raw/afsc_haul_raw_2023_2_21.rds')
+haul<-readRDS('data/data_raw/afsc_haul_raw_2023_2_21.rds')
 
 dim(haul);length(unique(haul$hauljoin))
 
@@ -79,18 +79,18 @@ dim(haul);length(unique(haul$hauljoin))
 
 #https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data
 #load grids
-load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 dim(eastern_bering_sea_grid)
-load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
 dim(northern_bering_sea_grid)
-load('Data/extrapolation_grids/bering_sea_slope_grid.rda')
+load('data/extrapolation_grids/bering_sea_slope_grid.rda')
 dim(bering_sea_slope_grid)
 
 #####################################
 # Catch data
 #####################################
 
-catch<-readRDS('Data/data_raw/afsc_catch_raw_2023_2_21.rds')
+catch<-readRDS('data/data_raw/afsc_catch_raw_2023_2_21.rds')
 
 #check for names - based on important spp for the slope (all that we have + Blackspotted/rougheye and POP)
 unique(catch$common_name)[grep('perch',unique(catch$common_name))] #Pacific ocean perch

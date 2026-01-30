@@ -78,7 +78,7 @@ spp<-c('Limanda aspera',
 fol_region<-c('shelf EBS NBS VAST')
 
 #load grid
-load('Data/data_processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 
 #dir create for slope region results
 dir.create(paste(out_dir,fol_region,sep='/'))

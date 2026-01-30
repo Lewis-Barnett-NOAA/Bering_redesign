@@ -91,7 +91,7 @@ spp1<-c('Yellowfin sole',
 #so, we need to divide slope data by the sr index
 #471 is for Alaska skate - which we will use to represent SR values for
 #Aleutian skate 472 given lack of species-specific data but similar morphology
-data_sratio<-readRDS('Data/data_raw/shelf_slope_sratio_bootstrap.rds')
+data_sratio<-readRDS('data/data_raw/shelf_slope_sratio_bootstrap.rds')
 #data_sratio<-readRDS('./data raw/shelf_slope_sratio_bootstrap.rds')
 unique(data_sratio$SPECIES_CODE)
 
@@ -99,8 +99,8 @@ unique(data_sratio$SPECIES_CODE)
 data_sratio[which(data_sratio$SPECIES_CODE=='471'),'SPECIES_CODE']<-'472'
 
 #read length raw data
-#data_length<-readRDS('Data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
-data_length<-readRDS('Data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
+#data_length<-readRDS('data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
+data_length<-readRDS('data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
 head(data_length)
 head(data_length$specimen)
 dim(data_length$specimen)
@@ -267,8 +267,8 @@ for (r in 1:nrow(coef_wl)) {
 }
 
 #add coeff of Aleutian skate
-lwgoa<-read.csv('Data/data_raw/LenWtParams_GOA.csv')
-lwai<-read.csv('Data/data_raw/LenWtParams_AI.csv')
+lwgoa<-read.csv('data/data_raw/LenWtParams_GOA.csv')
+lwai<-read.csv('data/data_raw/LenWtParams_AI.csv')
 ilwgoa<-lwgoa[which(lwgoa$species=='472'),]
 ilwai<-lwai[which(lwai$species=='472'),]
 
@@ -472,7 +472,7 @@ for (sp in spp_vect) {
   #sp<-spp_vect[7]
   
   #add new estimates per haul
-  data_geostat<-readRDS(paste0('Data/data_processed/species/',sp,'/data_geostat.rds'))
+  data_geostat<-readRDS(paste0('data/data_processed/species/',sp,'/data_geostat.rds'))
   data_geostat1<-subset(data_geostat,survey_name=='Eastern Bering Sea Slope Bottom Trawl Survey')
   #unique(data_geostat1$hauljoin)
   #unique(wl$HAULJOIN)
@@ -499,7 +499,7 @@ for (sp in spp_vect) {
   }
   
   #save data
-  saveRDS(data_geostat2,paste0('Data/data_processed/species/',sp,'/data_geostat_slope_adj.rds'))
+  saveRDS(data_geostat2,paste0('data/data_processed/species/',sp,'/data_geostat_slope_adj.rds'))
   
   #remove high value on greenland turbot for visualization purposes
   if (sp=='Reinhardtius hippoglossoides') {

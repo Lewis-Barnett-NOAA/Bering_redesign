@@ -94,7 +94,7 @@ spp1<-c('Yellowfin sole',
 #s12 Selectivity ratio > 1 means the slope gear and protocol had higher selectivity
 #so, we need to divide slope data by the sr index
 #471 is for Alaska skate - while we are using Aleutian skate 472
-#data_sratio<-readRDS('Data/data_raw/shelf_slope_sratio_bootstrap.rds')
+#data_sratio<-readRDS('data/data_raw/shelf_slope_sratio_bootstrap.rds')
 data_sratio<-readRDS('./data raw/shelf_slope_sratio_bootstrap.rds')
 unique(data_sratio$SPECIES_CODE)
 
@@ -102,7 +102,7 @@ unique(data_sratio$SPECIES_CODE)
 data_sratio[which(data_sratio$SPECIES_CODE=='471'),'SPECIES_CODE']<-'472'
 
 #read length raw data
-#data_length<-readRDS('Data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
+#data_length<-readRDS('data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
 data_length<-readRDS('./data raw/ak_bts_ebs_nbs_slope.rds') #data_length
 head(data_length)
 head(data_length$specimen)

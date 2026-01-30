@@ -420,11 +420,11 @@ for (sp in spp) {
       file.id<-nc_forfiles[which(nc_forfiles$name==f),'id']} #for year>2020 have to select projection
     
     #if not file, download
-    # if (!(f %in% list.files('./Data/Bering 10K ROMS/'))) {
+    # if (!(f %in% list.files('./data/Bering 10K ROMS/'))) {
     #   
     #   #download file into temp folder
     #   googledrive::drive_download(file=file.id$id,
-    #                               path = paste0('./Data/Bering 10K ROMS/',f),
+    #                               path = paste0('./data/Bering 10K ROMS/',f),
     #                               overwrite = TRUE)
     # }
     
