@@ -5,17 +5,12 @@
 ##    Get raw data from bottom trawl survey EBS, NBS and slope
 ##    Plot sea bottom temperature time series in the regions
 ##    Create data_geostat file to fit OM VAST 
-##    *sea botton temperature is appended in the next script (#3)
+##    *sea bottom temperature is appended in the next script (#3)
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com/dvilasg@uw.edu/daniel.vilas@noaa.gov)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, Lukas Defilippo, Andre Punt
 ##
 ####################################################################
 ####################################################################
-
-#clear all objects
-rm(list = ls(all.names = TRUE)) 
-#free up memrory and report the memory usage
-gc() 
 
 #libraries from cran to call or install/load
 pack_cran<-c('googledrive','lubridate','ggplot2','fishualize','sp','raster')
@@ -33,9 +28,9 @@ if (!('akgfmaps' %in% installed.packages())) {
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+#out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
-setwd(out_dir)
+#setwd(out_dir)
 
 #range years of data
 sta_y<-1982
@@ -67,86 +62,35 @@ spp<-c('Limanda aspera',
            'Glyptocephalus zachirus',
            'Bathyraja aleutica')
 
-#get files from google drive and set up
-files<-googledrive::drive_find()
-3 #2 #for dvilasg@uw.edu
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='data'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
-#create directory
-dir.create('./extrapolation grids/',showWarnings = FALSE)
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign DV'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='extrapolation grids'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
-#download file
-#eastern
-googledrive::drive_download(file=files.2$id[3],
-                            path = paste0('./extrapolation grids/',files.2$name[3]),
-                            overwrite = TRUE)
-#northern
-googledrive::drive_download(file=files.2$id[4],
-                            path = paste0('./extrapolation grids/',files.2$name[4]),
-                            overwrite = TRUE)
-#slope
-googledrive::drive_download(file=files.2$id[5],
-                            path = paste0('./extrapolation grids/',files.2$name[5]),
-                            overwrite = TRUE)
-
 #####################################
-# Haul data
+# Get haul (sampling stations)
 #####################################
-
-#create directory
-dir.create('./data raw/',showWarnings = FALSE)
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='data'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
-#get haul (stations) data
-file<-files.2[grep('haul',files.2$name),]
-#file.id<-files.2[which(files.2$name %in% file),]
-
-#download file
-googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
-                            overwrite = TRUE)
 
 #read csv file
-haul<-readRDS(paste0('./data raw/',file$name))
+#haul<-readRDS(paste0('./data raw/',file$name))
+#haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
+haul<-readRDS('Data/data_raw/afsc_haul_raw_2023_2_21.rds')
+
 dim(haul);length(unique(haul$hauljoin))
+
+#####################################
+# Bering Sea grid
+#####################################
+
+#https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data
+#load grids
+load('Data/extrapolation_grids/eastern_bering_sea_grid.rda')
+dim(eastern_bering_sea_grid)
+load('Data/extrapolation_grids/northern_bering_sea_grid.rda')
+dim(northern_bering_sea_grid)
+load('Data/extrapolation_grids/bering_sea_slope_grid.rda')
+dim(bering_sea_slope_grid)
 
 #####################################
 # Catch data
 #####################################
 
-#get cpue file
-file<-files.2[grep('catch',files.2$name),]
-#file.id<-files.2[which(files.2$name %in% file),]
-
-#download file
-googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
-                            overwrite = TRUE)
-
-#read csv file
-catch<-readRDS(paste0('./data raw/',file$name))
+catch<-readRDS('Data/data_raw/afsc_catch_raw_2023_2_21.rds')
 
 #check for names - based on important spp for the slope (all that we have + Blackspotted/rougheye and POP)
 unique(catch$common_name)[grep('perch',unique(catch$common_name))] #Pacific ocean perch
@@ -231,7 +175,7 @@ dir.create('./data processed/species/',showWarnings = FALSE)
 all1$month<-month(as.POSIXlt(all1$date, format="%d/%m/%Y"))
 all1$year<-year(as.POSIXlt(all1$date, format="%d/%m/%Y"))
 
-#check Lepidopsetta sp. 
+#check Lepidopsetta sp.
 mm<-subset(all1,scientific_name=='Lepidopsetta sp.')
 mm$year<-lubridate::year(mm$date)
 tapply(mm$count,mm$year,summary)
@@ -329,104 +273,101 @@ print(
     theme_bw())
 
 
-
-
-################################################################
-# Plot species abundance over time in the EBS, NBS and slope
-#################################################################
-
-#selected species
-spp<-c('Limanda aspera',
-       'Gadus chalcogrammus',
-       'Gadus macrocephalus',
-       'Atheresthes stomias',
-       'Reinhardtius hippoglossoides',
-       'Lepidopsetta polyxystra',
-       'Hippoglossoides elassodon',
-       'Pleuronectes quadrituberculatus',
-       'Hippoglossoides robustus',
-       'Boreogadus saida',
-       'Eleginus gracilis',
-       'Anoplopoma fimbria',
-       'Chionoecetes opilio',
-       'Paralithodes platypus',
-       'Paralithodes camtschaticus',
-       #'Lepidopsetta sp.',
-       'Chionoecetes bairdi',
-       'Sebastes alutus',
-       'Sebastes melanostictus',
-       'Atheresthes evermanni',
-       'Sebastes borealis',
-       'Sebastolobus alascanus',
-       'Glyptocephalus zachirus',
-       'Bathyraja aleutica')
-
-#remove Anoploma and Reinhardtius because habitat preference reasons
-#spp<-setdiff(spp, c('Anoplopoma fimbria','Reinhardtius hippoglossoides'))
-
-#remove two species because of habitat preferece reasons
-all1<-all1[all1$scientific_name %in% spp,]
-
-#common names
-spp1<-c('Yellowfin sole',
-        'Alaska pollock',
-        'Pacific cod',
-        'Arrowtooth flounder',
-        'Greenland turbot',
-        'Northern rock sole',
-        'Flathead sole',
-        'Alaska plaice',
-        'Bering flounder',
-        'Arctic cod',
-        'Saffron cod',
-        'Sablefish',
-        'Snow crab',
-        'Blue king crab',
-        'Red king crab',
-        'Tanner crab',
-        'Pacific ocean perch',
-        'Rougheye and blackspotted rockfish',
-        'Kamchatka flounder',
-        'Shortraker rockfish',
-        'Shortspine thornyhead',
-        'Rex sole',
-        'Aleutian skate')
-
-#df sp scientific and common
-df_spp<-data.frame('spp'=spp,
-                   'common'=spp1)
-
-#merge both df
-all2<-merge(all1,df_spp,by.x='scientific_name',by.y = 'spp',all.x = 'TRUE')
-
-#get sci + common name
-all2$sp<-paste0(all2$scientific_name,'\n(',all2$common,')')
-all2$scientific_name2<-gsub(' ','_',all2$scientific_name)
-
-#merge lepidosettas
-all1$scientific_name[all1$scientific_name == 'Lepidopsetta sp.'] <- 'Lepidopsetta polyxystra'
-
-#plot CPUE in log+1 for better visualization
-p<-
-  ggplot()+
-  geom_boxplot(data=all2,aes(x=year,y=log(cpue_kgha+1),group=interaction(year,survey_name),color=survey_name),alpha=0.7,position = position_dodge2(preserve = "single"))+
-  facet_wrap(~sp,scales = 'free_y',nrow=5)+
-  #add_fishape(data=all2,aes(option = scientific_name2))+
-  scale_color_manual(values=c("Northern Bering Sea Crab/Groundfish Survey - Eastern Bering Sea Shelf Survey Extension"="#4682B4",
-                              "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey"="#B4464B",
-                              "Eastern Bering Sea Slope Bottom Trawl Survey"="#B4AF46"),
-                     labels = c('EBS shelf','EBS slope','NBS'),name='survey')+
-  scale_x_continuous(breaks = c(1985,1990,1995,2000,2005,2010,2015,2020),
-                     minor_breaks = setdiff(1982:2022,c(1982,1985,1990,1995,2000,2005,2010,2015,2020,2022)))+
-  scale_y_continuous(limits = c(0,NA),labels = scales::comma)+
-  theme_bw()+
-  labs(y='log(CPUE+1)',x='')+
-  theme(panel.grid.minor = element_line(linetype=2,color='grey90'),strip.background = element_rect(fill='white'),
-        legend.position=c(.80,.08),legend.key.size = unit(20, 'points'),legend.text = element_text(size=10),
-        legend.title = element_text(size=14),strip.text = element_text(size=12))+ #axis.text.x = element_text(angle=90,vjust=0.5),
-  expand_limits(y = 0)
-
-#save plot
-ragg::agg_png(paste0('./figures/CPUE_survey_year_v2.png'), width = 15, height = 14, units = "in", res = 300)
-p
-dev.off()
+#' 
+#' 
+#' ################################################################
+#' # Plot species abundance over time in the EBS, NBS and slope
+#' #################################################################
+#' 
+#' #selected species
+#' spp<-c('Limanda aspera',
+#'        'Gadus chalcogrammus',
+#'        'Gadus macrocephalus',
+#'        'Atheresthes stomias',
+#'        'Reinhardtius hippoglossoides',
+#'        'Lepidopsetta polyxystra',
+#'        'Hippoglossoides elassodon',
+#'        'Pleuronectes quadrituberculatus',
+#'        'Hippoglossoides robustus',
+#'        'Boreogadus saida',
+#'        'Eleginus gracilis',
+#'        'Anoplopoma fimbria',
+#'        'Chionoecetes opilio',
+#'        'Paralithodes platypus',
+#'        'Paralithodes camtschaticus',
+#'        #'Lepidopsetta sp.',
+#'        'Chionoecetes bairdi',
+#'        'Sebastes alutus',
+#'        'Sebastes melanostictus',
+#'        'Atheresthes evermanni',
+#'        'Sebastes borealis',
+#'        'Sebastolobus alascanus',
+#'        'Glyptocephalus zachirus',
+#'        'Bathyraja aleutica')
+#' 
+#' #remove Anoploma and Reinhardtius because habitat preference reasons
+#' #spp<-setdiff(spp, c('Anoplopoma fimbria','Reinhardtius hippoglossoides'))
+#' 
+#' #remove two species because of habitat preferece reasons
+#' all1<-all1[all1$scientific_name %in% spp,]
+#' 
+#' #common names
+#' spp1<-c('Yellowfin sole',
+#'         'Alaska pollock',
+#'         'Pacific cod',
+#'         'Arrowtooth flounder',
+#'         'Greenland turbot',
+#'         'Northern rock sole',
+#'         'Flathead sole',
+#'         'Alaska plaice',
+#'         'Bering flounder',
+#'         'Arctic cod',
+#'         'Saffron cod',
+#'         'Sablefish',
+#'         'Snow crab',
+#'         'Blue king crab',
+#'         'Red king crab',
+#'         'Tanner crab',
+#'         'Pacific ocean perch',
+#'         'Rougheye and blackspotted rockfish',
+#'         'Kamchatka flounder',
+#'         'Shortraker rockfish',
+#'         'Shortspine thornyhead',
+#'         'Rex sole',
+#'         'Aleutian skate')
+#' 
+#' #df sp scientific and common
+#' df_spp<-data.frame('spp'=spp,
+#'                    'common'=spp1)
+#' 
+#' #merge both df
+#' all2<-merge(all1,df_spp,by.x='scientific_name',by.y = 'spp',all.x = 'TRUE')
+#' 
+#' #get sci + common name
+#' all2$sp<-paste0(all2$scientific_name,'\n(',all2$common,')')
+#' all2$scientific_name2<-gsub(' ','_',all2$scientific_name)
+#' 
+#' #plot CPUE in log+1 for better visualization
+#' p<-
+#'   ggplot()+
+#'   geom_boxplot(data=all2,aes(x=year,y=log(cpue_kgha+1),group=interaction(year,survey_name),color=survey_name),alpha=0.7,position = position_dodge2(preserve = "single"))+
+#'   facet_wrap(~sp,scales = 'free_y',nrow=5)+
+#'   #add_fishape(data=all2,aes(option = scientific_name2))+
+#'   scale_color_manual(values=c("Northern Bering Sea Crab/Groundfish Survey - Eastern Bering Sea Shelf Survey Extension"="#4682B4",
+#'                               "Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey"="#B4464B",
+#'                               "Eastern Bering Sea Slope Bottom Trawl Survey"="#B4AF46"),
+#'                      labels = c('EBS shelf','EBS slope','NBS'),name='survey')+
+#'   scale_x_continuous(breaks = c(1985,1990,1995,2000,2005,2010,2015,2020),
+#'                      minor_breaks = setdiff(1982:2022,c(1982,1985,1990,1995,2000,2005,2010,2015,2020,2022)))+
+#'   scale_y_continuous(limits = c(0,NA),labels = scales::comma)+
+#'   theme_bw()+
+#'   labs(y='log(CPUE+1)',x='')+
+#'   theme(panel.grid.minor = element_line(linetype=2,color='grey90'),strip.background = element_rect(fill='white'),
+#'         legend.position=c(.80,.08),legend.key.size = unit(20, 'points'),legend.text = element_text(size=10),
+#'         legend.title = element_text(size=14),strip.text = element_text(size=12))+ #axis.text.x = element_text(angle=90,vjust=0.5),
+#'   expand_limits(y = 0)
+#' 
+#' #save plot
+#' ragg::agg_png(paste0('./figures/CPUE_survey_year_v2.png'), width = 15, height = 14, units = "in", res = 300)
+#' p
+#' dev.off()

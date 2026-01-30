@@ -48,10 +48,10 @@ if (!('VAST' %in% installed.packages())) {
 p_load(pack_cran,character.only = TRUE)
 
 # Set the root directory for knitting to a work directory
-dir <- '/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
-
-#setwd
-setwd(dir)
+# dir <- '/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+# 
+# #setwd
+# setwd(dir)
 
 #selected species
 sel_sp<-c("Gadus chalcogrammus", #Alaskan pollock

@@ -118,18 +118,8 @@ Annual SBT values were extracted as the mean SBT value over cells from the ROMS 
 
 ```{r, fig.width=10, fig.height=6}
 
-#setwd
-setwd(dir)
-
-# Define the file ID from the shareable link
-file_id <- "1WgzeMc47Al3zwtuz_oOL6V3H6mImSbYt"
-
-# Download the grid file
-suppressMessages(
-drive_download(as_id(file_id),path = "./grid_EBS_NBS.RData",overwrite = TRUE))
-
 #load file grid
-load('./grid_EBS_NBS.RData') #grid.ebs_year
+load('data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year
 # Define a custom function to calculate mean and SD
 calc_stats <- function(x) {
   c(mean = mean(x, na.rm = TRUE),
@@ -237,15 +227,8 @@ Observed catch per unit effort (CPUE) data by year and region for selected speci
 
 ```{r , fig.width=10, fig.height=6}
 
-# Define the files
-file_id <- '1B0mhHHm7j9VCILPAhgs_aPAmnKMi2rfp'
-
-# Download observed data file
-suppressMessages(
-drive_download(as_id(file_id),path = "./obs_depth_density.RData",overwrite = TRUE))
-
 #load file observed dataframe input 
-load('./obs_depth_density.RData')
+load('data/data_processed/obs_depth_density.RData')
 
 #survey as factors and rename
 obs_df$survey_name<-as.factor(obs_df$survey_name)
@@ -286,15 +269,7 @@ Species depth distribution of presences across warm and cold years, using observ
 
 ```{r, fig.width=10, fig.height=6}
 
-# Define the file ID from the shareable link
-file_id <- "1B0mhHHm7j9VCILPAhgs_aPAmnKMi2rfp"
-
-# Download the file
-suppressMessages(
-drive_download(as_id(file_id),path = "./obs_df.RData",overwrite = TRUE))
-
-#load file observed dataframe input 
-load('./obs_df.RData') #obs_df
+load('data/data_processed/obs_df.RData')
 
 #survey as factors and rename
 obs_df$survey_name<-as.factor(obs_df$survey_name)
@@ -337,7 +312,7 @@ CPUE data for the EBSshelf and EBSslope, categorized by depth bins. Data are ava
 ```{r, fig.width=10, fig.height=6}
 
 #load file observed dataframe
-load('./obs_df.RData') #obs_df
+load('data/data_processed/obs_df.RData')
 
 #survey as factors and rename
 obs_df$survey_name<-as.factor(obs_df$survey_name)
