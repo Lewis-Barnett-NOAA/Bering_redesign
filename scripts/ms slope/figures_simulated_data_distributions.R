@@ -84,7 +84,7 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 # grid temperature and regime plot ####
 
 #load file grid
-load('./data processed/grid_EBS_NBS.RData') #grid.ebs_year
+load('data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year
 
 # Define a custom function to calculate mean and SD
 calc_stats <- function(x) {
@@ -177,7 +177,7 @@ p<-
 
 
 #save env plot
-agg_png(paste0('./figures slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
+agg_png(paste0('.figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -340,7 +340,7 @@ p <-
 print(p)
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -484,7 +484,7 @@ ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -494,7 +494,7 @@ dev.off()
 # Depth distribution occurrence pred #####
 
 #change to predicted from the OMs (so open each OM for these 4 species, get predicted values with depth and associated temp and plot)
-load('./data processed/dens_sel.RData')
+load('data/data_processed/dens_sel.RData')
 dimnames(dens_all)
 aggregate(Lat ~ Year + species, dens_all,FUN=length)
 
@@ -699,7 +699,7 @@ ggplot(plot_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -879,7 +879,7 @@ p <-
   )
 
 #save env plot
-agg_png(paste0('./figures slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -944,7 +944,7 @@ ggplot() +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('./figures slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1057,7 +1057,7 @@ p<-
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('./figures slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('.figures/slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1168,7 +1168,7 @@ test_results_cog <- lapply(cog_vars, function(var) {
 # COG pred ####
 
 #change to predicted from the OMs (so open each OM for these 4 species, get predicted values with depth and associated temp and plot)
-load('./data processed/dens_sel.RData')
+load('data/data_processed/dens_sel.RData')
 dimnames(dens_all)
 aggregate(Lat ~ Year + species, dens_all,FUN=length)
 
@@ -1315,7 +1315,7 @@ p1<-
   scale_y_continuous(expand = expansion(mult = 0.1)) + 
   facet_wrap(~common,scales='free')
   
-  agg_png(paste0('./figures slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+  agg_png(paste0('.figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1466,7 +1466,7 @@ p1<-
 
 
   
-  agg_png(paste0('./figures slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+  agg_png(paste0('.figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1838,7 +1838,7 @@ p <- ggplot(data = summary_stats) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('./figures slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1868,7 +1868,7 @@ ggplot(data = subset(metrics_df, species %in% sel_sp)) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('./figures slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1919,7 +1919,7 @@ p1<-
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
     facet_wrap(~common, scales = 'free')
   
-  agg_png(paste0('./figures slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+  agg_png(paste0('.figures/slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1974,7 +1974,7 @@ p1<-
   
   
   
-agg_png(paste0('./figures slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
 print(p1)
 dev.off()
 
@@ -2057,7 +2057,7 @@ p <-
 
 
 #save env plot
-agg_png(paste0('./figures slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
+agg_png(paste0('.figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -2285,7 +2285,7 @@ scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) +
   labs(x = 'depth range (Q90 - Q10, m)', y = '')
 
   #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -2354,7 +2354,7 @@ ggplot(data = metrics_df) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -2388,7 +2388,7 @@ p2<-
   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -2721,7 +2721,7 @@ ggplot(plot_df, aes(y = Year)) +
  #  )
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
 print(p3)
 dev.off()
 
@@ -2801,7 +2801,7 @@ p2 <- ggplot(metrics_df, aes(y = Year)) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3037,7 +3037,7 @@ p2<-
   labs(x = 'depth range (Q90 - Q10, m)', y = '')
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3106,7 +3106,7 @@ ggplot(data = metrics_df) +
 
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -3140,7 +3140,7 @@ p2<-
   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
 
 #save env plot
-agg_png(paste0('./figures slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3254,6 +3254,6 @@ ggplot() +
   labs(x = "year", y = "",title='static stratification')
 
 
-agg_png(paste0('./figures slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
+agg_png(paste0('.figures/slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
 cowplot::plot_grid(p2,p1,ncol = 1)
 dev.off()

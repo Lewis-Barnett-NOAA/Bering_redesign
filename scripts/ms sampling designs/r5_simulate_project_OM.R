@@ -38,7 +38,7 @@ out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/
 setwd(out_dir)
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
 #add common name
 #selected species
@@ -131,7 +131,7 @@ dir.create(paste0('./shelf EBS NBS VAST/'))
  grid$cell<-1:nrow(grid)
  
  #load grid
- load('./data processed/grid_EBS_NBS.RData')
+ load('data/data_processed/grid_EBS_NBS.RData')
  yrs<-1982:2022
  grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% yrs),]
  dim(grid_ebs)
@@ -233,7 +233,7 @@ for (sp in spp) {
   #################
   
   #read data_geostat_temp file
-  df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_temp.rds'))
+  df1<-readRDS(paste0('data/data_processed/species/',sp,'/data_geostat_temp.rds'))
   df2<-subset(df1,year %in% yrs)
   
   #select rows and rename
@@ -363,7 +363,7 @@ save(sim_dens1, file = paste0('./output/species/ms_sim_dens.RData'))
 ######################
 
 #get raster stack
-stack_files<-list.files('./data processed/SBT projections/')
+stack_files<-list.files('data/data_processed/SBT projections/')
  
 #loop over spp
 for (sp in spp) {
@@ -393,7 +393,7 @@ for (sp in spp) {
     
     #open stack of rasters
     st<-stack_files[grepl(paste0('SBT_',sbt),stack_files)][1]
-    st<-stack(paste0('./data processed/SBT projections/',st))
+    st<-stack(paste0('data/data_processed/SBT projections/',st))
 
     #raster to points
     points<-data.frame(rasterToPoints(st))

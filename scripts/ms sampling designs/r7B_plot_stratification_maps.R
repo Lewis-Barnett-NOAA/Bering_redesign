@@ -867,7 +867,7 @@ for (sp in spp) {
   ok_cells<-D6[which(D6$include==1),'cell']
   
   #load data_geostat file
-  data_geostat<-readRDS(paste0('./data processed/species/',sp,'/','data_geostat_temp.rds')) #fit
+  data_geostat<-readRDS(paste0('data/data_processed/species/',sp,'/','data_geostat_temp.rds')) #fit
   
   ###################################
   # CREATE SPATIAL OBJECT BASED ON CELLS STRATA

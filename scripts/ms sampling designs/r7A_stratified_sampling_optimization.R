@@ -195,7 +195,7 @@ samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
   ok_cells<-df[which(df$include==1),'cell']
   
   #load data_geostat file
-  #data_geostat<-readRDS(paste0('./data processed/species/',sp,'/','data_geostat_temp.rds')) 
+  #data_geostat<-readRDS(paste0('data/data_processed/species/',sp,'/','data_geostat_temp.rds')) 
   
   #n cells
   n_cells<-length(ok_cells)

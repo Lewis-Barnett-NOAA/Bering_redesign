@@ -126,7 +126,7 @@ n_spp<-length(spp)
 # LOAD GRID EBS (remember to keep the same order as in fit_model if multiple grids)
 ###################################
 
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982' & DepthGEBCO<=400)
 slp_cells<-rownames(grid_ebs)
 
@@ -239,7 +239,7 @@ calc_expected_CV <- function (strata) {
 # FIND SLOPE CELLS DEEPER than 400m
 ###################################
 
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_slp<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982')
 dim(grid_slp)
 dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
@@ -350,7 +350,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   #56437-(3041-1283)
   
   #load data_geostat file
-  #data_geostat<-readRDS(paste0('./data processed/species/',sp,'/','data_geostat_temp.rds')) 
+  #data_geostat<-readRDS(paste0('data/data_processed/species/',sp,'/','data_geostat_temp.rds')) 
   
   #years
   n_years<-length(2002:2016)
@@ -514,7 +514,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       ###################################
       
       #for plot 
-      #load('./data processed/grid_EBS_NBS.RData')
+      #load('data/data_processed/grid_EBS_NBS.RData')
       #gridi<-
         #unique(grid.ebs_year[,c('Lat','Lon','DepthGEBCO')])
       #gridi1<-subset(gridi,DepthGEBCO <= 400)
@@ -926,7 +926,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         dd2$strata<-factor(dd2$strata,levels=c(1:10))
         
         #save plot
-        #ragg::agg_png(paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p1<-
           ggplot()+
@@ -945,7 +945,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         #palette
         pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
         
-        #ragg::agg_png(paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p2<-
           ggplot()+
@@ -967,10 +967,10 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           p <- plot_grid(p1, p2) #labels=c('A', 'B')
           
           if (r=='all') {
-            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort376.png')
+            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type']), fontface='bold')
           } else {
-            namepng<-paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'_effort376.png')
+            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type'],'-',r), fontface='bold')
           }
           
@@ -1042,7 +1042,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   # #ok_cells<-df1[which(df1$include==TRUE | df1$Depth <= 400),'cell']
   # ok_cells <- df1[which(df1$include == TRUE | (df1$Depth <= 400 & df1$Depth > 0)), 'cell']
   # #load data_geostat file
-  # #data_geostat<-readRDS(paste0('./data processed/species/',sp,'/','data_geostat_temp.rds')) 
+  # #data_geostat<-readRDS(paste0('data/data_processed/species/',sp,'/','data_geostat_temp.rds')) 
   # 
   # #years
   # n_years<-length(2002:2016)
@@ -1276,7 +1276,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     #palette
     pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
     
-    #ragg::agg_png(paste0('./figures slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+    #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
     #print(
     p<-
       ggplot()+

@@ -33,7 +33,7 @@ out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 crabs<-c('BB_RKC',"PBL_BKC" ,"PBL_RKC" ,"STM_BKC" ,"SNW_CRB" ,"TNR_CRB")
 
 #selected species

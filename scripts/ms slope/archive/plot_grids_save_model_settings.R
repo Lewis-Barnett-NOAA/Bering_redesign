@@ -43,7 +43,7 @@ ggplot() +
   theme(text = element_text(size = 15))
 
 #save plot
-ragg::agg_png(paste0('./figures slope/grids1.png'), width = 12, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('.figures/slope/grids1.png'), width = 12, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()

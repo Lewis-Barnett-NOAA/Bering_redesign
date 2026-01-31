@@ -334,8 +334,8 @@ for (y in 1982:2024) {
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-save(grid.ebs_year,file = './data processed/grid_EBS_NBS.RData')
-#load(file = './data processed/grid_EBS_NBS.RData')
+save(grid.ebs_year,file = 'data/data_processed/grid_EBS_NBS.RData')
+#load(file = 'data/data_processed/grid_EBS_NBS.RData')
 
 #####################################
 # LOOP OVER SPP
@@ -350,7 +350,7 @@ for (sp in spp) {
   cat(paste(" ############# ", sp, " #############\n"))
   
   #open data_geostat
-  df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat.rds'))
+  df1<-readRDS(paste0('data/data_processed/species/',sp,'/data_geostat.rds'))
   
   #create df to store results
   df1_temp<-data.frame(matrix(nrow=0,
@@ -509,7 +509,7 @@ for (sp in spp) {
   
   #save data_geostat with SBT
   saveRDS(df1_temp,
-          paste0('./data processed/species/',sp,'/data_geostat_temp.rds'))
+          paste0('data/data_processed/species/',sp,'/data_geostat_temp.rds'))
   
 }
 
@@ -517,7 +517,7 @@ for (sp in spp) {
 #check temp ROMS vs temp in situ
 #save data_geostat with SBT
 data_geostat<-
-readRDS(paste0('./data processed/species/Gadus macrocephalus//data_geostat_temp.rds'))
+readRDS(paste0('data/data_processed/species/Gadus macrocephalus//data_geostat_temp.rds'))
 
 #plot check temperatures
 plot(x=data_geostat$Temp,y=data_geostat$bottom_temp_c,xlab='ROMS',ylab='insitu')

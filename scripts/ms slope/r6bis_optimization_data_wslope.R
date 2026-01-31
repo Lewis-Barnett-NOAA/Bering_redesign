@@ -145,13 +145,13 @@ ggplot()+
   geom_point(data=grid,aes(x=Lon,y=Lat,col=cell))
 
 #load grid all years
-load(file = './data processed/grid_EBS_NBS.RData')
+load(file = 'data/data_processed/grid_EBS_NBS.RData')
 
 #yrs slope
 yrs_slope<-c(2002,2004,2008,2010,2012,2016)
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 
 #remove grids deeper than XXX because they cannot be sampled
 grid.ebs_year1<-grid.ebs_year[which(grid.ebs_year$Year %in% yrs_slope & grid.ebs_year$region =='EBSslope'),]
@@ -439,7 +439,7 @@ load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RDa
 st_df<-df
 
 
-#(./data processed/multisp_optimization_BSS_NBSEBS.csv)
+#(data/data_processed/multisp_optimization_BSS_NBSEBS.csv)
 st_df$regime <- "all"
 # Get column order from dyn_df
 col_order <- colnames(dyn_df)
@@ -451,5 +451,5 @@ st_df <- st_df[, col_order]
 combined_df <- rbind(dyn_df, st_df)
 
 # Save as CSV
-write.csv(combined_df, "./data processed/multisp_optimization_BSS_NBSEBS.csv", row.names = FALSE)
+write.csv(combined_df, "data/data_processed/multisp_optimization_BSS_NBSEBS.csv", row.names = FALSE)
 

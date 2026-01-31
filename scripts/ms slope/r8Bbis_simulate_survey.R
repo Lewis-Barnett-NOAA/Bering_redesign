@@ -38,7 +38,7 @@ out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/
 setwd(out_dir)
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
 #selected species
 spp<-c('Limanda aspera',
@@ -104,13 +104,13 @@ grid<-x5[,c('Lat','Lon','cell','col','row')]
 ###################################
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 yrs<-c(2002:2016)
 grid_ebs<-grid.ebs_year[which(grid.ebs_year$Year %in% yrs),]
 dim(grid_ebs)
 
 #FIND SLOPE CELLS DEEPER than 400m
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_slp<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982')
 dim(grid_slp)
 dim(grid_slp[which(grid_slp$depthGEBCO<=400),])
@@ -136,7 +136,7 @@ BSS_km2<-sum(grid[which(grid$cell %in% ok_slp_cells & grid$region == 'BSS'),'Are
 
 # Other Area source ####
 
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_slp<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982')
 dim(grid_slp)
 dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
@@ -686,7 +686,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('./figures slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('.figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
@@ -994,7 +994,7 @@ dim(combined_sim_df)
 
 
 # Save
-write.csv(combined_sim_df, "./data processed/index_dens_all.csv", row.names = FALSE)
+write.csv(combined_sim_df, "data/data_processed/index_dens_all.csv", row.names = FALSE)
 
 
 

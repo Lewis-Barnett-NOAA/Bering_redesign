@@ -197,7 +197,7 @@ ggplot(data_sratio_summary, aes(x = SIZE_BIN, y = mean)) +
 
 
 #save plot
-ragg::agg_png(paste0('./figures slope/sr2.png'), width = 10, height = 5, units = "in", res = 300)
+ragg::agg_png(paste0('.figures/slope/sr2.png'), width = 10, height = 5, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()

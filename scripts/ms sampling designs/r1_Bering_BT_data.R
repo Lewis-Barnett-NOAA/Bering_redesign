@@ -32,6 +32,11 @@ if (!('akgfmaps' %in% installed.packages())) {
 #out_dir<-'/Users/daniel/Work/VM' #VM
 #setwd(out_dir)
 
+dir.create('./output/',showWarnings = FALSE)
+dir.create('./output/slope/',showWarnings = FALSE)
+dir.create('./figures/',showWarnings = FALSE)
+dir.create('./figures/slope/',showWarnings = FALSE)
+
 #range years of data
 sta_y<-1982
 end_y<-2022
@@ -168,8 +173,8 @@ summary(all1)
 #####################################
 
 #create folder
-dir.create('./data processed/',showWarnings = FALSE)
-dir.create('./data processed/species/',showWarnings = FALSE)
+dir.create('data/data_processed/',showWarnings = FALSE)
+dir.create('data/data_processed/species/',showWarnings = FALSE)
 
 #add year and month
 all1$month<-month(as.POSIXlt(all1$date, format="%d/%m/%Y"))
@@ -193,8 +198,8 @@ all1$scientific_name[all1$scientific_name == 'Lepidopsetta sp.'] <- 'Lepidopsett
 spp<-spp[spp!='Lepidopsetta sp.']
 
 #save data_geostat file
-saveRDS(all1, paste0('./data processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
-#all1<-readRDS(paste0('./data processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
+saveRDS(all1, paste0('data/data_processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
+#all1<-readRDS(paste0('data/data_processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
 
 #loop over species to create data_geostat df
 for (sp in spp) {
@@ -205,7 +210,7 @@ for (sp in spp) {
   cat(paste("    -----", sp, "-----\n"))
   
   #create folder to store results
-  dir.create(paste0('./data processed/species/',sp),
+  dir.create(paste0('data/data_processed/species/',sp),
              showWarnings = FALSE)
   
   #filter by sp
@@ -216,7 +221,7 @@ for (sp in spp) {
   #xx<-all2[which(is.na(all2$bottom_temp_c)),]
   #summary(xx)
   #save data_geostat file
-  saveRDS(all2, paste0('./data processed/species/',sp,'/data_geostat.rds'))
+  saveRDS(all2, paste0('data/data_processed/species/',sp,'/data_geostat.rds'))
   
 }
 

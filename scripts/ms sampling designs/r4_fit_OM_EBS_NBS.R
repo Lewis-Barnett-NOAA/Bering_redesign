@@ -46,7 +46,7 @@ knots<-'500' #1000
 yrs<-setdiff(1982:2022,2020) #remove 2020 because there were no survey in this year due to COVID
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
 #selected species
 spp<-c('Limanda aspera',
@@ -73,7 +73,7 @@ spp<-c('Limanda aspera',
 fol_region<-c('shelf EBS NBS VAST')
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 
 #dir create for slope region results
 dir.create(paste(out_dir,fol_region,sep='/'))
@@ -92,7 +92,7 @@ for (sp in spp) {
 cat(paste("\n","    ----- ", sp, " -----\n"))  
 
 #read data_geostat_temp file
-df1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_temp.rds'))
+df1<-readRDS(paste0('data/data_processed/species/',sp,'/data_geostat_temp.rds'))
 
 #df1[which(df1$year==2020),'bottom_temp_c']<-NA
 df2<-subset(df1,year %in% c(yrs,2020))

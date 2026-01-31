@@ -153,7 +153,7 @@ for (sp in unique(data_sratio1$scientific_name)) {
   cat(paste('################',sp,'####################\n'))
 
   #apply SR to data_geostat
-  data_geostat1<-readRDS(paste0('./data processed/species/',sp,'/data_geostat_slope_adj.rds'))
+  data_geostat1<-readRDS(paste0('data/data_processed/species/',sp,'/data_geostat_slope_adj.rds'))
   #data_geostat1<-subset(data_geostat,survey_name=='Eastern Bering Sea Slope Bottom Trawl Survey')
 
   # #convert grams to kg/ha
@@ -201,7 +201,7 @@ for (sp in unique(data_sratio1$scientific_name)) {
     # bering_sea_slope_grid$Stratum<-99
     # 
     # #load grid per year for all EBS
-    # load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+    # load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
     # grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year %in% 2002:2016) #yrs
     # 
     # #grid with info to get prediction on each cell of the SBS grid

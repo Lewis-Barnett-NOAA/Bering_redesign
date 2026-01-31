@@ -38,7 +38,7 @@ version<-'VAST_v14_0_1'
 knots<-'300' #200
 
 #list of sp
-splist<-list.dirs('./data processed/',full.names = FALSE,recursive = FALSE)
+splist<-list.dirs('data/data_processed/',full.names = FALSE,recursive = FALSE)
 
 #folder region - only slope
 fol_region<-c('slope EBS VAST','slope_outshelf EBS VAST')[1]
@@ -46,7 +46,7 @@ dir.create(paste0('./',fol_region))
 
 #load grid
 load('./extrapolation grids/lastversion_grid_EBS.RData')
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 
 #selected species
 spp<-c('Limanda aspera',
@@ -87,7 +87,7 @@ names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
 #load grid per year for all EBS
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year %in% 2002:2016) #yrs
 
 splist <- vector("list", length(spp))
@@ -98,11 +98,11 @@ for (sp in spp) {
   # read data
   if (sp %in% spp_vect) {
     df1 <- readRDS(
-      paste0("./data processed/species/", sp, "/data_geostat_slope_adj.rds")
+      paste0("data/data_processed/species/", sp, "/data_geostat_slope_adj.rds")
     )
   } else {
     df1 <- readRDS(
-      paste0("./data processed/species/", sp, "/data_geostat.rds")
+      paste0("data/data_processed/species/", sp, "/data_geostat.rds")
     )
     df1$ADJ_KG_HA <- NA_real_
   }
@@ -302,7 +302,7 @@ for (sp in spp_slope) { #[c(10,12:15)]
 
 cat(paste0('############### ',sp,' #########################\n'))
 
-#df1<-readRDS(paste0('./data processed/',sp,'/data_geostat_temp.rds'))
+#df1<-readRDS(paste0('data/data_processed/',sp,'/data_geostat_temp.rds'))
 #select rows and rename
 
 #filter by sp
@@ -343,7 +343,7 @@ names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
 #load grid per year for all EBS
-load(file = './data processed/grid_EBS_NBS.RData') #grid.ebs_year$region
+load(file = 'data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year$region
 grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year %in% 2002:2016) #yrs
 
 #grid with info to get prediction on each cell of the SBS grid

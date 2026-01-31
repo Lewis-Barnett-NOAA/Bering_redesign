@@ -14,11 +14,6 @@
 # Settings
 #####################################
 
-#clear all objects
-rm(list = ls(all.names = TRUE)) 
-#free up memrory and report the memory usage
-gc() 
-
 #libraries from cran to call or install/load
 pack_cran<-c('cowplot','ggspatial','raster','rasterVis','rgeos','scales','rnaturalearth','grid','ggplot2','lubridate','ragg','rgdal','sf')
 
@@ -432,7 +427,7 @@ zoomout<-
 #save plot
 dir.create('./figures/')
 dir.create('./figures/slope/')
-agg_png(paste0('./figures-slope/map_bering2.png'), width = 7, height = 7, units = "in", res = 300)
+agg_png(paste0('./figures/slope/map_bering2.png'), width = 7, height = 7, units = "in", res = 300)
 grid.newpage()
 vp_b <- viewport(width = 1, height = 1, x = 0.5, y = 0.5)  # the larger map
 vp_a <- viewport(width = 0.4, height = 0.3, x = 0.217, y = 0.846)  # the inset in upper left
@@ -473,7 +468,7 @@ ggplot()+
 
 
 #load optim file (in script #6 to get meanTemp and varSBT)
-load('./output slope//multisp_optimization_static_data_ebsnbs_slope_st.RData')
+load('./output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')
 head(df)
 coordinates(df) <- ~ Lon + Lat
 proj4string(df)<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
@@ -541,7 +536,7 @@ pt<-
 pp<-plot_grid(pd,pv,ncol=1)
 
 #save env plot
-agg_png(paste0('./figures slope/env_map.png'), width = 4, height = 7, units = "in", res = 300)
+agg_png(paste0('./figures/slope/env_map.png'), width = 4, height = 7, units = "in", res = 300)
 print(pp)
 dev.off()
 

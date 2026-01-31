@@ -141,7 +141,7 @@ grid<-x5[,c('Lat','Lon','cell','col','row')]
 ###################################
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 #yrs<-setdiff(1982:2022,2020)
 #grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% yrs),]
 grid_ebs<-grid.ebs_year[which(grid.ebs_year$Year %in% yrs),]

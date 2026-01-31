@@ -321,7 +321,7 @@ for (y in 1982:2024) {
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-save(grid.ebs_year,file = 'Data/data_processed/grid_EBS_NBS.RData')
+save(grid.ebs_year,file = 'data/data_processed/grid_EBS_NBS.RData')
 #load(file = 'Data/data_processed/grid_EBS_NBS.RData')
 
 # ##########################################################################

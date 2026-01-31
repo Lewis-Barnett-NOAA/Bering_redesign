@@ -35,7 +35,7 @@ out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
 setwd(out_dir)
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
 #selected species
 spp<-c('Limanda aspera',
@@ -102,7 +102,7 @@ grid<-x5[,c('Lat','Lon','cell','col','row')]
 ###################################
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 #yrs<-setdiff(1982:2022,2020)
 grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% yrs),]
 dim(grid_ebs)

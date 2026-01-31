@@ -87,7 +87,7 @@ df_sbt$sbt_n<-1:nrow(df_sbt)
 save(df_sbt,file = './tables/SBT_projection.RData')
 
 #load grid
-load('./data processed/grid_EBS_NBS.RData')
+load('data/data_processed/grid_EBS_NBS.RData')
 
 #subset to year 2022
 df2022<-subset(grid.ebs_year,Year==2022)
@@ -115,7 +115,7 @@ pal<-wesanderson::wes_palette('Zissou1',21,type='continuous')
 yrs<-2023:2027
 
 #dir.create
-dir.create('./data processed/SBT projections/')
+dir.create('data/data_processed/SBT projections/')
 
 #create folder
 dir.create('./figures/SBT/')

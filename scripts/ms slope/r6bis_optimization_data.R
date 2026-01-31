@@ -112,7 +112,7 @@ spp_conv_ebsnbs<-c(
 #load grid data
 #https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data
 #https://github.com/danielvilasgonzalez/Bering_redesign/blob/main/Scripts/04_Bering10K_data.R
-load('./data processed/grid_EBS_NBS.RData') #grid.ebs_year
+load('data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year
 names(grid.ebs_year)[7]<-'Depth'
 
 #remove slope grid

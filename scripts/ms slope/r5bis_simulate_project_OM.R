@@ -36,7 +36,7 @@ out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/
 setwd(out_dir)
 
 #list of sp
-spp<-list.dirs('./data processed/species/',full.names = FALSE,recursive = FALSE)
+spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
 #add common name
 #selected species
@@ -85,7 +85,7 @@ dir.create(paste0('./output slope//species/'))
  grid$cell<-1:nrow(grid)
  
  #load grid
- load('./data processed/grid_EBS_NBS.RData')
+ load('data/data_processed/grid_EBS_NBS.RData')
  yrs<-1982:2022
  grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year$Year %in% yrs),]
  dim(grid_ebs)
@@ -421,7 +421,7 @@ load(file = './output slope/species/ms_sim_dens_all.RData')  # loads object sim_
 ls()  # should show sim_dens1
 
 # convert to CSV
-write.csv(sim_dens1, file = './data processed/ms_sim_dens_all.csv', row.names = FALSE)
+write.csv(sim_dens1, file = 'data/data_processed/ms_sim_dens_all.csv', row.names = FALSE)
 
 #checks
 dimnames(sim_dens1)
