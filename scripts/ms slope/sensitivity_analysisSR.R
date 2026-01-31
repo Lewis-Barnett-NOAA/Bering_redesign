@@ -23,8 +23,8 @@ if (!('VAST' %in% installed.packages())) {
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
-setwd(out_dir)
+# out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+# setwd(out_dir)
 
 #version VAST (cpp)
 version<-'VAST_v14_0_1'

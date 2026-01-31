@@ -76,7 +76,7 @@ if (!('VAST' %in% installed.packages())) {
 p_load(pack_cran,character.only = TRUE)
 
 # Set the root directory for knitting to a work directory
-dir <- '/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
+dir <- here::here()
 opts_knit$set(root.dir = dir)
 ```
 
@@ -394,16 +394,8 @@ Fraction of total abundance in the Bering shelf area (EBSshelf + NBS) over the y
 
 ```{r, fig.width=10, fig.height=6}
 
-# Define the file ID from the shareable link
-file_id <- "1lkFQjEqQLPiuQ5SoFXnTXoSHP6D_JOk6"
-
-# Download abundance index estimate file
-suppressMessages(
-  suppressWarnings(
-    drive_download(as_id(file_id),path = "./ind_sel.RData",overwrite = TRUE)))
-
 #load file index of selected species
-load('./ind_sel.RData') #ind_all
+load('data/data_processed/ind_sel.RData') #ind_all
 
 #reshape index
 ind_all1<-melt(ind_all,id.vars=c('year','species'))
@@ -463,16 +455,8 @@ Predicted catch per unit effort (CPUE) data were analyzed by year and region, in
 
 ```{r, fig.width=10, fig.height=6}
 
-# Define the file ID from the shareable link
-file_id <- "1lNPrNm7V-gaUEnh7j5IxossWrEkDDPbl"
-
-# Download density file
-suppressMessages(
-    drive_download(as_id(file_id),path = "./dens_sel.RData",
-                   overwrite = TRUE))
-
 #load file observed dataframe input 
-load('./dens_sel.RData') #dens_all
+load('data/data_processed/dens_sel.RData') #dens_all
 
 #classify region depending on EBSslope
 dens_all$region1<-ifelse(dens_all$region=='NBS',
@@ -649,21 +633,9 @@ Effective area occupied, as well as the latitudinal and bathymetric center of gr
 
 ```{r, fig.width=8, fig.height=8}
 
-# Define the files ID from the shareable link
-file_id1 <- "1TEAsIAqWPjyVoOM_eljU3D4DZC5IhZvk"
-file_id2 <- "1y345z3DbErtCtz3nA_Xu91LStejLVntU"
-
-# Download density and grid data
-suppressMessages(
-    drive_download(as_id(file_id1),path = "./dens_shelfslope.RData",
-                   overwrite = TRUE))
-suppressMessages(
-    drive_download(as_id(file_id2),path = "./grid_EBS_NBS_envs.RData",
-                   overwrite = TRUE))
-
 #load files density slope and shelf data 
-load('./dens_shelfslope.RData') #dens_all
-load('./grid_EBS_NBS_envs.RData') #xx
+load('data/data_processed/dens_shelfslope.RData') #dens_all
+load('data/data_processed/grid_EBS_NBS_envs.RData') #xx
 
 #df to store results
 metrics_df<-data.frame(matrix(NA,nrow = 0,ncol=13))
@@ -718,7 +690,7 @@ for (s in shelfslope_spp) {
 }
 
 #save table
-save(metrics_df,file='./metrics_df.RData')
+save(metrics_df,file='data/data_processed/metrics_df.RData')
 
 # Define a custom color scale function
 custom_colors <- colorRampPalette(c("blue", "white", "darkred"))
@@ -787,16 +759,8 @@ Range edges of species relative to the cold pool were visualized and saved as PN
 
 ```{r, echo=FALSE, warning=FALSE,message=FALSE, fig.width=20, fig.height=13}
 
-# Define the files ID from the shareable link
-file_id1 <- "1TEAsIAqWPjyVoOM_eljU3D4DZC5IhZvk"
-
-# Download density  data
-suppressMessages(
-    drive_download(as_id(file_id1),path = "./dens_shelfslope.RData",
-                                                 overwrite = TRUE))
-
 #load files density slope and shelf data 
-load('./dens_shelfslope.RData') #dens_all
+load('data/data_processed/dens_shelfslope.RData') #dens_all
 
 # Convert to data.table for faster processing
 dens_all <- as.data.table(dens_all)
@@ -969,15 +933,8 @@ The cumulative distribution of predicted biomass was analyzed in relation to dep
 
 ```{r, fig.width=16, fig.height=13}
 
-# Define the files ID from the shareable link
-file_id2 <- "1y345z3DbErtCtz3nA_Xu91LStejLVntU"
-
-suppressMessages(
-    drive_download(as_id(file_id2),path = "./grid_EBS_NBS_envs.RData",
-                   overwrite = TRUE))
-
 #load grid
-load('./grid_EBS_NBS_envs.RData') #xx
+load('data/data_processed/grid_EBS_NBS_envs.RData') #xx
 xx <- as.data.table(xx)
 
 #average SBT by region and year
@@ -994,14 +951,6 @@ temp_region<-rbind(temp_region,alltemp)
 
 #shelf slope spp
 shelfslope_spp<-unique(dens_all$species)
-
-# Define the file ID from the shareable link
-file_id2 <- "1y345z3DbErtCtz3nA_Xu91LStejLVntU"
-
-# Download the file
-suppressMessages(
-    drive_download(as_id(file_id2),path = "./grid_EBS_NBS_envs.RData",
-                                                 overwrite = TRUE))
 
 #df to store depth percentiles data to evaluate range
 depth_percentiles<-data.frame(matrix(NA,ncol = 7,nrow = 0))
@@ -1207,21 +1156,12 @@ We analyzed the correlation between prey variables (large zooplankton and large 
 
 ```{r, fig.width=10, fig.height=9}
 
-# Define the file ID from the shareable link
-file_id <- "1y345z3DbErtCtz3nA_Xu91LStejLVntU"
-
-# Download the grid file
-suppressMessages(
-  suppressWarnings(
-    drive_download(as_id(file_id),path = "./grid_EBS_NBS_envs.RData",
-                   overwrite = TRUE)))
-
 #load file grid
-load('./grid_EBS_NBS_envs.RData') #xx
+load('data/data_processed/grid_EBS_NBS_envs.RData') #xx
 data_preys<-aggregate(cbind(Cop,EupS,EupO,NCaS,NCaO,PhL) ~ Year,xx,
                       FUN='mean')
 
-load('./metrics_df.RData') #metrics_df
+load('data/data_processed/metrics_df.RData') #metrics_df
 cog_prey<-merge(metrics_df,data_preys,by='Year')
 cog_prey1<-merge(cog_prey,subset(temp_region,region=='all'),
                  by.x=c('Year'),by.y=c('year'))
@@ -1260,18 +1200,10 @@ We used length data to determine the population proportion at different lengths 
 
 ```{r, fig.width=10, fig.height=9}
 
-# Define the file ID from the shareable link
-file_id2 <-'11EqIEhkXZQUW_OP_hPgVUlwfqcyyTeQ2'
-
-# Download the length file
-suppressMessages(
-    drive_download(as_id(file_id2),path = "./ak_bts_ebs_nbs_slope.rds",
-                   overwrite = TRUE))
-
 #read data
 data_length<-readRDS('./ak_bts_ebs_nbs_slope.rds') #data_length
-load('./metrics_df.RData') #metrics_df
-load('./grid_EBS_NBS_envs.RData') #xx
+load('data/data_processed/metrics_df.RData') #metrics_df
+load('data/data_processed/grid_EBS_NBS_envs.RData') #xx
 
 #code species
 spp_code<-unique(data_length$species[,c('SPECIES_CODE',"REPORT_NAME_SCIENTIFIC")])

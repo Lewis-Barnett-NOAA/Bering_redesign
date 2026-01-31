@@ -19,7 +19,7 @@ pack_cran<-c("splines",'ggplot2','dplyr','doParallel')
 if (!('pacman' %in% installed.packages())) {
   install.packages("pacman")}
 
-#install coldpool to extract SBT for the EBS
+#install VAST
 if (!('VAST' %in% installed.packages())) {
   devtools::install_github("james-thorson/VAST@main", INSTALL_opts="--no-staged-install")};library(VAST)
 
@@ -28,8 +28,9 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<- '/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
+# out_dir<- '/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+# setwd(out_dir)
+out_dir <- here::here()
 
 #version VAST (cpp)
 version<-'VAST_v14_0_1'
@@ -198,8 +199,8 @@ BSS_data_geostat <- BSS_data_geostat[
   complete.cases(BSS_data_geostat$Weight_kg),
 ]
 
-# area from ha to km2
-BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100
+# TODO: remove if data changes to area swept in square km 
+BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100 #area from ha to km2
 
 # final layout
 BSS_data_geostat <- BSS_data_geostat[, c(
@@ -681,8 +682,8 @@ foreach(sp = spp_slope) %do% {
 stopCluster(cl)
 
 #store HIST simulated data
-save(sim_dens1, file = paste0('./output slope/species/ms_sim_dens_slope.RData'))  
-#load(file = paste0('./output slope//species/ms_sim_dens_slope.RData'))
+save(sim_dens1, file = paste0('./output/slope/species/ms_sim_dens_slope.RData'))  
+#load(file = paste0('./output/slope//species/ms_sim_dens_slope.RData'))
 
 
 ################################################

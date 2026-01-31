@@ -16,6 +16,7 @@ pack_cran<-c('shadowtext',
              'rgdal',
              'dplyr',
              'sp',
+             'mgcv',
              'ggtext',
              'magick',
              'shadowtext',
@@ -67,9 +68,9 @@ df_sp<-data.frame(sci=sel_sp,
 
   
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/bering_sea_slope_grid.rda')
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -82,104 +83,104 @@ grid<-grid2[,c('Lat','Lon','region','cell')]
 bold_years<-c(2002,2004,2008,2010,2012,2016)
 
 # grid temperature and regime plot ####
-
-#load file grid
-load('data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year
-
-# Define a custom function to calculate mean and SD
-calc_stats <- function(x) {
-  c(mean = mean(x, na.rm = TRUE),
-    SD = sd(x, na.rm = TRUE))
-}
-
-# Use aggregate to calculate statistics for Temp by Year and region
-temp_region <- aggregate(Temp ~ Year + region, data = grid.ebs_year, FUN = calc_stats)
-
-# Convert the output to a dataframe
-temp_region <- do.call(data.frame, temp_region)
-names(temp_region) <- c('year', 'region', 'mean_temp', 'SD')
-
-# Calculate the average for all regions
-alltemp <- aggregate(mean_temp ~ year, data = temp_region, FUN = mean)
-alltemp$region <- 'all'
-alltemp$SD <- aggregate(SD ~ year, data = temp_region, FUN = mean)$SD
-
-# Combine the datasets
-temp_region <- rbind(temp_region, alltemp)
-
-# Scaling values by group
-temp_region1 <- temp_region %>%
-  group_by(region) %>%
-  mutate(scaledtemp = scale(mean_temp)) %>%
-  ungroup()
-
-# Classify by cold/warm/normal years
-temp_region1$typeyear <- ifelse(temp_region1$scaledtemp > 1, 
-                                "warm", ifelse(temp_region1$scaledtemp < -1, 
-                                               "cold", "normal"))
-
-# Create custom labels function
-custom_labels <- function(x) {
-  sapply(x, function(year) {
-    if (year %in% bold_years) {
-      paste0("**", year, "**")
-    } else {
-      as.character(year)
-    }
-  })
-}
-
-# Plot with SD
-p<-
-  ggplot() +
-    geom_rect(aes(xmin = 2002, xmax = 2005, ymin = -Inf, ymax = Inf, fill = "red")) +
-    geom_rect(aes(xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf, fill = "red")) +
-    geom_rect(aes(xmin = 2005, xmax = 2014, ymin = -Inf, ymax = Inf, fill = "blue")) +
-    geom_vline(xintercept = seq(1985, 2020, by = 5), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid') +  # Custom gridlines
-    geom_vline(xintercept = setdiff(1982:2022,seq(1985, 2020, by = 5)), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid',size=0.2) +  # Custom gridlines
-    geom_hline(yintercept = c(0:5), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid',size=0.2) +  # Custom gridlines
-    geom_ribbon(data = subset(temp_region1, region == 'all' & year %in% c(1982:2022)),
-                aes(x = year, ymin = mean_temp - SD, ymax = mean_temp + SD), fill = 'gray', alpha = 0.4) +
-    geom_hline(yintercept = colMeans(subset(temp_region1, region == 'all' & year %in% 1982:2022)[,'mean_temp']), alpha = 0.5, linetype = 'dashed') +
-    geom_line(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
-              aes(x = year, y = mean_temp, color = region)) +
-    #geom_point(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
-    #           aes(x = year, y = mean_temp, color = region),size=.7) +
-    geom_vline(xintercept = 2002, color = 'black',linewidth=1, linetype = 'solid') +  # Custom gridlines
-    geom_vline(xintercept = 2016, color = 'black',linewidth=1, linetype = 'solid') +  # Custom gridlines
-  annotation_custom(
-    grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
-    xmin = 2002, xmax = 2016, ymin = -Inf, ymax = -Inf
-  )+
-  annotation_custom(
-    grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
-    xmin = 2002, xmax = 2016, ymin = Inf, ymax = Inf
-  )+
-   # annotation_custom(
-   #        grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
-   #          xmin = 2016, xmax = 2016, ymin = -Inf, ymax = Inf
-   #     )+
-    scale_fill_manual(values = c("red" = "#cc1d1f", "blue" = "#1675ac"),
-                      labels = c("cold", "warm"),
-                      name = "SBT regime") +
-    scale_color_manual(values = c('all' = 'black'),
-                       breaks = c('all'),
-                       labels = c('Bering\nSea'),name='',guide=FALSE) +
-    theme_bw() +
-    scale_x_continuous(breaks = c(1985,1990,1995,2000,bold_years,2020),
-                       minor_breaks = c(1982:2022), 
-                       labels = custom_labels, limits = c(1982, 2022),
-                       expand = c(0,0)) +
-    theme(axis.text.x = element_markdown(angle = 45,hjust=1),
-          axis.text.y = element_text(),text = element_text(size = 12),
-          panel.grid = element_blank()) +
-    labs(x = '', y = 'mean SBT')
-
-
-#save env plot
-agg_png(paste0('.figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
-print(p)
-dev.off()
+# 
+# #load file grid
+# load('data/data_processed/grid_EBS_NBS.RData') #grid.ebs_year
+# 
+# # Define a custom function to calculate mean and SD
+# calc_stats <- function(x) {
+#   c(mean = mean(x, na.rm = TRUE),
+#     SD = sd(x, na.rm = TRUE))
+# }
+# 
+# # Use aggregate to calculate statistics for Temp by Year and region
+# temp_region <- aggregate(Temp ~ Year + region, data = grid.ebs_year, FUN = calc_stats)
+# 
+# # Convert the output to a dataframe
+# temp_region <- do.call(data.frame, temp_region)
+# names(temp_region) <- c('year', 'region', 'mean_temp', 'SD')
+# 
+# # Calculate the average for all regions
+# alltemp <- aggregate(mean_temp ~ year, data = temp_region, FUN = mean)
+# alltemp$region <- 'all'
+# alltemp$SD <- aggregate(SD ~ year, data = temp_region, FUN = mean)$SD
+# 
+# # Combine the datasets
+# temp_region <- rbind(temp_region, alltemp)
+# 
+# # Scaling values by group
+# temp_region1 <- temp_region %>%
+#   group_by(region) %>%
+#   mutate(scaledtemp = scale(mean_temp)) %>%
+#   ungroup()
+# 
+# # Classify by cold/warm/normal years
+# temp_region1$typeyear <- ifelse(temp_region1$scaledtemp > 1, 
+#                                 "warm", ifelse(temp_region1$scaledtemp < -1, 
+#                                                "cold", "normal"))
+# 
+# # Create custom labels function
+# custom_labels <- function(x) {
+#   sapply(x, function(year) {
+#     if (year %in% bold_years) {
+#       paste0("**", year, "**")
+#     } else {
+#       as.character(year)
+#     }
+#   })
+# }
+# 
+# # Plot with SD
+# p<-
+#   ggplot() +
+#     geom_rect(aes(xmin = 2002, xmax = 2005, ymin = -Inf, ymax = Inf, fill = "red")) +
+#     geom_rect(aes(xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf, fill = "red")) +
+#     geom_rect(aes(xmin = 2005, xmax = 2014, ymin = -Inf, ymax = Inf, fill = "blue")) +
+#     geom_vline(xintercept = seq(1985, 2020, by = 5), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid') +  # Custom gridlines
+#     geom_vline(xintercept = setdiff(1982:2022,seq(1985, 2020, by = 5)), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid',size=0.2) +  # Custom gridlines
+#     geom_hline(yintercept = c(0:5), color = rgb(0, 0, 0,90, maxColorValue = 285), linetype = 'solid',size=0.2) +  # Custom gridlines
+#     geom_ribbon(data = subset(temp_region1, region == 'all' & year %in% c(1982:2022)),
+#                 aes(x = year, ymin = mean_temp - SD, ymax = mean_temp + SD), fill = 'gray', alpha = 0.4) +
+#     geom_hline(yintercept = colMeans(subset(temp_region1, region == 'all' & year %in% 1982:2022)[,'mean_temp']), alpha = 0.5, linetype = 'dashed') +
+#     geom_line(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+#               aes(x = year, y = mean_temp, color = region)) +
+#     #geom_point(data = subset(temp_region1, region == 'all' & year %in% 1982:2022),
+#     #           aes(x = year, y = mean_temp, color = region),size=.7) +
+#     geom_vline(xintercept = 2002, color = 'black',linewidth=1, linetype = 'solid') +  # Custom gridlines
+#     geom_vline(xintercept = 2016, color = 'black',linewidth=1, linetype = 'solid') +  # Custom gridlines
+#   annotation_custom(
+#     grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
+#     xmin = 2002, xmax = 2016, ymin = -Inf, ymax = -Inf
+#   )+
+#   annotation_custom(
+#     grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
+#     xmin = 2002, xmax = 2016, ymin = Inf, ymax = Inf
+#   )+
+#    # annotation_custom(
+#    #        grob = linesGrob(gp = gpar(col = "black", lwd = 4)),  # Thicker top border
+#    #          xmin = 2016, xmax = 2016, ymin = -Inf, ymax = Inf
+#    #     )+
+#     scale_fill_manual(values = c("red" = "#cc1d1f", "blue" = "#1675ac"),
+#                       labels = c("cold", "warm"),
+#                       name = "SBT regime") +
+#     scale_color_manual(values = c('all' = 'black'),
+#                        breaks = c('all'),
+#                        labels = c('Bering\nSea'),name='',guide=FALSE) +
+#     theme_bw() +
+#     scale_x_continuous(breaks = c(1985,1990,1995,2000,bold_years,2020),
+#                        minor_breaks = c(1982:2022), 
+#                        labels = custom_labels, limits = c(1982, 2022),
+#                        expand = c(0,0)) +
+#     theme(axis.text.x = element_markdown(angle = 45,hjust=1),
+#           axis.text.y = element_text(),text = element_text(size = 12),
+#           panel.grid = element_blank()) +
+#     labs(x = '', y = 'mean SBT')
+# 
+# 
+# #save env plot
+# agg_png(paste0('.figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
+# print(p)
+# dev.off()
 
 # # Define a custom color scale function
 # custom_colors <- colorRampPalette(c("#1675ac", "white", "#cc1d1f"))
@@ -227,141 +228,139 @@ dev.off()
 #   labs(x = '', y = 'mean SBT')
 
 
-# Depth distribution occurrence #####
-
-#load file observed dataframe input 
-load('./output slope//obs_df.RData') #obs_df
-
-#survey as factors and rename
-obs_df$survey_name<-as.factor(obs_df$survey_name)
-levels(obs_df$survey_name)<-c('EBSshelf','EBSslope','NBS')
-
-#only presences, EBSshelf+EBSslope and selected species
-obs_df<-subset(obs_df,cpue_kgkm2!=0 &
-                 survey_name %in% c('EBSshelf','EBSslope','NBS') &
-                 species %in% sel_sp)
-
-#filter by cold and warm years
-#obs_df1<-obs_df[which(obs_df$year %in% c(cyrs,wyrs)),]
-obs_df1<-obs_df[which(obs_df$year %in% bold_years),]
-
-#year type
-obs_df1$year_type<-ifelse(obs_df1$year %in% c(2002,2004,2016), "warm",'cold')
-
-#filtered to <600m
-filt_obs_df1<-subset(obs_df1,depth_m<=600)
-
-#get common
-filt_obs_df1$common<-df_sp$common[match(filt_obs_df1$species, df_sp$sci)]
-filt_obs_df1$common<-factor(filt_obs_df1$common,levels=c("Alaska pollock","Greenland turbot","Pacific cod","Snow crab" ))
-
-#plot Kernel density estimation for depth distributions
-p<-
-  ggplot(filt_obs_df1, aes(x = depth_m, fill = year_type)) +
-    geom_density(alpha = 0.5) +
-    labs(x = 'depth (m)', y = 'probability of occurrence')+ 
-         #title = 'Empirical depth distribution of occurrence in Warm vs. Cold Years') +
-    scale_fill_manual(values = c('cold' = '#1675ac',
-                                 'warm' = '#cc1d1f'),
-                      labels = c("cold", "warm"),
-                      name = 'SBT regime') +
-    theme_bw()+
-    scale_x_continuous(limits = c(0,600))+
-    theme(strip.text = element_text(size=12),strip.background = element_blank(),
-          text= element_text(size=12))+
-    facet_wrap(~common)
-
-# Load data
-load('./output slope//obs_df.RData')
-
-#data.table
-sum_df<-obs_df
-sum_df1<-aggregate(lat_start ~ year, sum_df,FUN=length)
-sum_df1$lat_start<-sum_df1$lat_start
-# Convert survey names to factors and rename
-obs_df$survey_name <- as.factor(obs_df$survey_name)
-levels(obs_df$survey_name) <- c('EBSshelf', 'EBSslope', 'NBS')
-
-# Filter to selected surveys, species, and <600m depth
-obs_df1 <- obs_df %>%
-  filter(survey_name %in% c('EBSshelf', 'EBSslope', 'NBS') & 
-           species %in% sel_sp & depth_m <= 600 & 
-           year %in% bold_years)
-
-# Assign year type (cold vs. warm)
-obs_df1 <- obs_df1 %>%
-  mutate(year_type = ifelse(year %in% c(2002, 2004, 2016), "warm", "cold"),
-         year_type = factor(year_type, levels = c("cold", "warm")))  # Ensure proper factor levels
-
-# Map species scientific names to common names
-obs_df1$common <- factor(df_sp$common[match(obs_df1$species, df_sp$sci)], 
-                         levels = c("Alaska pollock", "Greenland turbot", "Pacific cod", "Snow crab"))
-
-# Ensure no NA values in cpue_kgkm2 and depth_m
-obs_df1 <- obs_df1 %>% filter(!is.na(cpue_kgkm2) & !is.na(depth_m))
-
-# Bin depths
-obs_df1$depth_bin <- cut(obs_df1$depth_m, breaks = seq(0, 600, by = 25), include.lowest = TRUE)
-
-#get probs for each
-prob_df <- obs_df1 %>%
-  group_by(common, year_type, depth_bin) %>%
-  summarise(
-    n_present = sum(cpue_kgkm2 > 0),
-    n_total = n(),
-    prob_presence = n_present / n_total,
-    # Extract both bounds and compute midpoint
-    depth_mid = {
-      nums <- as.numeric(unlist(str_extract_all(depth_bin, "\\d+\\.*\\d*")))
-      mean(nums)
-    },
-    .groups = "drop"
-  )
-
-# Plot smoothed probability of presence
-p <- 
-  ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
-  geom_point(alpha = 0.5) +  # Show raw probabilities
-  geom_smooth(method = "loess", se = FALSE) +  # Smooth probability trend
-    coord_cartesian(ylim = c(0, 1))+
-  labs(x = 'depth (m)', y = 'probability of occurrence') +
-  #scale_y_continuous(limits = c(0, 1)) +  # Ensure probability scale from 0 to 1
-  scale_x_continuous(limits = c(0, 600),expand = c(0,0),breaks = c(100,300,500))+#,) +
-  scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
-                     labels = c("cold", "warm"),
-                     name = 'SBT regime') +
-  #scale_y_continuous( )+
-  theme_bw() +
-  theme(strip.text = element_text(size = 12),
-        strip.background = element_blank(),
-        text = element_text(size = 12)) +
-  facet_wrap(~common)
-
-print(p)
-
-#save env plot
-agg_png(paste0('.figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
-print(p)
-dev.off()
-
-# Ensure year_type and common are treated as factors
-prob_df <- prob_df %>%
-  mutate(year_type = factor(year_type),
-         common = factor(common))
-
-# Reshape to wide format: one column for warm, one for cold
-prob_wide <- prob_df %>%
-  dplyr::select(common, year_type, depth_bin, prob_presence) %>%
-  pivot_wider(names_from = year_type, values_from = prob_presence)
-
-# Run Wilcoxon signed-rank test for each species (paired across depth bins)
-test_results_prob <- prob_wide %>%
-  group_by(common) %>%
-  filter(!is.na(warm) & !is.na(cold)) %>%
-  summarise(
-    wilcox_p = tryCatch(wilcox.test(warm, cold)$p.value, error = function(e) NA),
-    .groups = "drop"
-  )
+# # Depth distribution occurrence #####
+# 
+# #load file observed dataframe input 
+# load('data/data_processed/obs_df.RData') #obs_df
+# 
+# #survey as factors and rename
+# obs_df$survey_name<-as.factor(obs_df$survey_name)
+# levels(obs_df$survey_name)<-c('EBSshelf','EBSslope','NBS')
+# 
+# #only presences, EBSshelf+EBSslope and selected species
+# obs_df<-subset(obs_df,cpue_kgkm2!=0 &
+#                  survey_name %in% c('EBSshelf','EBSslope','NBS') &
+#                  species %in% sel_sp)
+# 
+# #filter by cold and warm years
+# #obs_df1<-obs_df[which(obs_df$year %in% c(cyrs,wyrs)),]
+# obs_df1<-obs_df[which(obs_df$year %in% bold_years),]
+# 
+# #year type
+# obs_df1$year_type<-ifelse(obs_df1$year %in% c(2002,2004,2016), "warm",'cold')
+# 
+# #filtered to <600m
+# filt_obs_df1<-subset(obs_df1,depth_m<=600)
+# 
+# #get common
+# filt_obs_df1$common<-df_sp$common[match(filt_obs_df1$species, df_sp$sci)]
+# filt_obs_df1$common<-factor(filt_obs_df1$common,levels=c("Alaska pollock","Greenland turbot","Pacific cod","Snow crab" ))
+# 
+# #plot Kernel density estimation for depth distributions
+# p<-
+#   ggplot(filt_obs_df1, aes(x = depth_m, fill = year_type)) +
+#     geom_density(alpha = 0.5) +
+#     labs(x = 'depth (m)', y = 'probability of occurrence')+ 
+#          #title = 'Empirical depth distribution of occurrence in Warm vs. Cold Years') +
+#     scale_fill_manual(values = c('cold' = '#1675ac',
+#                                  'warm' = '#cc1d1f'),
+#                       labels = c("cold", "warm"),
+#                       name = 'SBT regime') +
+#     theme_bw()+
+#     scale_x_continuous(limits = c(0,600))+
+#     theme(strip.text = element_text(size=12),strip.background = element_blank(),
+#           text= element_text(size=12))+
+#     facet_wrap(~common)
+# 
+# 
+# #data.table
+# sum_df<-obs_df
+# sum_df1<-aggregate(lat_start ~ year, sum_df,FUN=length)
+# sum_df1$lat_start<-sum_df1$lat_start
+# # Convert survey names to factors and rename
+# obs_df$survey_name <- as.factor(obs_df$survey_name)
+# levels(obs_df$survey_name) <- c('EBSshelf', 'EBSslope', 'NBS')
+# 
+# # Filter to selected surveys, species, and <600m depth
+# obs_df1 <- obs_df %>%
+#   filter(survey_name %in% c('EBSshelf', 'EBSslope', 'NBS') & 
+#            species %in% sel_sp & depth_m <= 600 & 
+#            year %in% bold_years)
+# 
+# # Assign year type (cold vs. warm)
+# obs_df1 <- obs_df1 %>%
+#   mutate(year_type = ifelse(year %in% c(2002, 2004, 2016), "warm", "cold"),
+#          year_type = factor(year_type, levels = c("cold", "warm")))  # Ensure proper factor levels
+# 
+# # Map species scientific names to common names
+# obs_df1$common <- factor(df_sp$common[match(obs_df1$species, df_sp$sci)], 
+#                          levels = c("Alaska pollock", "Greenland turbot", "Pacific cod", "Snow crab"))
+# 
+# # Ensure no NA values in cpue_kgkm2 and depth_m
+# obs_df1 <- obs_df1 %>% filter(!is.na(cpue_kgkm2) & !is.na(depth_m))
+# 
+# # Bin depths
+# obs_df1$depth_bin <- cut(obs_df1$depth_m, breaks = seq(0, 600, by = 25), include.lowest = TRUE)
+# 
+# #get probs for each
+# prob_df <- obs_df1 %>%
+#   group_by(common, year_type, depth_bin) %>%
+#   summarise(
+#     n_present = sum(cpue_kgkm2 > 0),
+#     n_total = n(),
+#     prob_presence = n_present / n_total,
+#     # Extract both bounds and compute midpoint
+#     depth_mid = {
+#       nums <- as.numeric(unlist(str_extract_all(depth_bin, "\\d+\\.*\\d*")))
+#       mean(nums)
+#     },
+#     .groups = "drop"
+#   )
+# 
+# # Plot smoothed probability of presence
+# p <- 
+#   ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
+#   geom_point(alpha = 0.5) +  # Show raw probabilities
+#   geom_smooth(method = "loess", se = FALSE) +  # Smooth probability trend
+#     coord_cartesian(ylim = c(0, 1))+
+#   labs(x = 'depth (m)', y = 'probability of occurrence') +
+#   #scale_y_continuous(limits = c(0, 1)) +  # Ensure probability scale from 0 to 1
+#   scale_x_continuous(limits = c(0, 600),expand = c(0,0),breaks = c(100,300,500))+#,) +
+#   scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
+#                      labels = c("cold", "warm"),
+#                      name = 'SBT regime') +
+#   #scale_y_continuous( )+
+#   theme_bw() +
+#   theme(strip.text = element_text(size = 12),
+#         strip.background = element_blank(),
+#         text = element_text(size = 12)) +
+#   facet_wrap(~common)
+# 
+# print(p)
+# 
+# #save env plot
+# agg_png(paste0('.figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
+# print(p)
+# dev.off()
+# 
+# # Ensure year_type and common are treated as factors
+# prob_df <- prob_df %>%
+#   mutate(year_type = factor(year_type),
+#          common = factor(common))
+# 
+# # Reshape to wide format: one column for warm, one for cold
+# prob_wide <- prob_df %>%
+#   dplyr::select(common, year_type, depth_bin, prob_presence) %>%
+#   pivot_wider(names_from = year_type, values_from = prob_presence)
+# 
+# # Run Wilcoxon signed-rank test for each species (paired across depth bins)
+# test_results_prob <- prob_wide %>%
+#   group_by(common) %>%
+#   filter(!is.na(warm) & !is.na(cold)) %>%
+#   summarise(
+#     wilcox_p = tryCatch(wilcox.test(warm, cold)$p.value, error = function(e) NA),
+#     .groups = "drop"
+#   )
 # 
 # # View results
 # print(test_results_prob)
@@ -488,10 +487,9 @@ agg_png(paste0('.figures/slope/depth_distribution_occurrence3.png'), width = 7, 
 print(p)
 dev.off()
 
-#load files density slope and shelf data 
 
 
-# Depth distribution occurrence pred #####
+# Depth distribution occurrence pred ##### ----
 
 #change to predicted from the OMs (so open each OM for these 4 species, get predicted values with depth and associated temp and plot)
 load('data/data_processed/dens_sel.RData')
@@ -601,9 +599,6 @@ mean_dens_df <- dens_all %>%
           strip.background = element_blank(),
           text             = element_text(size = 12)) +
     facet_wrap(~common, scales = "free_y")
-
-  library(ggplot2)
-  library(mgcv)
   
   p <- ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
     geom_point(alpha = 0.5) +  # raw points
@@ -703,8 +698,11 @@ agg_png(paste0('.figures/slope/depth_distribution_density3.png'), width = 7, hei
 print(p)
 dev.off()
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 #load file observed dataframe input 
-load('./output slope//obs_df.RData') #obs_df
+load('data/data_processed/obs_df.RData') #obs_df
 
 #survey as factors and rename
 obs_df$survey_name<-as.factor(obs_df$survey_name)
@@ -849,7 +847,6 @@ label_df_pos <- label_df %>%
   left_join(top_y_df, by = "common")
 
 
-library(ggplot2)
 
 p <- 
   ggplot(mean_dens_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
@@ -886,7 +883,7 @@ dev.off()
 # fraction of abundance ####
 
 #load file index of selected species
-load('./ind_sel.RData') #ind_all
+load('data/data_processed/ind_sel.RData') #ind_all
 
 #reshape index
 ind_all1<-melt(ind_all,id.vars=c('year','species'))
@@ -949,7 +946,7 @@ print(p)
 dev.off()
 
 #load files density slope and shelf data 
-load('./output slope/species/ms_sim_dens_all.RData')  #sim_dens1
+load('./output/slope/species/ms_sim_dens_all.RData')  #sim_dens1
 dimnames(sim_dens1)
 
 #subset years and species densities
@@ -957,9 +954,9 @@ dens<-sim_dens1[,sel_sp,as.character(2002:2022),]
 dimnames(dens)
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-#load('./extrapolation grids/bering_sea_slope_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+#load('data/extrapolation_grids/bering_sea_slope_grid.rda')
 #colnames(bering_sea_slope_grid)[4]<-'Stratum'
 #bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1064,7 +1061,7 @@ dev.off()
 # COG observed #######
 
 # Load data
-load('./output slope//obs_df.RData')
+load('./output/slope//obs_df.RData')
 
 # Convert survey names to factors and rename
 obs_df$survey_name <- as.factor(obs_df$survey_name)
@@ -1165,7 +1162,7 @@ test_results_cog <- lapply(cog_vars, function(var) {
   dplyr::select(species, metric, p_value)
 
 
-# COG pred ####
+# COG pred #### ----
 
 #change to predicted from the OMs (so open each OM for these 4 species, get predicted values with depth and associated temp and plot)
 load('data/data_processed/dens_sel.RData')
@@ -1288,40 +1285,38 @@ metrics_df$year_type<-ifelse(metrics_df$Year %in% c(2002:2005,2014:2016),'warm',
 metrics_df$common<-df_sp$common[match(metrics_df$species, df_sp$sci)]
 metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland turbot","Pacific cod","Snow crab" ))
 
-
-p1<-
-  ggplot(data = subset(metrics_df, species %in% sel_sp)) + 
-  # Adding 2D density contours with color based on mean_temp
-    
-  geom_point(aes(x = COG_depth, y = COG_lat, color = mean_temp, group = mean_temp),size=3
-                  ) +  # Change 'bins' to adjust the number of contours
-    geom_point(aes(x = COG_depth, y = COG_lat, group = mean_temp),color='black',shape=1,alpha=0.5,size=3) + 
-  theme_bw() + 
-  labs(x = 'bathymetrical COG (m)', y = 'latitudinal COG (°)') + 
-  theme(
-    aspect.ratio = 1,
-    text = element_text(size = 12),
-    strip.background = element_blank(),
-    strip.text = element_text(size = 12),
-    panel.grid.minor = element_line(linetype = 'dashed')
-  ) + 
-  scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)',
-                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
-  # scale_size(name = 'abundance', breaks = c(min(summary_stats$mean_scaledbio), 
-  #                                           mean(summary_stats$mean_scaledbio), 
-  #                                           max(summary_stats$mean_scaledbio)), 
-  #            labels = c('low', 'medium', 'high'), range = c(2, 10)) + 
-  scale_x_continuous(expand = expansion(mult = 0.1)) + 
-  scale_y_continuous(expand = expansion(mult = 0.1)) + 
-  facet_wrap(~common,scales='free')
-  
-  agg_png(paste0('.figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
-  print(p1)
-  dev.off()
+# 
+# p1<-
+#   ggplot(data = subset(metrics_df, species %in% sel_sp)) + 
+#   # Adding 2D density contours with color based on mean_temp
+#     
+#   geom_point(aes(x = COG_depth, y = COG_lat, color = mean_temp, group = mean_temp),size=3
+#                   ) +  # Change 'bins' to adjust the number of contours
+#     geom_point(aes(x = COG_depth, y = COG_lat, group = mean_temp),color='black',shape=1,alpha=0.5,size=3) + 
+#   theme_bw() + 
+#   labs(x = 'bathymetrical COG (m)', y = 'latitudinal COG (°)') + 
+#   theme(
+#     aspect.ratio = 1,
+#     text = element_text(size = 12),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size = 12),
+#     panel.grid.minor = element_line(linetype = 'dashed')
+#   ) + 
+#   scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)',
+#                         guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
+#   # scale_size(name = 'abundance', breaks = c(min(summary_stats$mean_scaledbio), 
+#   #                                           mean(summary_stats$mean_scaledbio), 
+#   #                                           max(summary_stats$mean_scaledbio)), 
+#   #            labels = c('low', 'medium', 'high'), range = c(2, 10)) + 
+#   scale_x_continuous(expand = expansion(mult = 0.1)) + 
+#   scale_y_continuous(expand = expansion(mult = 0.1)) + 
+#   facet_wrap(~common,scales='free')
+#   
+#   agg_png(paste0('.figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+#   print(p1)
+#   dev.off()
   
   #wilcoxon for pred 
-  
-  library(dplyr)
   
   # Add depth range to metrics_df
   metrics_df <- metrics_df %>%
@@ -1463,15 +1458,14 @@ p1<-
     #   inherit.aes = FALSE,
     #   size = 3.5,lineheight = 0.8
     # )
-
-
-  
   agg_png(paste0('.figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
+  
+  
   # Load data
-load('./output slope//obs_df.RData')
+load('data/data_processed/obs_df.RData')
 
 #data.table
 sum_df<-obs_df
@@ -1628,9 +1622,9 @@ obs_df1$depth_bin <- cut(obs_df1$depth_m, breaks = seq(0, 600, by = 25), include
 # SIMULATED METRICS ####
   
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/bering_sea_slope_grid.rda')
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1641,8 +1635,8 @@ grid2<-grid
 grid<-grid2[,c('Lat','Lon','region','cell')]
 
 #load files density slope and shelf data 
-load('./output slope/species/ms_sim_dens_all.RData')  #sim_dens1
-load('./output slope/grid_EBS_NBS_envs.RData') #xx
+load('./output/slope/species/ms_sim_dens_all.RData')  #sim_dens1
+load('data/data_processed/grid_EBS_NBS_envs.RData') #xx
 
 #df to store results
 metrics_df<-data.frame(matrix(NA,nrow = 0,ncol=16))
@@ -1741,8 +1735,8 @@ for (y in yrs) {
 }
 
 #save table
-save(metrics_df,file='./output slope/simulated_metrics.RData')
-load(file='./output slope/simulated_metrics.RData') #metrics_df
+save(metrics_df,file='./output/slope/simulated_metrics.RData')
+load(file='./output/slope/simulated_metrics.RData') #metrics_df
 
 #aggregate by year and species
 aggregate(q10 ~ species + Year, metrics_df,FUN=length)
@@ -1923,8 +1917,7 @@ p1<-
   print(p1)
   dev.off()
   
-  library(ggplot2)
-  library(dplyr)
+
   
   summary_points <- metrics_df %>%
     filter(species %in% sel_sp) %>%
@@ -2016,54 +2009,52 @@ rect_data <- data.frame(xmin = c(2002, 2005.5, 2013.5),
                         fill = factor(c("warm", "cold", "warm")))
 
 
-# effective area occupied ####
-
-library(ggplot2)
-
-# Create a data frame for the rectangles
-rect_data <- data.frame(
-  xmin = c(-Inf, 2013.5, 2005.5),
-  xmax = c(2005.5, Inf, 2013.5),
-  ymin = rep(-Inf, 3),
-  ymax = rep(Inf, 3),
-  fill = c("warm", "warm", "cold")  # Labels for the legend
-)
-
-#get common
-metrics_df$common<-df_sp$common[match(metrics_df$species, df_sp$sci)]
-metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland turbot","Pacific cod","Snow crab" ))
-
-p <- 
-  ggplot(data = metrics_df) + 
-  # Use geom_rect to add rectangles with fill aesthetics
-  geom_rect(data = rect_data, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill), alpha = 0.5) +
-  #geom_line(aes(x = Year, y = total_bio / mean_dens / 1000, group = sim), color = 'black', alpha = 0.3) +  # Convert to thousands
-  #geom_point(aes(x = Year, y = total_bio / mean_dens / 1000, group = sim), color = 'black', alpha = 0.3) +  # Convert to thousands
-  geom_boxplot(aes(x = Year, y = total_bio / mean_dens / 1000, group = Year), color = 'black', alpha = 0.3) +  # Convert to thousands
-    
-  labs(x = '', y = 'effective area occupied (thousands km²)') +  # Adjust y-axis label
-  theme_bw() + 
-  scale_x_continuous(breaks = bold_years,minor_breaks = c(2002:2016), expand = c(0, 0.5)) + 
-  scale_y_continuous(labels = comma) +  # Add commas to y-axis numbers
-  theme(aspect.ratio = 1, 
-        strip.background = element_blank(), 
-        strip.text = element_text(size = 12), 
-        axis.text.x = element_text(angle = 45, hjust = 0.7, vjust = 0.8),
-        text = element_text(size = 12)) +   
-  facet_wrap(~common, nrow = 2, scales = 'free') + 
-  scale_fill_manual(values = c("warm" = "#cc1d1f", "cold" = "#1675ac"), 
-                    name = "SBT regime") + 
-  theme(legend.position = 'right')  # Position the legend on the right
-
-
-#save env plot
-agg_png(paste0('.figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
-print(p)
-dev.off()
+# # effective area occupied ####
+# 
+# 
+# # Create a data frame for the rectangles
+# rect_data <- data.frame(
+#   xmin = c(-Inf, 2013.5, 2005.5),
+#   xmax = c(2005.5, Inf, 2013.5),
+#   ymin = rep(-Inf, 3),
+#   ymax = rep(Inf, 3),
+#   fill = c("warm", "warm", "cold")  # Labels for the legend
+# )
+# 
+# #get common
+# metrics_df$common<-df_sp$common[match(metrics_df$species, df_sp$sci)]
+# metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland turbot","Pacific cod","Snow crab" ))
+# 
+# p <- 
+#   ggplot(data = metrics_df) + 
+#   # Use geom_rect to add rectangles with fill aesthetics
+#   geom_rect(data = rect_data, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill), alpha = 0.5) +
+#   #geom_line(aes(x = Year, y = total_bio / mean_dens / 1000, group = sim), color = 'black', alpha = 0.3) +  # Convert to thousands
+#   #geom_point(aes(x = Year, y = total_bio / mean_dens / 1000, group = sim), color = 'black', alpha = 0.3) +  # Convert to thousands
+#   geom_boxplot(aes(x = Year, y = total_bio / mean_dens / 1000, group = Year), color = 'black', alpha = 0.3) +  # Convert to thousands
+#     
+#   labs(x = '', y = 'effective area occupied (thousands km²)') +  # Adjust y-axis label
+#   theme_bw() + 
+#   scale_x_continuous(breaks = bold_years,minor_breaks = c(2002:2016), expand = c(0, 0.5)) + 
+#   scale_y_continuous(labels = comma) +  # Add commas to y-axis numbers
+#   theme(aspect.ratio = 1, 
+#         strip.background = element_blank(), 
+#         strip.text = element_text(size = 12), 
+#         axis.text.x = element_text(angle = 45, hjust = 0.7, vjust = 0.8),
+#         text = element_text(size = 12)) +   
+#   facet_wrap(~common, nrow = 2, scales = 'free') + 
+#   scale_fill_manual(values = c("warm" = "#cc1d1f", "cold" = "#1675ac"), 
+#                     name = "SBT regime") + 
+#   theme(legend.position = 'right')  # Position the legend on the right
+# 
+# 
+# #save env plot
+# agg_png(paste0('.figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
+# print(p)
+# dev.off()
 
 # interdecile depth ####
 
-library(ggplot2)
 library(ggridges)
 
 # Define a custom color scale function
@@ -2175,14 +2166,7 @@ ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
   ) +
   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
 
-library(ggplot2)
-library(dplyr)
-library(tidyr)
 
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(purrr)
 
 # Define custom bandwidth values for each 'common' group (example values)
 bandwidth_values <- data.frame(
@@ -2396,9 +2380,8 @@ dev.off()
 
 
 
-# interdecile depth pred ####
+# interdecile depth pred #### ----
 
-library(ggplot2)
 library(ggridges)
 
 # Define a custom color scale function
@@ -2461,7 +2444,7 @@ depth_labels <- sampled_df %>%
       paste0("Q90: ", round(mean_q90, 0), "\nQ10: ", round(mean_q10, 0)),
       paste0("Q90: ", round(mean_q90, 0), "\n Q10: ", round(mean_q10, 0))  # leading space on Q10
     )
-  )library(ggplot2)
+  )
 
 ggplot(metrics_df, aes(x = depth_range, y = Year, color = mean_temp)) +
   geom_point(size = 3, alpha = 0.8) +
@@ -2482,8 +2465,6 @@ ggplot(metrics_df, aes(x = depth_range, y = Year, color = mean_temp)) +
     legend.position = "bottom"
   )
 
-
-library(ggplot2)
 
 ggplot(metrics_df, aes(x = depth_range, y = Year, color = mean_temp)) +
   geom_point(size = 3, alpha = 0.8) +
@@ -2540,7 +2521,7 @@ ggplot(metrics_df, aes(y = Year)) +
   )
 
 
-library(dplyr)
+
 
 metrics_df <- metrics_df %>%
   group_by(common) %>%
@@ -2927,12 +2908,7 @@ ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
   ) +
   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
 
-library(ggplot2)
-library(dplyr)
-library(tidyr)
 
-library(ggplot2)
-library(dplyr)
 library(tidyr)
 library(purrr)
 
@@ -2968,7 +2944,6 @@ density_df <- density_df %>%
   mutate(rescaled_y_vals = y_vals / max(y_vals, na.rm = TRUE) * global_max_y)
 
 # Step 3: Plot with the rescaled y-values
-library(dplyr)
 
 # Sample 10000 points
 sampled_df <- density_df %>%
@@ -3146,16 +3121,12 @@ dev.off()
 
 #background stratification figure ####
 
-library(ggplot2)
-
 # Dummy data for the plot (replace with your actual data)
 df <- data.frame(
   Year = 2000:2020,
   Value = rnorm(21)
 )
 
-library(ggplot2)
-library(ggplot2)
 
 # Define rectangles and labels
 rects <- data.frame(
@@ -3211,7 +3182,6 @@ ggplot() +
   labs(x = "year", y = "",title='environmentally informed stratification')
 
 
-  library(ggplot2)
 
 rects <- data.frame(
   xmin = 2002,
