@@ -3,9 +3,9 @@
 ##
 ##    Script #1 
 ##    Get raw data from bottom trawl survey EBS, NBS and slope
-##    Plot sea bottom temperature time series in the regions
+##    Plot in situ sea bottom temperature time series in the regions
 ##    Create data_geostat file to fit OM VAST 
-##    *sea bottom temperature is appended in the next script (#3)
+##    sea bottom temperature is appended in the next script (#3)
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com/dvilasg@uw.edu/daniel.vilas@noaa.gov)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, Lukas Defilippo, Andre Punt
 ##
@@ -61,6 +61,7 @@ spp<-c('Limanda aspera',
            'Chionoecetes bairdi',
            'Sebastes alutus',
            'Sebastes melanostictus',
+           'Sebastes aleutianus',
            'Atheresthes evermanni',
            'Sebastes borealis',
            'Sebastolobus alascanus',
@@ -98,29 +99,31 @@ dim(bering_sea_slope_grid)
 catch<-readRDS('data/data_raw/afsc_catch_raw_2023_2_21.rds')
 
 #check for names - based on important spp for the slope (all that we have + Blackspotted/rougheye and POP)
-unique(catch$common_name)[grep('perch',unique(catch$common_name))] #Pacific ocean perch
-unique(catch$common_name)[grep('blackspotted',unique(catch$common_name))] #"rougheye and blackspotted rockfish unid." "blackspotted rockfish"
-unique(catch[which(catch$common_name=='Pacific ocean perch'),'scientific_name']) #Sebastes alutus
-unique(catch[which(catch$common_name=='rougheye and blackspotted rockfish unid.'),'scientific_name']) #NA - to arrange
-unique(catch[which(catch$common_name=='blackspotted rockfish'),'scientific_name']) #Sebastes melanostictus
+# unique(catch$common_name)[grep('perch',unique(catch$common_name))] #Pacific ocean perch
+# unique(catch$common_name)[grep('blackspotted',unique(catch$common_name))] #"rougheye and blackspotted rockfish unid." "blackspotted rockfish"
+# unique(catch[which(catch$common_name=='Pacific ocean perch'),'scientific_name']) #Sebastes alutus
+# unique(catch[which(catch$common_name=='rougheye and blackspotted rockfish unid.'),'scientific_name']) #NA - to arrange
+# unique(catch[which(catch$common_name=='blackspotted rockfish'),'scientific_name']) #Sebastes melanostictus
+# unique(catch[which(catch$common_name=='rougheye rockfish'),'scientific_name']) #"Sebastes aleutianus"
 
-#add scientific_name to 'rougheye and blackspotted rockfish unid.'
+# #most northern rock sole was missidentified before 1996
+# unique(catch$common_name)[grepl('rock sole',unique(catch$common_name))]
+# subset(catch, common_name=='rock sole unid.')
+
+# #check other spp
+# unique(catch$common_name)[grep('shortraker',unique(catch$common_name))] #shortraker rockfish - #Sebastes borealis
+# #catch[which(catch$common_name=='shortraker rockfish'),]
+# unique(catch$common_name)[grep('shortspine',unique(catch$common_name))] #shortspine thornyhead - #Sebastolobus alascanus
+# #catch[which(catch$common_name=='shortspine thornyhead'),]
+# unique(catch$common_name)[grep('sole',unique(catch$common_name))] #rex sole - #Glyptocephalus zachirus
+# #catch[which(catch$common_name=='rex sole'),]
+# unique(catch$common_name)[grep('Aleutian skate',unique(catch$common_name))] #Aleutian skate - #"Bathyraja aleutica"
+# catch[which(catch$common_name=='Aleutian skate'),]
+# sort(unique(catch$common_name))
+
+#combine rougheye and blackspotted by assigning all three the backspotted scientific name
 catch$scientific_name[catch$common_name == 'rougheye and blackspotted rockfish unid.'] <- 'Sebastes melanostictus'
-
-#most northern rock sole was missidentified before 1996
-unique(catch$common_name)[grepl('rock sole',unique(catch$common_name))]
-subset(catch, common_name=='rock sole unid.')
-
-#check other spp
-unique(catch$common_name)[grep('shortraker',unique(catch$common_name))] #shortraker rockfish - #Sebastes borealis
-#catch[which(catch$common_name=='shortraker rockfish'),]
-unique(catch$common_name)[grep('shortspine',unique(catch$common_name))] #shortspine thornyhead - #Sebastolobus alascanus
-#catch[which(catch$common_name=='shortspine thornyhead'),]
-unique(catch$common_name)[grep('sole',unique(catch$common_name))] #rex sole - #Glyptocephalus zachirus
-#catch[which(catch$common_name=='rex sole'),]
-unique(catch$common_name)[grep('Aleutian skate',unique(catch$common_name))] #Aleutian skate - #"Bathyraja aleutica"
-catch[which(catch$common_name=='Aleutian skate'),]
-sort(unique(catch$common_name))
+catch$scientific_name[catch$common_name == 'rougheye rockfish'] <- 'Sebastes melanostictus'
 
 #filter by species
 catch1<-subset(catch,scientific_name %in% spp)
@@ -140,13 +143,23 @@ catch3<-cbind('hauljoin'=catch21$hauljoin,
 catch1<-subset(catch1,scientific_name != "Sebastes melanostictus")
 catch1<-rbind(catch1,catch3)
 
+#replace rock sole unid with northern rock sole since assessment goes to 1982 and most of
+#unidentified are northern rock sole except for the far southern boundary
+catch1$scientific_name[catch1$scientific_name == 'Lepidopsetta sp.'] <- 'Lepidopsetta polyxystra'
+catch1<-subset(catch1, common_name != "rock sole unid.")
+
+#remove lumped species from spp vector
+spp<-spp[spp!='Sebastes aleutianus']
+spp<-spp[spp!='Lepidopsetta sp.']
+
+#check 
 length(unique(catch1$scientific_name))==length(spp)
 
 #####################################
 # Merge catch and haul dataframes
 #####################################
-#if there are 19 selected spp and 16693 hauls in slope EBS, shelf EBS and NBS
-#then 19*16693=317167 rows for the dataframe
+#if there are 23 selected spp and 16693 hauls in slope EBS, shelf EBS and NBS
+#then 23*16693=383939 rows for the dataframe
 
 #create the empty df 
 haul1<-do.call("rbind", replicate(length(spp), haul, simplify = FALSE))
@@ -169,7 +182,7 @@ head(all1)
 summary(all1)
 
 #####################################
-# Create data_geostat file that fit OM
+# Create data_geostat file as input to fit OM ----
 #####################################
 
 #create folder
@@ -180,28 +193,10 @@ dir.create('data/data_processed/species/',showWarnings = FALSE)
 all1$month<-month(as.POSIXlt(all1$date, format="%d/%m/%Y"))
 all1$year<-year(as.POSIXlt(all1$date, format="%d/%m/%Y"))
 
-#check Lepidopsetta sp.
-mm<-subset(all1,scientific_name=='Lepidopsetta sp.')
-mm$year<-lubridate::year(mm$date)
-tapply(mm$count,mm$year,summary)
-
-#remove Lepidopsetta sp. >=1996
-#all1<-all1[-which(all1$scientific_name=='Lepidopsetta sp.' & all1$year>=1996),]
-
-#remove Lepidopsetta sp. <=1995
-all1<-all1[-which(all1$scientific_name=='Lepidopsetta polyxystra' & all1$year<=1995),]
-
-#replace spp rock sole unid
-all1$scientific_name[all1$scientific_name == 'Lepidopsetta sp.'] <- 'Lepidopsetta polyxystra'
-
-#remove from spp vector
-spp<-spp[spp!='Lepidopsetta sp.']
-
-#save data_geostat file
+#save data_geostat file for all species
 saveRDS(all1, paste0('data/data_processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
-#all1<-readRDS(paste0('data/data_processed/species/slope_shelf_EBS_NBS_data_geostat.rds'))
 
-#loop over species to create data_geostat df
+#loop over species to create data_geostat df for each species
 for (sp in spp) {
 
   #sp<-spp[16]
@@ -229,55 +224,54 @@ for (sp in spp) {
 # Plot SBT distribution
 #####################################
 
-#get haul year
-haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
-
-#mean SBT by year
-yearagg.df <- aggregate(data = haul, bottom_temp_c ~ year, mean)
-yearagg.df$TempAnomaly<-NA
-
-#calculate SBT anomaly
-for (i in 2:nrow(yearagg.df)) {
-  yearagg.df[i,'TempAnomaly']<-yearagg.df[i,'bottom_temp_c']-yearagg.df[i-1,'bottom_temp_c']
-}
-
-#plot 1
-#print(
-p<-
-  ggplot() +
-    geom_line(data=yearagg.df, aes(x=year, y=bottom_temp_c),linetype='dashed')+
-    geom_point(data=yearagg.df, aes(x=year, y=bottom_temp_c,color=bottom_temp_c),size=2)+
-    geom_bar(data=yearagg.df, aes(x=year, y=TempAnomaly,fill=TempAnomaly),color='black',stat="identity",position = position_dodge(0.9))+
-    scale_colour_gradient2(low = 'darkblue',high='darkred',midpoint = 2.5)+
-    scale_fill_gradient2(low = 'darkblue',high='darkred',midpoint = 0,breaks=c(-2,-1,0,1,2),limits=c(NA,2))+
-    #xlab(label = 1982:2022)+
-    scale_x_continuous(breaks=c(1982:2022),expand = c(0,0.1))+
-    theme_bw()+
-    labs(y='°C',color='SBT',fill='SBT anomaly',x='')+
-    guides(fill=guide_legend(order = 2),color=guide_legend(order = 1))+
-    theme(panel.grid.minor.x = element_blank(),legend.spacing  = unit(1,'cm'),
-          panel.grid.minor.y = element_line(linetype=2,color='grey90'),axis.text.x = element_text(angle=90,vjust=0.5))
-#)
-
-  #save plot
-  ragg::agg_png(paste0('./figures/SBT anomaly.png'), width = 13, height = 5, units = "in", res = 300)
-  p
-  dev.off()
-  
-#plot 2
-print(
-  ggplot() +
-    geom_density(data=haul, aes(x=bottom_temp_c, group=year))+
-    geom_vline(data=yearagg.df,aes(xintercept=bottom_temp_c,group=year, color=bottom_temp_c),
-               linetype="dashed", size=1)+
-    scale_x_continuous(limits = c(-2,8),breaks =c(-1,1,3,5,7))+
-    scale_colour_gradient2(low = 'darkblue',high='darkred',midpoint = 2.5)+
-    #geom_text(data=yearagg.df,aes(label=paste0('mean BotTemp = ',round(bottom_temp_c,digits = 2)),x = 10,y=0.43))+
-    facet_wrap(~year,nrow = 3)+
-    labs(x='°C',y='',color='SBT')+
-    theme_bw())
-
-
+# #get haul year
+# haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
+# 
+# #mean SBT by year
+# yearagg.df <- aggregate(data = haul, bottom_temp_c ~ year, mean)
+# yearagg.df$TempAnomaly<-NA
+# 
+# #calculate SBT anomaly
+# for (i in 2:nrow(yearagg.df)) {
+#   yearagg.df[i,'TempAnomaly']<-yearagg.df[i,'bottom_temp_c']-yearagg.df[i-1,'bottom_temp_c']
+# }
+# 
+# #plot 1
+# #print(
+# p<-
+#   ggplot() +
+#     geom_line(data=yearagg.df, aes(x=year, y=bottom_temp_c),linetype='dashed')+
+#     geom_point(data=yearagg.df, aes(x=year, y=bottom_temp_c,color=bottom_temp_c),size=2)+
+#     geom_bar(data=yearagg.df, aes(x=year, y=TempAnomaly,fill=TempAnomaly),color='black',stat="identity",position = position_dodge(0.9))+
+#     scale_colour_gradient2(low = 'darkblue',high='darkred',midpoint = 2.5)+
+#     scale_fill_gradient2(low = 'darkblue',high='darkred',midpoint = 0,breaks=c(-2,-1,0,1,2),limits=c(NA,2))+
+#     #xlab(label = 1982:2022)+
+#     scale_x_continuous(breaks=c(1982:2022),expand = c(0,0.1))+
+#     theme_bw()+
+#     labs(y='°C',color='SBT',fill='SBT anomaly',x='')+
+#     guides(fill=guide_legend(order = 2),color=guide_legend(order = 1))+
+#     theme(panel.grid.minor.x = element_blank(),legend.spacing  = unit(1,'cm'),
+#           panel.grid.minor.y = element_line(linetype=2,color='grey90'),axis.text.x = element_text(angle=90,vjust=0.5))
+# #)
+# 
+#   #save plot
+#   ragg::agg_png(paste0('./figures/SBT anomaly.png'), width = 13, height = 5, units = "in", res = 300)
+#   p
+#   dev.off()
+#   
+# #plot 2
+# print(
+#   ggplot() +
+#     geom_density(data=haul, aes(x=bottom_temp_c, group=year))+
+#     geom_vline(data=yearagg.df,aes(xintercept=bottom_temp_c,group=year, color=bottom_temp_c),
+#                linetype="dashed", size=1)+
+#     scale_x_continuous(limits = c(-2,8),breaks =c(-1,1,3,5,7))+
+#     scale_colour_gradient2(low = 'darkblue',high='darkred',midpoint = 2.5)+
+#     #geom_text(data=yearagg.df,aes(label=paste0('mean BotTemp = ',round(bottom_temp_c,digits = 2)),x = 10,y=0.43))+
+#     facet_wrap(~year,nrow = 3)+
+#     labs(x='°C',y='',color='SBT')+
+#     theme_bw())
+# 
 #' 
 #' 
 #' ################################################################
