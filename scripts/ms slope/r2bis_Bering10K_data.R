@@ -484,7 +484,11 @@ ggplot(data_geostat, aes(x=Temp, y=bottom_temp_c)) +
   geom_point(shape=18, color="blue")+
   stat_cor(method = "pearson", label.x = 0, label.y = 20)+
   geom_smooth(method=lm,  linetype="dashed",
-              color="darkred", fill="blue")
+              color="darkred", fill="blue") +
+  geom_abline(intercept = 0, slope = 1) +
+  #coord_fixed() +
+  xlab('ROMS') +
+  ylab('insitu')
 
 
 # ##########################################################################
