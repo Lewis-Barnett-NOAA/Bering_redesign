@@ -481,15 +481,15 @@ data_geostat<-
 #plot check temperatures
 plot(x=data_geostat$Temp,y=data_geostat$bottom_temp_c,xlab='ROMS',ylab='insitu')
 ggplot(data_geostat, aes(x=Temp, y=bottom_temp_c)) + 
-  geom_point(shape=18, color="blue")+
+  geom_point(shape=18, color="blue", alpha = 0.5)+
   stat_cor(method = "pearson", label.x = 0, label.y = 20)+
   geom_smooth(method=lm,  linetype="dashed",
-              color="darkred", fill="blue") +
+              color="darkred") +
   geom_abline(intercept = 0, slope = 1) +
-  #coord_fixed() +
-  xlab('ROMS') +
-  ylab('insitu')
-
+  coord_fixed() +
+  xlab('ROMS temp C') +
+  ylab('in situ temp C')
+ggsave("figures/roms_insitu_temp_compare.png")
 
 # ##########################################################################
 # # Loop over years to get the prey!!!
