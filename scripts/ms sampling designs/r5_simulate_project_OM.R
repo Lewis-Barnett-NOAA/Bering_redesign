@@ -118,15 +118,15 @@ id.data<-files.3[which(files.3$name=='OM EBS+NBS'),'id']
 files.4<-googledrive::drive_ls(id.data$id)
 
 #get list of fit data
-dir.create(paste0('./shelf EBS NBS VAST/'))
+dir.create(paste0('./output/vast/'))
 
 ###################################
 # Grid EBS+NBS
 ###################################
 
 #load grid of NBS and EBS
- load('./extrapolation grids/northern_bering_sea_grid.rda')
- load('./extrapolation grids/eastern_bering_sea_grid.rda')
+ northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+ eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
  grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
  grid$cell<-1:nrow(grid)
  
@@ -162,7 +162,7 @@ samp_df<-rbind(samp_df,c('baseline','current',520,15,'scnbase'),
 ###################################
  
 #save SBT table
-load('./tables/SBT_projection.RData')#df_sbt
+load('output/tables/SBT_projection.RData')#df_sbt
  
 #name scenario
 df_sbt$sbt<-paste0('SBT',df_sbt$sbt_n)
@@ -198,10 +198,10 @@ for (sp in spp) {
   dir.create(paste0('./output/species/',sp,'/'))
   
   #get list of fit data
-  ff<-list.files(paste0('./shelf EBS NBS VAST/',sp),'fit',recursive = TRUE)
+  ff<-list.files(paste0('./output/vast/',sp),'fit',recursive = TRUE)
   
   #load fit file
-  load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+  load(paste0('./output/vast/',sp,'/',ff)) #fit
   #getLoadedDLLs() #if check loaded DLLs
   
   ##reload model
@@ -219,10 +219,10 @@ for (sp in spp) {
   # 
   # #download file
   # googledrive::drive_download(file=file$id,
-  #                             path = paste0('./shelf EBS NBS VAST/',sp,'/data_geostat_temp.rds'),
+  #                             path = paste0('./output/vast/',sp,'/data_geostat_temp.rds'),
   #                             overwrite = TRUE)
   # 
-  # data_geostat<-readRDS(paste0('./shelf EBS NBS VAST/',sp,'/data_geostat_temp.rds'))
+  # data_geostat<-readRDS(paste0('./output/vast/',sp,'/data_geostat_temp.rds'))
   
   #predictions
   #d_i<-fit$Report$D_i #nrow(fit$data_frame)
@@ -374,10 +374,10 @@ for (sp in spp) {
   dir.create(paste0('./output/species/',sp,'/'))
   
   #get list of fit data
-  ff<-list.files(paste0('./shelf EBS NBS VAST/',sp),'fit',recursive = TRUE)
+  ff<-list.files(paste0('./output/vast/',sp),'fit',recursive = TRUE)
   
   #load fit file
-  load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit 
+  load(paste0('./output/vast/',sp,'/',ff)) #fit 
   #create folder simulation data
   dir.create(paste0('./output/species/',sp,'/simulated projected data/'))
   
@@ -435,7 +435,7 @@ for (sp in spp) {
     
     #project model example
      pm<-VAST::project_model(x = fit,
-                             working_dir = paste0('./shelf EBS NBS VAST/',sp,'/'),
+                             working_dir = paste0('./output/vast/',sp,'/'),
                              n_proj = n_proj,
                              n_samples = n_sim_proj/2, #n_sim_proj=100
                              new_covariate_data = new_data,
@@ -462,7 +462,7 @@ for (sp in spp) {
      
      #project model example
      pm<-VAST::project_model(x = fit,
-                             working_dir = paste0('./shelf EBS NBS VAST/',sp,'/'),
+                             working_dir = paste0('./output/vast/',sp,'/'),
                              n_proj = n_proj,
                              n_samples = n_sim_proj/2, #n_sim_proj?
                              new_covariate_data = new_data,

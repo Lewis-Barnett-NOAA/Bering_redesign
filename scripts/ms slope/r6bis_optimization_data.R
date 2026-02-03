@@ -33,9 +33,9 @@ pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
+#out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
 #out_dir<-'/Users/daniel/Work/VM' #VM
-setwd(out_dir)
+#setwd(out_dir)
 
 #version VAST (cpp)
 version<-'VAST_v14_0_1'
@@ -95,7 +95,7 @@ spp1<-c('Yellowfin sole',
 # convergenced spp
 ###############################
 
-df_conv<-read.csv('./tables/slope_conv.csv')
+df_conv<-read.csv('output/tables/slope_conv.csv')
 
 # spp_conv_slope<-c(
 #   df_conv[which(df_conv$slope=='There is no evidence that the model is not converged'),'spp'],
@@ -117,8 +117,8 @@ names(grid.ebs_year)[7]<-'Depth'
 
 #remove slope grid
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 
@@ -166,11 +166,11 @@ for (sp in spp) {
   #print scenario to check progress
   cat(paste(" #############   Species", sp, match(sp,spp), 'out of',length(spp),  "  #############\n"))
   
-  #create folder optimization data
+  #create folder optimization_data
   dir.create(paste0('./output/species/',sp))
   
-  #create folder optimization data
-  dir.create(paste0('./output/species/',sp,'/optimization data/'))
+  #create folder optimization_data
+  dir.create(paste0('./output/species/',sp,'/optimization_data/'))
   
   
   if (sp %in% spp_conv_ebsnbs) {
@@ -180,11 +180,11 @@ for (sp in spp) {
     ###################################
     
     #fit file
-    ff<-list.files(paste0('./shelf EBS NBS VAST/',sp,'/'),'fit',recursive=TRUE)
+    ff<-list.files(paste0('./output/vast/',sp,'/'),'fit',recursive=TRUE)
     
     
     #load fit file
-    load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/vast/',sp,'/',ff)) #fit
     
     #################################################
     # ARRANGE PREDICTED DENSITIES FROM OM
@@ -324,13 +324,13 @@ for (sp in spp) {
                     'static'=D6)
   
   #save results list
-  save(input_optim,file=paste0('./output/species/',sp,'/optimization data/optimization_static_data_ebsnbs.RData'))
+  save(input_optim,file=paste0('./output/species/',sp,'/optimization_data/optimization_static_data_ebsnbs.RData'))
   
   #save results list
-  save(CPUE_index,file=paste0('./output/species/',sp,'/optimization data/OM_CPUE_index_ebsnbs.RData'))
+  save(CPUE_index,file=paste0('./output/species/',sp,'/optimization_data/OM_CPUE_index_ebsnbs.RData'))
   
   #save results list
-  save(tdf,file=paste0('./output/species/',sp,'/optimization data/fit_temporal_data_ebsnbs.RData'))
+  save(tdf,file=paste0('./output/species/',sp,'/optimization_data/fit_temporal_data_ebsnbs.RData'))
 }
 
 #join optimmization data into a one single for STATIC AND DYNAMIC
@@ -339,7 +339,7 @@ for (sp in spp) {
   #sp<-spp[2]
   
   if (sp==spp[1]) {
-    load(paste0('./output/species/',sp,'/optimization data/optimization_static_data_ebsnbs.RData'))
+    load(paste0('./output/species/',sp,'/optimization_data/optimization_static_data_ebsnbs.RData'))
     st<-input_optim[['static']]
     dyn<-input_optim[['dynamic']]
     dfst<-st[,c("Lat","Lon","cell","Depth","meanTemp","varTemp","include","meanTempF","LonE")]  
@@ -347,7 +347,7 @@ for (sp in spp) {
   }
   
   if (sp %in% setdiff(spp,spp_conv_ebsnbs)){
-    load(paste0('./output/species/',sp,'/optimization data/optimization_static_data_ebsnbs.RData'))
+    load(paste0('./output/species/',sp,'/optimization_data/optimization_static_data_ebsnbs.RData'))
     dens<-data.frame(rep(0,ncells),rep(0,ncells))
     names(dens)<-c(paste0(sp,'_sumDensity'),paste0(sp,'_sumDensity_sq'))
     dfst<-cbind(dfst,dens)
@@ -356,7 +356,7 @@ for (sp in spp) {
     
   } else {
   
-    load(paste0('./output/species/',sp,'/optimization data/optimization_static_data_ebsnbs.RData'))
+    load(paste0('./output/species/',sp,'/optimization_data/optimization_static_data_ebsnbs.RData'))
     st<-input_optim[['static']]
     dyn<-input_optim[['dynamic']]
     densst<-data.frame(st$sumDensity,st$sumDensity_sq)
@@ -368,5 +368,5 @@ for (sp in spp) {
   }
 }
 
-save(dfst,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_st.RData'))
-save(dfdyn,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_dyn.RData'))
+save(dfst,file=paste0('output/slope/multisp_optimization_static_data_ebsnbs_st.RData'))
+save(dfdyn,file=paste0('output/slope/multisp_optimization_static_data_ebsnbs_dyn.RData'))

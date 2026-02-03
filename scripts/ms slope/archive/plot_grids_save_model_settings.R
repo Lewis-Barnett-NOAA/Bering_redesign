@@ -1,7 +1,7 @@
 # plot extrapolation grids -----
 setwd('/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/')
 
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid <- data.frame(eastern_bering_sea_grid)
 #grid1<-data.frame(grid[78:95,])
 grid1<-subset(data.frame(grid),Area_in_survey_km2>13.6 & Area_in_survey_km2<13.8)
@@ -18,10 +18,10 @@ lat_km <- lat_res * 111
 
 gridebs <- data.frame(eastern_bering_sea_grid)
 #gridebs<-subset(data.frame(gridebs),Area_in_survey_km2==13.71962)
-load('./extrapolation grids/northern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
 gridnbs <- data.frame(northern_bering_sea_grid)
 
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 gridslope <- data.frame(bering_sea_slope_grid)
 
 library(ggplot2)
@@ -43,7 +43,7 @@ ggplot() +
   theme(text = element_text(size = 15))
 
 #save plot
-ragg::agg_png(paste0('.figures/slope/grids1.png'), width = 12, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/grids1.png'), width = 12, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()

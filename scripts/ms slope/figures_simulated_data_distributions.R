@@ -68,9 +68,9 @@ df_sp<-data.frame(sci=sel_sp,
 
   
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -178,7 +178,7 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 # 
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
+# agg_png(paste0('figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
 # print(p)
 # dev.off()
 
@@ -339,7 +339,7 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 # print(p)
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
+# agg_png(paste0('figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
 # print(p)
 # dev.off()
 # 
@@ -440,54 +440,70 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 #     wilcox_fdr = p.adjust(wilcox_p, method = "fdr")
 #   )
 
-# Merge p-values with species names
-test_results_named <- test_results_prob %>%
-  left_join(df_sp, by = c("common" = "common"))  # assumes species in test_results is sci
+# # Merge p-values with species names
+# test_results_named <- test_results_prob %>%
+#   left_join(df_sp, by = c("common" = "common"))  # assumes species in test_results is sci
+# 
+# # Create labels with p-values
+# label_df <- test_results_prob %>%
+#   mutate(
+#     wilcox_label = case_when(
+#       is.na(wilcox_p) ~ "n/a",
+#       wilcox_p < 0.001 ~ "< 0.001",
+#       TRUE ~ formatC(wilcox_p, format = "f", digits = 3)
+#     ),
+#     label = paste0("W test\np = ", wilcox_label)
+#   ) %>%
+#   dplyr::select(common, label)
+# 
+# p <- 
+# ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
+#   geom_point(alpha = 0.5) +
+#   geom_smooth(method = "loess", se = FALSE) +
+#   coord_cartesian(ylim = c(0, 1)) +
+#   labs(x = 'depth (m)', y = 'probability of occurrence') +
+#   scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
+#   scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
+#                      labels = c("cold", "warm"),
+#                      name = 'SBT regime') +
+#   theme_bw() +
+#   theme(strip.text = element_text(size = 12),
+#         strip.background = element_blank(),
+#         text = element_text(size = 12)) +
+#   facet_wrap(~common) #+
+#   # geom_text(
+#   #   data = label_df,
+#   #   aes(x = 75, y = 0.50, label = label),
+#   #   inherit.aes = FALSE,
+#   #   size = 3,
+#   #   hjust = 0,
+#   #   vjust = 1,
+#   #   lineheight = 0.8  # Reduce line spacing
+#   # )
+# 
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
+# print(p)
+# dev.off()
 
-# Create labels with p-values
-label_df <- test_results_prob %>%
-  mutate(
-    wilcox_label = case_when(
-      is.na(wilcox_p) ~ "n/a",
-      wilcox_p < 0.001 ~ "< 0.001",
-      TRUE ~ formatC(wilcox_p, format = "f", digits = 3)
-    ),
-    label = paste0("W test\np = ", wilcox_label)
-  ) %>%
-  dplyr::select(common, label)
+#load file observed dataframe input
+load('data/data_processed/obs_df.RData')
+#survey as factors and rename
+obs_df$survey_name<-as.factor(obs_df$survey_name)
+levels(obs_df$survey_name)<-c('EBSshelf','EBSslope','NBS')
 
-p <- 
-ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", se = FALSE) +
-  coord_cartesian(ylim = c(0, 1)) +
-  labs(x = 'depth (m)', y = 'probability of occurrence') +
-  scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
-  scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
-                     labels = c("cold", "warm"),
-                     name = 'SBT regime') +
-  theme_bw() +
-  theme(strip.text = element_text(size = 12),
-        strip.background = element_blank(),
-        text = element_text(size = 12)) +
-  facet_wrap(~common) #+
-  # geom_text(
-  #   data = label_df,
-  #   aes(x = 75, y = 0.50, label = label),
-  #   inherit.aes = FALSE,
-  #   size = 3,
-  #   hjust = 0,
-  #   vjust = 1,
-  #   lineheight = 0.8  # Reduce line spacing
-  # )
+#only presences, EBSshelf+EBSslope and selected species
+obs_df<-subset(obs_df,cpue_kgkm2!=0 &
+                 survey_name %in% c('EBSshelf','EBSslope','NBS') &
+                 species %in% sel_sp)
 
+#filter by cold and warm years
+#obs_df1<-obs_df[which(obs_df$year %in% c(cyrs,wyrs)),]
+obs_df1<-obs_df[which(obs_df$year %in% bold_years),]
 
-#save env plot
-agg_png(paste0('.figures/slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
-print(p)
-dev.off()
-
-
+#year type
+obs_df1$year_type<-ifelse(obs_df1$year %in% c(2002,2004,2016), "warm",'cold')
 
 # Depth distribution occurrence pred ##### ----
 
@@ -694,7 +710,7 @@ ggplot(plot_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -876,7 +892,7 @@ p <-
   )
 
 #save env plot
-agg_png(paste0('.figures/slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -941,7 +957,7 @@ ggplot() +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('.figures/slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -954,9 +970,9 @@ dens<-sim_dens1[,sel_sp,as.character(2002:2022),]
 dimnames(dens)
 
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-#load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+#bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 #colnames(bering_sea_slope_grid)[4]<-'Stratum'
 #bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1054,7 +1070,7 @@ p<-
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('.figures/slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1312,7 +1328,7 @@ metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland
 #   scale_y_continuous(expand = expansion(mult = 0.1)) + 
 #   facet_wrap(~common,scales='free')
 #   
-#   agg_png(paste0('.figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+#   agg_png(paste0('figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
 #   print(p1)
 #   dev.off()
   
@@ -1458,7 +1474,7 @@ metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland
     #   inherit.aes = FALSE,
     #   size = 3.5,lineheight = 0.8
     # )
-  agg_png(paste0('.figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+  agg_png(paste0('figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1622,9 +1638,9 @@ obs_df1$depth_bin <- cut(obs_df1$depth_m, breaks = seq(0, 600, by = 25), include
 # SIMULATED METRICS ####
   
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1832,7 +1848,7 @@ p <- ggplot(data = summary_stats) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('.figures/slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1862,7 +1878,7 @@ ggplot(data = subset(metrics_df, species %in% sel_sp)) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('.figures/slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1913,7 +1929,7 @@ p1<-
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
     facet_wrap(~common, scales = 'free')
   
-  agg_png(paste0('.figures/slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+  agg_png(paste0('figures/slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1967,7 +1983,7 @@ p1<-
   
   
   
-agg_png(paste0('.figures/slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
 print(p1)
 dev.off()
 
@@ -2049,7 +2065,7 @@ rect_data <- data.frame(xmin = c(2002, 2005.5, 2013.5),
 # 
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
+# agg_png(paste0('figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
 # print(p)
 # dev.off()
 
@@ -2093,288 +2109,288 @@ ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
 
 # Assuming 'common' is the column representing species (like Greenland turbot)
 # Adjust bandwidth per facet
-
-metrics_df1<-subset(metrics_df,common=='Greenland turbot')
-
-
-
-ggplot() +
-  geom_point(data=metrics_df, aes(x = depthq90, y = factor(Year), color = mean_temp))+
-  geom_point(data=metrics_df, aes(x = depthq10, y = factor(Year), color = mean_temp))+
-  geom_density_ridges(data=metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp),
-                      jittered_points = TRUE,
-                      #geom = "density_ridges_gradient",
-                      rel_min_height = 0.000000001,
-                      #bandwidth = 1,#c(0.4,40,0.4,0.4),
-                      #n =100,
-                      position = position_points_jitter(height = 0, width = 0.5),
-                      panel_scaling = TRUE,
-                      scale = 1.8,
-                      point_shape = '|',
-                      point_size = 1,
-                      point_alpha = 0.4)+
-  scale_y_discrete(limits = rev) +
-  scale_x_continuous(expand=c(0.1,01))+
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  facet_wrap(~common, scales = 'free_x') +
-  theme_minimal() +
-  theme(
-    strip.background = element_blank(),
-    text = element_text(size = 12),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(x = 'Depth range (Q90 - Q10, m)', y = '')
-
-# Plot with variable bandwidth for each facet
-ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
-  geom_density_ridges(jittered_points = TRUE,
-                      #geom = "density_ridges_gradient",
-                      rel_min_height = 0.000000001,
-                      #bandwidth = 1,#c(0.4,40,0.4,0.4),
-                      #n =100,
-                      position = position_points_jitter(height = 0, width = 0.5),
-                      panel_scaling = TRUE,
-                      scale = 1.8,
-                      point_shape = '|',
-                      point_size = 1,
-                      point_alpha = 0.4)+
-  scale_y_discrete(limits = rev) +
-  scale_x_continuous(expand=c(0.1,01))+
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  facet_wrap(~common, scales = 'free_x') +
-  theme_minimal() +
-  theme(
-    strip.background = element_blank(),
-    text = element_text(size = 12),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(x = 'Depth range (Q90 - Q10, m)', y = '')
-
-
-
-# Define custom bandwidth values for each 'common' group (example values)
-bandwidth_values <- data.frame(
-  common = unique(metrics_df$common),
-  bw = c(0.4, 0.4, 2,0.4)  # Replace with your desired bandwidth values for each 'common' group
-)
-
-# Merge the bandwidth values with the metrics_df based on 'common'
-metrics_df <- metrics_df %>%
-  left_join(bandwidth_values, by = "common")  # Adding bandwidth values to metrics_df
-
-# Calculate density manually per panel with the respective bandwidth for each 'common' group
-metrics_df <- metrics_df %>%
-  group_by(common, Year) %>%
-  mutate(density = list(density(depth_range, bw = first(bw))))  # Use 'first(bw)' to extract the scalar value
-
-# Extract the x and y components of the density and store them in separate columns
-metrics_df <- metrics_df %>%
-  mutate(x_vals = map(density, ~ .x$x),  # Extract the x values
-        y_vals = map(density, ~ .x$y))  # Extract the y values
-
-# Unnest the x and y values
-density_df <- metrics_df %>%
-  unnest(cols = c(x_vals, y_vals))  # Unnest the x and y values
-# Step 1: Find the global maximum y-value across all common groups
-global_max_y <- max(density_df$y_vals, na.rm = TRUE)
-
-# Step 2: Rescale y_vals for each common group
-density_df <- density_df %>%
-  group_by(common) %>%
-  mutate(rescaled_y_vals = y_vals / max(y_vals, na.rm = TRUE) * global_max_y)
-
-# Step 3: Plot with the rescaled y-values
-  library(dplyr)
-
-# Sample 10000 points
-sampled_df <- density_df %>%
-  sample_n(5000)
-
-depth_labels <- sampled_df %>%
-  group_by(Year, common, mean_temp) %>%
-  summarize(
-    mean_q10 = mean(depthq10, na.rm = TRUE),
-    mean_q90 = mean(depthq90, na.rm = TRUE),
-    depth_range_mid = max(depth_range, na.rm = TRUE)
-  ) %>%
-  mutate(
-    Year = factor(Year),
-    y_pos = Year,
-    label = if_else(
-      round(mean_q10, 0) >= 100,
-      paste0("Q90: ", round(mean_q90, 0), "\nQ10: ", round(mean_q10, 0)),
-      paste0("Q90: ", round(mean_q90, 0), "\n Q10: ", round(mean_q10, 0))  # leading space on Q10
-    )
-  )
-
-p2<-
-ggplot(sampled_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
-  # Plot the observation points on top of the ridgelines
-  geom_point(
-    aes(x = depth_range, y = factor(Year)), 
-    position = position_jitter(height = 0, width = 0.4),
-    color = 'black',
-    shape = '|', 
-    size = 2, 
-    alpha = 0.2
-  ) + 
-  geom_ridgeline(
-    aes(height = rescaled_y_vals),  # Use the rescaled density values
-    color = 'black',
-    scale = 1.8,
-    linewidth = 0.5
-  ) + 
-  geom_text(
-    data = depth_labels,
-    aes(x = depth_range_mid, y = y_pos, label = label),
-    vjust = -0.1,hjust=-0.2,
-    size = 2.5,
-    lineheight = 0.8)+
-scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
-  scale_x_continuous(expand=c(0.2,0.1)) + 
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  facet_wrap(~common, scales = 'free_x') + 
-  theme_bw() + 
-  theme(
-    strip.background = element_blank(), 
-    text = element_text(size = 12), 
-    strip.text = element_text(size = 12),
-    panel.grid.major.x = element_line(linetype = 'dashed'),
-    panel.grid.minor.x = element_line(linetype = 'dashed')
-  ) + 
-  labs(x = 'depth range (Q90 - Q10, m)', y = '')
-
-  #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
-print(p2)
-dev.off()
-
-ggplot(density_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
-  # Plot the ridgelines with rescaled y-values
-  # Plot the observation points on top of the ridgelines
-  
-  geom_ridgeline(
-    aes(height = rescaled_y_vals),  # Use the rescaled density values
-    color = 'black',
-    scale = 1.8
-  ) + 
-  geom_point(
-    aes(x = depth_range, y = factor(Year)), #, color = mean_temp # Points for the observations
-    position = position_jitter(height = 0, width = 1),
-    color='black',
-    shape = '—', 
-    size = 1, 
-    alpha = 1
-  ) + 
-  scale_y_discrete() + 
-  scale_x_continuous(expand = c(0.3, 0.05),
-                     trans = 'reverse')+  # Reverse the x-axis) + 
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
-  scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
-                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
-  facet_wrap(~common, scales = 'free_y') + 
-  theme_minimal() + 
-  theme(strip.background = element_blank(), 
-        text = element_text(size = 12), 
-        strip.text = element_text(size = 12),
-        panel.grid.major.y = element_line(linetype = 'dashed'),
-        panel.grid.minor.y = element_line(linetype = 'dashed')) + 
-  labs(x = 'depth range (Q90 - Q10, m)', y = '')+
-  coord_flip()
-
-
-
-#p1<-
-ggplot(data = metrics_df) +  
-  # Reorder the 'common' variable by 'mean_temp' for sorting the violins
-  geom_violin(aes(x = depthq90 - depthq10, y = fct_reorder(common, mean_temp), fill = mean_temp, group = mean_temp),  
-              color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
-              trim = FALSE) +  # Adjusted scale for height
-  
-  scale_x_continuous() +  # Adjust x-axis scale
-  
-  facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
-  
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
-  
-  theme_bw() +  
-  theme(
-    axis.text.y = element_blank(),  # Hide y-axis text
-    axis.ticks.y = element_blank(),  # Remove y-axis ticks
-    axis.title.y = element_blank(),  # Remove y-axis title
-    strip.background = element_blank(),  # Clean facet strip background
-    text = element_text(size = 12),  # General font size
-    strip.text = element_text(size = 12)  # Size for facet labels
-  ) +  
-  
-  labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)')
-
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
-print(p)
-dev.off()
-
-
-
-
-p2<-
-  ggplot(data = metrics_df) +  
-  # Reorder the 'common' variable by 'mean_temp' for sorting the violins
-  geom_violin(aes(x = depthq90 - depthq10, y = mean_temp, fill = mean_temp, group = mean_temp),  
-              color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
-              trim = FALSE) +  # Adjusted scale for height
-  
-  scale_x_continuous() +  # Adjust x-axis scale
-  
-  facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
-  
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
-  
-  theme_bw() +  
-  theme(
-    #axis.text.y = element_blank(),  # Hide y-axis text
-    #axis.ticks.y = element_blank(),  # Remove y-axis ticks
-    #axis.title.y = element_blank(),  # Remove y-axis title
-    strip.background = element_blank(),  # Clean facet strip background
-    text = element_text(size = 12),  # General font size
-    strip.text = element_text(size = 12)  # Size for facet labels
-  ) +  
-  
-  labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
-print(p2)
-dev.off()
+# 
+# metrics_df1<-subset(metrics_df,common=='Greenland turbot')
+# 
+# 
+# 
+# ggplot() +
+#   geom_point(data=metrics_df, aes(x = depthq90, y = factor(Year), color = mean_temp))+
+#   geom_point(data=metrics_df, aes(x = depthq10, y = factor(Year), color = mean_temp))+
+#   geom_density_ridges(data=metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp),
+#                       jittered_points = TRUE,
+#                       #geom = "density_ridges_gradient",
+#                       rel_min_height = 0.000000001,
+#                       #bandwidth = 1,#c(0.4,40,0.4,0.4),
+#                       #n =100,
+#                       position = position_points_jitter(height = 0, width = 0.5),
+#                       panel_scaling = TRUE,
+#                       scale = 1.8,
+#                       point_shape = '|',
+#                       point_size = 1,
+#                       point_alpha = 0.4)+
+#   scale_y_discrete(limits = rev) +
+#   scale_x_continuous(expand=c(0.1,01))+
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   facet_wrap(~common, scales = 'free_x') +
+#   theme_minimal() +
+#   theme(
+#     strip.background = element_blank(),
+#     text = element_text(size = 12),
+#     strip.text = element_text(size = 12)
+#   ) +
+#   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
+# 
+# # Plot with variable bandwidth for each facet
+# ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
+#   geom_density_ridges(jittered_points = TRUE,
+#                       #geom = "density_ridges_gradient",
+#                       rel_min_height = 0.000000001,
+#                       #bandwidth = 1,#c(0.4,40,0.4,0.4),
+#                       #n =100,
+#                       position = position_points_jitter(height = 0, width = 0.5),
+#                       panel_scaling = TRUE,
+#                       scale = 1.8,
+#                       point_shape = '|',
+#                       point_size = 1,
+#                       point_alpha = 0.4)+
+#   scale_y_discrete(limits = rev) +
+#   scale_x_continuous(expand=c(0.1,01))+
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   facet_wrap(~common, scales = 'free_x') +
+#   theme_minimal() +
+#   theme(
+#     strip.background = element_blank(),
+#     text = element_text(size = 12),
+#     strip.text = element_text(size = 12)
+#   ) +
+#   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
+# 
+# 
+# 
+# # Define custom bandwidth values for each 'common' group (example values)
+# bandwidth_values <- data.frame(
+#   common = unique(metrics_df$common),
+#   bw = c(0.4, 0.4, 2,0.4)  # Replace with your desired bandwidth values for each 'common' group
+# )
+# 
+# # Merge the bandwidth values with the metrics_df based on 'common'
+# metrics_df <- metrics_df %>%
+#   left_join(bandwidth_values, by = "common")  # Adding bandwidth values to metrics_df
+# 
+# # Calculate density manually per panel with the respective bandwidth for each 'common' group
+# metrics_df <- metrics_df %>%
+#   group_by(common, Year) %>%
+#   mutate(density = list(density(depth_range, bw = first(bw))))  # Use 'first(bw)' to extract the scalar value
+# 
+# # Extract the x and y components of the density and store them in separate columns
+# metrics_df <- metrics_df %>%
+#   mutate(x_vals = map(density, ~ .x$x),  # Extract the x values
+#         y_vals = map(density, ~ .x$y))  # Extract the y values
+# 
+# # Unnest the x and y values
+# density_df <- metrics_df %>%
+#   unnest(cols = c(x_vals, y_vals))  # Unnest the x and y values
+# # Step 1: Find the global maximum y-value across all common groups
+# global_max_y <- max(density_df$y_vals, na.rm = TRUE)
+# 
+# # Step 2: Rescale y_vals for each common group
+# density_df <- density_df %>%
+#   group_by(common) %>%
+#   mutate(rescaled_y_vals = y_vals / max(y_vals, na.rm = TRUE) * global_max_y)
+# 
+# # Step 3: Plot with the rescaled y-values
+#   library(dplyr)
+# 
+# # Sample 10000 points
+# sampled_df <- density_df %>%
+#   sample_n(5000)
+# 
+# depth_labels <- sampled_df %>%
+#   group_by(Year, common, mean_temp) %>%
+#   summarize(
+#     mean_q10 = mean(depthq10, na.rm = TRUE),
+#     mean_q90 = mean(depthq90, na.rm = TRUE),
+#     depth_range_mid = max(depth_range, na.rm = TRUE)
+#   ) %>%
+#   mutate(
+#     Year = factor(Year),
+#     y_pos = Year,
+#     label = if_else(
+#       round(mean_q10, 0) >= 100,
+#       paste0("Q90: ", round(mean_q90, 0), "\nQ10: ", round(mean_q10, 0)),
+#       paste0("Q90: ", round(mean_q90, 0), "\n Q10: ", round(mean_q10, 0))  # leading space on Q10
+#     )
+#   )
+# 
+# p2<-
+# ggplot(sampled_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
+#   # Plot the observation points on top of the ridgelines
+#   geom_point(
+#     aes(x = depth_range, y = factor(Year)), 
+#     position = position_jitter(height = 0, width = 0.4),
+#     color = 'black',
+#     shape = '|', 
+#     size = 2, 
+#     alpha = 0.2
+#   ) + 
+#   geom_ridgeline(
+#     aes(height = rescaled_y_vals),  # Use the rescaled density values
+#     color = 'black',
+#     scale = 1.8,
+#     linewidth = 0.5
+#   ) + 
+#   geom_text(
+#     data = depth_labels,
+#     aes(x = depth_range_mid, y = y_pos, label = label),
+#     vjust = -0.1,hjust=-0.2,
+#     size = 2.5,
+#     lineheight = 0.8)+
+# scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
+#   scale_x_continuous(expand=c(0.2,0.1)) + 
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   facet_wrap(~common, scales = 'free_x') + 
+#   theme_bw() + 
+#   theme(
+#     strip.background = element_blank(), 
+#     text = element_text(size = 12), 
+#     strip.text = element_text(size = 12),
+#     panel.grid.major.x = element_line(linetype = 'dashed'),
+#     panel.grid.minor.x = element_line(linetype = 'dashed')
+#   ) + 
+#   labs(x = 'depth range (Q90 - Q10, m)', y = '')
+# 
+#   #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+# print(p2)
+# dev.off()
+# 
+# ggplot(density_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
+#   # Plot the ridgelines with rescaled y-values
+#   # Plot the observation points on top of the ridgelines
+#   
+#   geom_ridgeline(
+#     aes(height = rescaled_y_vals),  # Use the rescaled density values
+#     color = 'black',
+#     scale = 1.8
+#   ) + 
+#   geom_point(
+#     aes(x = depth_range, y = factor(Year)), #, color = mean_temp # Points for the observations
+#     position = position_jitter(height = 0, width = 1),
+#     color='black',
+#     shape = '—', 
+#     size = 1, 
+#     alpha = 1
+#   ) + 
+#   scale_y_discrete() + 
+#   scale_x_continuous(expand = c(0.3, 0.05),
+#                      trans = 'reverse')+  # Reverse the x-axis) + 
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
+#   scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
+#                         guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
+#   facet_wrap(~common, scales = 'free_y') + 
+#   theme_minimal() + 
+#   theme(strip.background = element_blank(), 
+#         text = element_text(size = 12), 
+#         strip.text = element_text(size = 12),
+#         panel.grid.major.y = element_line(linetype = 'dashed'),
+#         panel.grid.minor.y = element_line(linetype = 'dashed')) + 
+#   labs(x = 'depth range (Q90 - Q10, m)', y = '')+
+#   coord_flip()
+# 
+# 
+# 
+# #p1<-
+# ggplot(data = metrics_df) +  
+#   # Reorder the 'common' variable by 'mean_temp' for sorting the violins
+#   geom_violin(aes(x = depthq90 - depthq10, y = fct_reorder(common, mean_temp), fill = mean_temp, group = mean_temp),  
+#               color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
+#               trim = FALSE) +  # Adjusted scale for height
+#   
+#   scale_x_continuous() +  # Adjust x-axis scale
+#   
+#   facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
+#   
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
+#   
+#   theme_bw() +  
+#   theme(
+#     axis.text.y = element_blank(),  # Hide y-axis text
+#     axis.ticks.y = element_blank(),  # Remove y-axis ticks
+#     axis.title.y = element_blank(),  # Remove y-axis title
+#     strip.background = element_blank(),  # Clean facet strip background
+#     text = element_text(size = 12),  # General font size
+#     strip.text = element_text(size = 12)  # Size for facet labels
+#   ) +  
+#   
+#   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)')
+# 
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+# print(p)
+# dev.off()
+# 
+# 
+# 
+# 
+# p2<-
+#   ggplot(data = metrics_df) +  
+#   # Reorder the 'common' variable by 'mean_temp' for sorting the violins
+#   geom_violin(aes(x = depthq90 - depthq10, y = mean_temp, fill = mean_temp, group = mean_temp),  
+#               color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
+#               trim = FALSE) +  # Adjusted scale for height
+#   
+#   scale_x_continuous() +  # Adjust x-axis scale
+#   
+#   facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
+#   
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
+#   
+#   theme_bw() +  
+#   theme(
+#     #axis.text.y = element_blank(),  # Hide y-axis text
+#     #axis.ticks.y = element_blank(),  # Remove y-axis ticks
+#     #axis.title.y = element_blank(),  # Remove y-axis title
+#     strip.background = element_blank(),  # Clean facet strip background
+#     text = element_text(size = 12),  # General font size
+#     strip.text = element_text(size = 12)  # Size for facet labels
+#   ) +  
+#   
+#   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+# print(p2)
+# dev.off()
 
 
 
@@ -2702,422 +2718,422 @@ ggplot(plot_df, aes(y = Year)) +
  #  )
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
 print(p3)
 dev.off()
 
-
-
-metrics_df$legend_label <- "depth range (Q10–Q90)"
-metrics_df$point_label <- "depth range width (Q90 - Q10)"
-
-p2 <- ggplot(metrics_df, aes(y = Year)) +
-  # Line segments from Q10 to Q90 depth
-  geom_segment(
-    aes(x = depthq10, xend = depthq90, yend = Year, color = mean_temp, linetype = legend_label),
-    size = 2
-  ) +
-  # Point showing Q90 - Q10 (width)
-  geom_point(
-    aes(x = depthq90 - depthq10, shape = point_label),
-    size = 2.5,
-    color = "black",
-    alpha = 0.6,
-    stroke = 0.8,
-    fill = "black"
-  ) +
-  scale_y_discrete(limits = rev) +
-  
-  # Color gradient for mean SBT (°C)
-  scale_color_gradientn(
-    colors = custom_colors(20),
-    name = "mean SBT (°C)"
-  ) +
-  
-  # Manual linetype scale for legend
-  scale_linetype_manual(
-    name = NULL,
-    values = c("depth range (Q10–Q90)" = "solid")
-  ) +
-  
-  # Manual shape scale for legend
-  scale_shape_manual(
-    name = NULL,
-    values = c("depth range width (Q90 - Q10)" = 21)
-  ) +
-  
-  # Guides with custom layout
-  guides(
-    color = guide_colorbar(
-      order = 1,
-      title.position = "top",
-      direction = "horizontal",
-      title.hjust = 0.5
-    ),
-    linetype = guide_legend(
-      order = 2,
-      override.aes = list(
-        size = 6,
-        color = "black"
-      )
-    ),
-    shape = guide_legend(order = 3)
-  ) +
-  
-  facet_wrap(~common, scales = "free_x") +
-  labs(
-    x = "depth (m)",
-    y = NULL
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 12),
-    text = element_text(size = 12),
-    legend.position = "bottom",
-    legend.box = "horizontal",
-    legend.box.just = "center",
-    legend.spacing.x = unit(0.4, "cm"),
-    legend.title = element_text(hjust = 0.5)
-  )
-
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
-print(p2)
-dev.off()
-
-
-#p2<-
-  ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) + 
-  # Plot the observation points on top of the ridgelines
-  geom_point(
-    aes(x = depth_range, y = factor(Year)), 
-    position = position_jitter(height = 0, width = 0.4),
-    color = 'black',
-    shape = '|', 
-    size = 1, 
-    alpha = 0.2
-  ) + 
-  geom_ridgeline(
-    aes(height = rescaled_y_vals),  # Use the rescaled density values
-    color = 'black',
-    scale = 1.8,
-    linewidth = 0.5
-  ) + 
-  # geom_text(
-  #   data = depth_labels,
-  #   aes(x = depth_range_mid, y = y_pos, label = label),
-  #   vjust = -0.1,hjust=-0.2,
-  #   size = 2.5,
-  #   lineheight = 0.8)+
-  scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
-  scale_x_continuous(expand=c(0.2,0.1)) + 
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  facet_wrap(~common, scales = 'free_x') + 
-  theme_bw() + 
-  theme(
-    strip.background = element_blank(), 
-    text = element_text(size = 12), 
-    strip.text = element_text(size = 12),
-    panel.grid.major.x = element_line(linetype = 'dashed'),
-    panel.grid.minor.x = element_line(linetype = 'dashed')
-  ) + 
-  labs(x = 'depth range (Q90 - Q10, m)', y = '')
-
-
-# Assuming 'common' is the column representing species (like Greenland turbot)
-# Adjust bandwidth per facet
-
-metrics_df1<-subset(metrics_df,common=='Greenland turbot')
-
-
-
-ggplot() +
-  geom_point(data=metrics_df, aes(x = depthq90, y = factor(Year), color = mean_temp))+
-  geom_point(data=metrics_df, aes(x = depthq10, y = factor(Year), color = mean_temp))+
-  geom_density_ridges(data=metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp),
-                      jittered_points = TRUE,
-                      #geom = "density_ridges_gradient",
-                      rel_min_height = 0.000000001,
-                      #bandwidth = 1,#c(0.4,40,0.4,0.4),
-                      #n =100,
-                      position = position_points_jitter(height = 0, width = 0.5),
-                      panel_scaling = TRUE,
-                      scale = 1.8,
-                      point_shape = '|',
-                      point_size = 1,
-                      point_alpha = 0.4)+
-  scale_y_discrete(limits = rev) +
-  scale_x_continuous(expand=c(0.1,01))+
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  facet_wrap(~common, scales = 'free_x') +
-  theme_minimal() +
-  theme(
-    strip.background = element_blank(),
-    text = element_text(size = 12),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(x = 'Depth range (Q90 - Q10, m)', y = '')
-
-# Plot with variable bandwidth for each facet
-ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
-  geom_density_ridges(jittered_points = TRUE,
-                      #geom = "density_ridges_gradient",
-                      rel_min_height = 0.000000001,
-                      #bandwidth = 1,#c(0.4,40,0.4,0.4),
-                      #n =100,
-                      position = position_points_jitter(height = 0, width = 0.5),
-                      panel_scaling = TRUE,
-                      scale = 1.8,
-                      point_shape = '|',
-                      point_size = 1,
-                      point_alpha = 0.4)+
-  scale_y_discrete(limits = rev) +
-  scale_x_continuous(expand=c(0.1,01))+
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)',
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) +
-  facet_wrap(~common, scales = 'free_x') +
-  theme_minimal() +
-  theme(
-    strip.background = element_blank(),
-    text = element_text(size = 12),
-    strip.text = element_text(size = 12)
-  ) +
-  labs(x = 'Depth range (Q90 - Q10, m)', y = '')
-
-
-library(tidyr)
-library(purrr)
-
-# Define custom bandwidth values for each 'common' group (example values)
-bandwidth_values <- data.frame(
-  common = unique(metrics_df$common),
-  bw = c(0.4, 0.4, 2,0.4)  # Replace with your desired bandwidth values for each 'common' group
-)
-
-# Merge the bandwidth values with the metrics_df based on 'common'
-metrics_df <- metrics_df %>%
-  left_join(bandwidth_values, by = "common")  # Adding bandwidth values to metrics_df
-
-# Calculate density manually per panel with the respective bandwidth for each 'common' group
-metrics_df <- metrics_df %>%
-  group_by(common, Year) %>%
-  mutate(density = list(density(depth_range, bw = first(bw))))  # Use 'first(bw)' to extract the scalar value
-
-# Extract the x and y components of the density and store them in separate columns
-metrics_df <- metrics_df %>%
-  mutate(x_vals = map(density, ~ .x$x),  # Extract the x values
-         y_vals = map(density, ~ .x$y))  # Extract the y values
-
-# Unnest the x and y values
-density_df <- metrics_df %>%
-  unnest(cols = c(x_vals, y_vals))  # Unnest the x and y values
-# Step 1: Find the global maximum y-value across all common groups
-global_max_y <- max(density_df$y_vals, na.rm = TRUE)
-
-# Step 2: Rescale y_vals for each common group
-density_df <- density_df %>%
-  group_by(common) %>%
-  mutate(rescaled_y_vals = y_vals / max(y_vals, na.rm = TRUE) * global_max_y)
-
-# Step 3: Plot with the rescaled y-values
-
-# Sample 10000 points
-sampled_df <- density_df %>%
-  sample_n(5000)
-
-depth_labels <- sampled_df %>%
-  group_by(Year, common, mean_temp) %>%
-  summarize(
-    mean_q10 = mean(depthq10, na.rm = TRUE),
-    mean_q90 = mean(depthq90, na.rm = TRUE),
-    depth_range_mid = max(depth_range, na.rm = TRUE)
-  ) %>%
-  mutate(
-    Year = factor(Year),
-    y_pos = Year,
-    label = if_else(
-      round(mean_q10, 0) >= 100,
-      paste0("Q90: ", round(mean_q90, 0), "\nQ10: ", round(mean_q10, 0)),
-      paste0("Q90: ", round(mean_q90, 0), "\n Q10: ", round(mean_q10, 0))  # leading space on Q10
-    )
-  )
-
-p2<-
-  ggplot(sampled_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
-  # Plot the observation points on top of the ridgelines
-  geom_point(
-    aes(x = depth_range, y = factor(Year)), 
-    position = position_jitter(height = 0, width = 0.4),
-    color = 'black',
-    shape = '|', 
-    size = 2, 
-    alpha = 0.2
-  ) + 
-  geom_ridgeline(
-    aes(height = rescaled_y_vals),  # Use the rescaled density values
-    color = 'black',
-    scale = 1.8,
-    linewidth = 0.5
-  ) + 
-  geom_text(
-    data = depth_labels,
-    aes(x = depth_range_mid, y = y_pos, label = label),
-    vjust = -0.1,hjust=-0.2,
-    size = 2.5,
-    lineheight = 0.8)+
-  scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
-  scale_x_continuous(expand=c(0.2,0.1)) + 
-  scale_fill_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
-  scale_color_gradientn(
-    colors = custom_colors(20), name = 'SBT (°C)', 
-    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
-  ) + 
-  facet_wrap(~common, scales = 'free_x') + 
-  theme_bw() + 
-  theme(
-    strip.background = element_blank(), 
-    text = element_text(size = 12), 
-    strip.text = element_text(size = 12),
-    panel.grid.major.x = element_line(linetype = 'dashed'),
-    panel.grid.minor.x = element_line(linetype = 'dashed')
-  ) + 
-  labs(x = 'depth range (Q90 - Q10, m)', y = '')
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
-print(p2)
-dev.off()
-
-ggplot(density_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
-  # Plot the ridgelines with rescaled y-values
-  # Plot the observation points on top of the ridgelines
-  
-  geom_ridgeline(
-    aes(height = rescaled_y_vals),  # Use the rescaled density values
-    color = 'black',
-    scale = 1.8
-  ) + 
-  geom_point(
-    aes(x = depth_range, y = factor(Year)), #, color = mean_temp # Points for the observations
-    position = position_jitter(height = 0, width = 1),
-    color='black',
-    shape = '—', 
-    size = 1, 
-    alpha = 1
-  ) + 
-  scale_y_discrete() + 
-  scale_x_continuous(expand = c(0.3, 0.05),
-                     trans = 'reverse')+  # Reverse the x-axis) + 
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
-  scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
-  scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
-                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
-  facet_wrap(~common, scales = 'free_y') + 
-  theme_minimal() + 
-  theme(strip.background = element_blank(), 
-        text = element_text(size = 12), 
-        strip.text = element_text(size = 12),
-        panel.grid.major.y = element_line(linetype = 'dashed'),
-        panel.grid.minor.y = element_line(linetype = 'dashed')) + 
-  labs(x = 'depth range (Q90 - Q10, m)', y = '')+
-  coord_flip()
-
-
-
-#p1<-
-ggplot(data = metrics_df) +  
-  # Reorder the 'common' variable by 'mean_temp' for sorting the violins
-  geom_violin(aes(x = depthq90 - depthq10, y = fct_reorder(common, mean_temp), fill = mean_temp, group = mean_temp),  
-              color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
-              trim = FALSE) +  # Adjusted scale for height
-  
-  scale_x_continuous() +  # Adjust x-axis scale
-  
-  facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
-  
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
-  
-  theme_bw() +  
-  theme(
-    axis.text.y = element_blank(),  # Hide y-axis text
-    axis.ticks.y = element_blank(),  # Remove y-axis ticks
-    axis.title.y = element_blank(),  # Remove y-axis title
-    strip.background = element_blank(),  # Clean facet strip background
-    text = element_text(size = 12),  # General font size
-    strip.text = element_text(size = 12)  # Size for facet labels
-  ) +  
-  
-  labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)')
-
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
-print(p)
-dev.off()
-
-
-
-
-p2<-
-  ggplot(data = metrics_df) +  
-  # Reorder the 'common' variable by 'mean_temp' for sorting the violins
-  geom_violin(aes(x = depthq90 - depthq10, y = mean_temp, fill = mean_temp, group = mean_temp),  
-              color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
-              trim = FALSE) +  # Adjusted scale for height
-  
-  scale_x_continuous() +  # Adjust x-axis scale
-  
-  facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
-  
-  scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
-                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
-  
-  theme_bw() +  
-  theme(
-    #axis.text.y = element_blank(),  # Hide y-axis text
-    #axis.ticks.y = element_blank(),  # Remove y-axis ticks
-    #axis.title.y = element_blank(),  # Remove y-axis title
-    strip.background = element_blank(),  # Clean facet strip background
-    text = element_text(size = 12),  # General font size
-    strip.text = element_text(size = 12)  # Size for facet labels
-  ) +  
-  
-  labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
-
-#save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
-print(p2)
-dev.off()
+# 
+# 
+# metrics_df$legend_label <- "depth range (Q10–Q90)"
+# metrics_df$point_label <- "depth range width (Q90 - Q10)"
+# 
+# p2 <- ggplot(metrics_df, aes(y = Year)) +
+#   # Line segments from Q10 to Q90 depth
+#   geom_segment(
+#     aes(x = depthq10, xend = depthq90, yend = Year, color = mean_temp, linetype = legend_label),
+#     size = 2
+#   ) +
+#   # Point showing Q90 - Q10 (width)
+#   geom_point(
+#     aes(x = depthq90 - depthq10, shape = point_label),
+#     size = 2.5,
+#     color = "black",
+#     alpha = 0.6,
+#     stroke = 0.8,
+#     fill = "black"
+#   ) +
+#   scale_y_discrete(limits = rev) +
+#   
+#   # Color gradient for mean SBT (°C)
+#   scale_color_gradientn(
+#     colors = custom_colors(20),
+#     name = "mean SBT (°C)"
+#   ) +
+#   
+#   # Manual linetype scale for legend
+#   scale_linetype_manual(
+#     name = NULL,
+#     values = c("depth range (Q10–Q90)" = "solid")
+#   ) +
+#   
+#   # Manual shape scale for legend
+#   scale_shape_manual(
+#     name = NULL,
+#     values = c("depth range width (Q90 - Q10)" = 21)
+#   ) +
+#   
+#   # Guides with custom layout
+#   guides(
+#     color = guide_colorbar(
+#       order = 1,
+#       title.position = "top",
+#       direction = "horizontal",
+#       title.hjust = 0.5
+#     ),
+#     linetype = guide_legend(
+#       order = 2,
+#       override.aes = list(
+#         size = 6,
+#         color = "black"
+#       )
+#     ),
+#     shape = guide_legend(order = 3)
+#   ) +
+#   
+#   facet_wrap(~common, scales = "free_x") +
+#   labs(
+#     x = "depth (m)",
+#     y = NULL
+#   ) +
+#   theme_minimal() +
+#   theme(
+#     strip.text = element_text(size = 12),
+#     text = element_text(size = 12),
+#     legend.position = "bottom",
+#     legend.box = "horizontal",
+#     legend.box.just = "center",
+#     legend.spacing.x = unit(0.4, "cm"),
+#     legend.title = element_text(hjust = 0.5)
+#   )
+# 
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
+# print(p2)
+# dev.off()
+# 
+# 
+# #p2<-
+#   ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) + 
+#   # Plot the observation points on top of the ridgelines
+#   geom_point(
+#     aes(x = depth_range, y = factor(Year)), 
+#     position = position_jitter(height = 0, width = 0.4),
+#     color = 'black',
+#     shape = '|', 
+#     size = 1, 
+#     alpha = 0.2
+#   ) + 
+#   geom_ridgeline(
+#     aes(height = rescaled_y_vals),  # Use the rescaled density values
+#     color = 'black',
+#     scale = 1.8,
+#     linewidth = 0.5
+#   ) + 
+#   # geom_text(
+#   #   data = depth_labels,
+#   #   aes(x = depth_range_mid, y = y_pos, label = label),
+#   #   vjust = -0.1,hjust=-0.2,
+#   #   size = 2.5,
+#   #   lineheight = 0.8)+
+#   scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
+#   scale_x_continuous(expand=c(0.2,0.1)) + 
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   facet_wrap(~common, scales = 'free_x') + 
+#   theme_bw() + 
+#   theme(
+#     strip.background = element_blank(), 
+#     text = element_text(size = 12), 
+#     strip.text = element_text(size = 12),
+#     panel.grid.major.x = element_line(linetype = 'dashed'),
+#     panel.grid.minor.x = element_line(linetype = 'dashed')
+#   ) + 
+#   labs(x = 'depth range (Q90 - Q10, m)', y = '')
+# 
+# 
+# # Assuming 'common' is the column representing species (like Greenland turbot)
+# # Adjust bandwidth per facet
+# 
+# metrics_df1<-subset(metrics_df,common=='Greenland turbot')
+# 
+# 
+# 
+# ggplot() +
+#   geom_point(data=metrics_df, aes(x = depthq90, y = factor(Year), color = mean_temp))+
+#   geom_point(data=metrics_df, aes(x = depthq10, y = factor(Year), color = mean_temp))+
+#   geom_density_ridges(data=metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp),
+#                       jittered_points = TRUE,
+#                       #geom = "density_ridges_gradient",
+#                       rel_min_height = 0.000000001,
+#                       #bandwidth = 1,#c(0.4,40,0.4,0.4),
+#                       #n =100,
+#                       position = position_points_jitter(height = 0, width = 0.5),
+#                       panel_scaling = TRUE,
+#                       scale = 1.8,
+#                       point_shape = '|',
+#                       point_size = 1,
+#                       point_alpha = 0.4)+
+#   scale_y_discrete(limits = rev) +
+#   scale_x_continuous(expand=c(0.1,01))+
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   facet_wrap(~common, scales = 'free_x') +
+#   theme_minimal() +
+#   theme(
+#     strip.background = element_blank(),
+#     text = element_text(size = 12),
+#     strip.text = element_text(size = 12)
+#   ) +
+#   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
+# 
+# # Plot with variable bandwidth for each facet
+# ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
+#   geom_density_ridges(jittered_points = TRUE,
+#                       #geom = "density_ridges_gradient",
+#                       rel_min_height = 0.000000001,
+#                       #bandwidth = 1,#c(0.4,40,0.4,0.4),
+#                       #n =100,
+#                       position = position_points_jitter(height = 0, width = 0.5),
+#                       panel_scaling = TRUE,
+#                       scale = 1.8,
+#                       point_shape = '|',
+#                       point_size = 1,
+#                       point_alpha = 0.4)+
+#   scale_y_discrete(limits = rev) +
+#   scale_x_continuous(expand=c(0.1,01))+
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") +
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)',
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) +
+#   facet_wrap(~common, scales = 'free_x') +
+#   theme_minimal() +
+#   theme(
+#     strip.background = element_blank(),
+#     text = element_text(size = 12),
+#     strip.text = element_text(size = 12)
+#   ) +
+#   labs(x = 'Depth range (Q90 - Q10, m)', y = '')
+# 
+# 
+# library(tidyr)
+# library(purrr)
+# 
+# # Define custom bandwidth values for each 'common' group (example values)
+# bandwidth_values <- data.frame(
+#   common = unique(metrics_df$common),
+#   bw = c(0.4, 0.4, 2,0.4)  # Replace with your desired bandwidth values for each 'common' group
+# )
+# 
+# # Merge the bandwidth values with the metrics_df based on 'common'
+# metrics_df <- metrics_df %>%
+#   left_join(bandwidth_values, by = "common")  # Adding bandwidth values to metrics_df
+# 
+# # Calculate density manually per panel with the respective bandwidth for each 'common' group
+# metrics_df <- metrics_df %>%
+#   group_by(common, Year) %>%
+#   mutate(density = list(density(depth_range, bw = first(bw))))  # Use 'first(bw)' to extract the scalar value
+# 
+# # Extract the x and y components of the density and store them in separate columns
+# metrics_df <- metrics_df %>%
+#   mutate(x_vals = map(density, ~ .x$x),  # Extract the x values
+#          y_vals = map(density, ~ .x$y))  # Extract the y values
+# 
+# # Unnest the x and y values
+# density_df <- metrics_df %>%
+#   unnest(cols = c(x_vals, y_vals))  # Unnest the x and y values
+# # Step 1: Find the global maximum y-value across all common groups
+# global_max_y <- max(density_df$y_vals, na.rm = TRUE)
+# 
+# # Step 2: Rescale y_vals for each common group
+# density_df <- density_df %>%
+#   group_by(common) %>%
+#   mutate(rescaled_y_vals = y_vals / max(y_vals, na.rm = TRUE) * global_max_y)
+# 
+# # Step 3: Plot with the rescaled y-values
+# 
+# # Sample 10000 points
+# sampled_df <- density_df %>%
+#   sample_n(5000)
+# 
+# depth_labels <- sampled_df %>%
+#   group_by(Year, common, mean_temp) %>%
+#   summarize(
+#     mean_q10 = mean(depthq10, na.rm = TRUE),
+#     mean_q90 = mean(depthq90, na.rm = TRUE),
+#     depth_range_mid = max(depth_range, na.rm = TRUE)
+#   ) %>%
+#   mutate(
+#     Year = factor(Year),
+#     y_pos = Year,
+#     label = if_else(
+#       round(mean_q10, 0) >= 100,
+#       paste0("Q90: ", round(mean_q90, 0), "\nQ10: ", round(mean_q10, 0)),
+#       paste0("Q90: ", round(mean_q90, 0), "\n Q10: ", round(mean_q10, 0))  # leading space on Q10
+#     )
+#   )
+# 
+# p2<-
+#   ggplot(sampled_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
+#   # Plot the observation points on top of the ridgelines
+#   geom_point(
+#     aes(x = depth_range, y = factor(Year)), 
+#     position = position_jitter(height = 0, width = 0.4),
+#     color = 'black',
+#     shape = '|', 
+#     size = 2, 
+#     alpha = 0.2
+#   ) + 
+#   geom_ridgeline(
+#     aes(height = rescaled_y_vals),  # Use the rescaled density values
+#     color = 'black',
+#     scale = 1.8,
+#     linewidth = 0.5
+#   ) + 
+#   geom_text(
+#     data = depth_labels,
+#     aes(x = depth_range_mid, y = y_pos, label = label),
+#     vjust = -0.1,hjust=-0.2,
+#     size = 2.5,
+#     lineheight = 0.8)+
+#   scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) + 
+#   scale_x_continuous(expand=c(0.2,0.1)) + 
+#   scale_fill_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
+#   scale_color_gradientn(
+#     colors = custom_colors(20), name = 'SBT (°C)', 
+#     guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
+#   ) + 
+#   facet_wrap(~common, scales = 'free_x') + 
+#   theme_bw() + 
+#   theme(
+#     strip.background = element_blank(), 
+#     text = element_text(size = 12), 
+#     strip.text = element_text(size = 12),
+#     panel.grid.major.x = element_line(linetype = 'dashed'),
+#     panel.grid.minor.x = element_line(linetype = 'dashed')
+#   ) + 
+#   labs(x = 'depth range (Q90 - Q10, m)', y = '')
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+# print(p2)
+# dev.off()
+# 
+# ggplot(density_df, aes(x = x_vals, y = factor(Year), fill = mean_temp)) + 
+#   # Plot the ridgelines with rescaled y-values
+#   # Plot the observation points on top of the ridgelines
+#   
+#   geom_ridgeline(
+#     aes(height = rescaled_y_vals),  # Use the rescaled density values
+#     color = 'black',
+#     scale = 1.8
+#   ) + 
+#   geom_point(
+#     aes(x = depth_range, y = factor(Year)), #, color = mean_temp # Points for the observations
+#     position = position_jitter(height = 0, width = 1),
+#     color='black',
+#     shape = '—', 
+#     size = 1, 
+#     alpha = 1
+#   ) + 
+#   scale_y_discrete() + 
+#   scale_x_continuous(expand = c(0.3, 0.05),
+#                      trans = 'reverse')+  # Reverse the x-axis) + 
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
+#   scale_point_color_gradient(low = '#1675ac', high = "#cc1d1f") + 
+#   scale_color_gradientn(colors = custom_colors(20), name = 'SBT (°C)', 
+#                         guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) + 
+#   facet_wrap(~common, scales = 'free_y') + 
+#   theme_minimal() + 
+#   theme(strip.background = element_blank(), 
+#         text = element_text(size = 12), 
+#         strip.text = element_text(size = 12),
+#         panel.grid.major.y = element_line(linetype = 'dashed'),
+#         panel.grid.minor.y = element_line(linetype = 'dashed')) + 
+#   labs(x = 'depth range (Q90 - Q10, m)', y = '')+
+#   coord_flip()
+# 
+# 
+# 
+# #p1<-
+# ggplot(data = metrics_df) +  
+#   # Reorder the 'common' variable by 'mean_temp' for sorting the violins
+#   geom_violin(aes(x = depthq90 - depthq10, y = fct_reorder(common, mean_temp), fill = mean_temp, group = mean_temp),  
+#               color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
+#               trim = FALSE) +  # Adjusted scale for height
+#   
+#   scale_x_continuous() +  # Adjust x-axis scale
+#   
+#   facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
+#   
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
+#   
+#   theme_bw() +  
+#   theme(
+#     axis.text.y = element_blank(),  # Hide y-axis text
+#     axis.ticks.y = element_blank(),  # Remove y-axis ticks
+#     axis.title.y = element_blank(),  # Remove y-axis title
+#     strip.background = element_blank(),  # Clean facet strip background
+#     text = element_text(size = 12),  # General font size
+#     strip.text = element_text(size = 12)  # Size for facet labels
+#   ) +  
+#   
+#   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)')
+# 
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+# print(p)
+# dev.off()
+# 
+# 
+# 
+# 
+# p2<-
+#   ggplot(data = metrics_df) +  
+#   # Reorder the 'common' variable by 'mean_temp' for sorting the violins
+#   geom_violin(aes(x = depthq90 - depthq10, y = mean_temp, fill = mean_temp, group = mean_temp),  
+#               color = "black", size = 0.4, adjust = 2, scale = "width", position = position_dodge(width = 0.5), 
+#               trim = FALSE) +  # Adjusted scale for height
+#   
+#   scale_x_continuous() +  # Adjust x-axis scale
+#   
+#   facet_wrap(~common, scales = 'free') +  # Facet by 'common' variable
+#   
+#   scale_fill_gradientn(colors = custom_colors(20), name = 'SBT (°C)',  
+#                        guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +  
+#   
+#   theme_bw() +  
+#   theme(
+#     #axis.text.y = element_blank(),  # Hide y-axis text
+#     #axis.ticks.y = element_blank(),  # Remove y-axis ticks
+#     #axis.title.y = element_blank(),  # Remove y-axis title
+#     strip.background = element_blank(),  # Clean facet strip background
+#     text = element_text(size = 12),  # General font size
+#     strip.text = element_text(size = 12)  # Size for facet labels
+#   ) +  
+#   
+#   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
+# 
+# #save env plot
+# agg_png(paste0('figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+# print(p2)
+# dev.off()
 
 #background stratification figure ####
 
@@ -3224,6 +3240,6 @@ ggplot() +
   labs(x = "year", y = "",title='static stratification')
 
 
-agg_png(paste0('.figures/slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
+agg_png(paste0('figures/slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
 cowplot::plot_grid(p2,p1,ncol = 1)
 dev.off()

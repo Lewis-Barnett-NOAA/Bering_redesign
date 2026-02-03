@@ -73,7 +73,7 @@ spp<-c('Limanda aspera',
        'Bathyraja aleutica')
 
 #folder region
-fol_region<-c('shelf EBS NBS VAST')
+fol_region<-c('output/vast')
 
 #load grid
 load('data/data_processed/grid_EBS_NBS.RData')
@@ -275,7 +275,7 @@ for (sp in spp) {
   
   file_path <- paste(
     out_dir,
-    'data processed/species',
+    'data/data_processed/species',
     sp,
     "data_geostat_temp.rds",
     sep = "/"
@@ -342,17 +342,17 @@ NBSEBS_data_geostat <- df2
 
 
 #save data
-saveRDS(NBSEBS_data_geostat,paste(out_dir,'data processed/data_geostat_NBSEBS.rds',sep='/'))
+saveRDS(NBSEBS_data_geostat,paste(out_dir,'data/data_processed/data_geostat_NBSEBS.rds',sep='/'))
 
 # join data_geostat input VAST model for both regions ####
 # load BSS data
 BSS_data_geostat <- readRDS(
-  file.path(out_dir, "data processed", "data_geostat_BSS.rds")
+  file.path(out_dir, "data/data_processed", "data_geostat_BSS.rds")
 )
 
 # load EBS + NBS data
 NBSEBS_data_geostat <- readRDS(
-  file.path(out_dir, "data processed", "data_geostat_NBSEBS.rds")
+  file.path(out_dir, "data/data_processed", "data_geostat_NBSEBS.rds")
 )
 
 # sanity check
@@ -372,11 +372,11 @@ data_geostat_all <- dplyr::bind_rows(
 # save combined object
 saveRDS(
   data_geostat_all,
-  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.rds")
+  file.path(out_dir, "data/data_processed", "data_geostat_BSS_NBSEBS.rds")
 )
 
 write.csv(
   data_geostat_all,
-  file.path(out_dir, "data processed", "data_geostat_BSS_NBSEBS.csv"),
+  file.path(out_dir, "data/data_processed", "data_geostat_BSS_NBSEBS.csv"),
   row.names = FALSE
 )

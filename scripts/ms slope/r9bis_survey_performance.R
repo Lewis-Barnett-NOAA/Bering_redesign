@@ -97,7 +97,7 @@ df_spp1<-df_spp1[order(df_spp1$common),]
 df_spp1$label<-letters[1:nrow(df_spp1)]
 
 #create folder simulation data
-dir.create(paste0('./output slope//species/'))
+dir.create(paste0('output/slope//species/'))
 
 #years - only years when BSS and NBS+EBS OM temporally overlap
 yrs<-c(2002:2016)
@@ -105,9 +105,9 @@ n_yrs<-length(yrs)
 
 # GRIDS #####
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -189,7 +189,7 @@ samp_df<-rbind(samp_df,samp_slope)
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
 # ESTIMATED ABUNDANCE INDEX  #####
-est_ind_file<-'./output slope//estimated_index_hist_dens.RData'
+est_ind_file<-'output/slope//estimated_index_hist_dens.RData'
 if (!file.exists(est_ind_file)) {
   # code to run when the file is missing
   message("File not found, running code.")
@@ -199,9 +199,9 @@ if (!file.exists(est_ind_file)) {
   names(ind2)<-c('spp','year','approach','sur','scn','index','sim')
   
   #list of files (100 files, one for each simulated data)
-  files<-list.files('./output slope//ms_sim_survey_hist/',pattern = 'index_hist_dens',recursive = TRUE,full.names = TRUE)
+  files<-list.files('output/slope//ms_sim_survey_hist/',pattern = 'index_hist_dens',recursive = TRUE,full.names = TRUE)
   
-  sims<-list.files('./output slope/ms_sim_survey_hist/')
+  sims<-list.files('output/slope/ms_sim_survey_hist/')
   sims<-as.numeric(gsub('sim','',sims))
   
   #loop over simulated data - files  
@@ -232,7 +232,7 @@ if (!file.exists(est_ind_file)) {
   }
   
   #save simulated index
-  save(ind2,file = './output slope//estimated_index_hist_dens.RData') #ind2
+  save(ind2,file = 'output/slope//estimated_index_hist_dens.RData') #ind2
 
 } else {
   # code to run when the file is missing
@@ -256,7 +256,7 @@ df$year<-as.integer(df$year)
 #loop over spp
 
 ### BSS  #####
-true_index_file <-"./output slope//model_based_EBSNBSBSS.RData"
+true_index_file <-"output/slope//model_based_EBSNBSBSS.RData"
 
 if (!file.exists(true_index_file)) {
   
@@ -275,10 +275,10 @@ if (!file.exists(true_index_file)) {
     mod1<-'fit_st.RData'
       
     #get list of fit data
-    ff<-list.files(paste0('./slope EBS VAST/',sp),mod1,recursive = TRUE)
+    ff<-list.files(paste0('./output/slope/vast/',sp),mod1,recursive = TRUE)
     
     #load fit file
-    load(paste0('./slope EBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/slope/vast/',sp,'/',ff)) #fit
     #getLoadedDLLs() #if check loaded DLLs
     #check_fit(fit$parameter_estimates)
     
@@ -294,8 +294,8 @@ if (!file.exists(true_index_file)) {
     
   }
   
-  save(dens_index_hist_OM, file = paste0("./output slope//species/dens_index_hist_OM_slope.RData")) 
-  load(file = paste0("./output slope//species/dens_index_hist_OM_slope.RData")) #dens_index_hist_OM
+  save(dens_index_hist_OM, file = paste0("output/slope//species/dens_index_hist_OM_slope.RData")) 
+  load(file = paste0("output/slope//species/dens_index_hist_OM_slope.RData")) #dens_index_hist_OM
   
   ### NBS+EBS  #####
   
@@ -310,10 +310,10 @@ if (!file.exists(true_index_file)) {
     
     
     #get list of fit data
-    ff<-list.files(paste0('./shelf EBS NBS VAST/',sp),'fit',recursive = TRUE)
+    ff<-list.files(paste0('./output/vast/',sp),'fit',recursive = TRUE)
     
     #load fit file
-    load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/vast/',sp,'/',ff)) #fit
     #getLoadedDLLs() #if check loaded DLLs
     #check_fit(fit$parameter_estimates)
     
@@ -328,17 +328,17 @@ if (!file.exists(true_index_file)) {
     
   }
   
-  save(dens_index_hist_OM, file = paste0("./output slope//species/dens_index_hist_OM_ebsnbs.RData")) 
-  load(paste0("./output slope//species/dens_index_hist_OM_ebsnbs.RData")) #dens_index_hist_OM
+  save(dens_index_hist_OM, file = paste0("output/slope//species/dens_index_hist_OM_ebsnbs.RData")) 
+  load(paste0("output/slope//species/dens_index_hist_OM_ebsnbs.RData")) #dens_index_hist_OM
   
   ####### NBS + EBS + BSS  #####
   
   #load true ebsnbs index
-  load(file = paste0("./output slope//species/dens_index_hist_OM_ebsnbs.RData")) 
+  load(file = paste0("output/slope//species/dens_index_hist_OM_ebsnbs.RData")) 
   ind_ebsnbs<-dens_index_hist_OM
   
   #load true slope index
-  load(file = paste0("./output slope//species/dens_index_hist_OM_slope.RData")) 
+  load(file = paste0("output/slope//species/dens_index_hist_OM_slope.RData")) 
   ind_slope<-dens_index_hist_OM
   
   #df to store results
@@ -396,7 +396,7 @@ if (!file.exists(true_index_file)) {
   true_ind[c(9,15),,'Sebastes melanostictus']<-NA
   
   #save true ind
-  save(true_ind,file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  
+  save(true_ind,file = paste0("output/slope//model_based_EBSNBSBSS.RData"))  
   
 } else {
   # code to run when the file is missing
@@ -445,8 +445,8 @@ df<-merge(df,samp_df[,c("type","region","strat_var","samp_scn")],by.x='scn',by.y
 #df<-subset(df,scn %in% paste0('scn',1:16))
 
 #save true ind
-save(df,file = paste0("./output slope//design_based_EBSNBSBSS.RData"))  
-load(file = paste0("./output slope//design_based_EBSNBSBSS.RData"))  
+save(df,file = paste0("output/slope//design_based_EBSNBSBSS.RData"))  
+load(file = paste0("output/slope//design_based_EBSNBSBSS.RData"))  
 
 levels(df$region)<-c("EBS","EBS+NBS","EBS+BSS","EBS+NBS+BSS")
 
@@ -511,7 +511,7 @@ p<-
     facet_wrap(~common, scales='free_y', dir='h', nrow = 5)
 
 #save index plot
-ragg::agg_png(paste0('.figures/slope/ms_ind_EBSNBSBSS.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/ms_ind_EBSNBSBSS.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -569,10 +569,10 @@ y_scale$scn<-'scn1'
   #get the true index for each simulated data
   
   #store HIST simulated data
-  load(file = paste0('./output slope//species/ms_sim_dens_all.RData'))  #sim_dens1
+  load(file = paste0('output/slope//species/ms_sim_dens_all.RData'))  #sim_dens1
   
   
-  true_index_file <-"./output slope/true_ind_hist.RData"
+  true_index_file <-"output/slope/true_ind_hist.RData"
   
   if (!file.exists(true_index_file)) {
     
@@ -617,13 +617,13 @@ y_scale$scn<-'scn1'
     }
     
     #save true ind
-    save(true_ind,file = paste0("./output slope/true_ind_hist.RData"))  
+    save(true_ind,file = paste0("output/slope/true_ind_hist.RData"))  
     
   } else {
     
     # code to run when the file is missing
     message("File present, loading true index file")
-    load(file = paste0("./output slope/true_ind_hist.RData"))  
+    load(file = paste0("output/slope/true_ind_hist.RData"))  
     
   }
   
@@ -635,7 +635,7 @@ y_scale$scn<-'scn1'
   dim(true_ind1)
   
   
-  true_cv_file<-'./output slope//estimated_cvtrue_dens.RData'
+  true_cv_file<-'output/slope//estimated_cvtrue_dens.RData'
   
   if (!file.exists(true_cv_file)) {
     
@@ -643,7 +643,7 @@ y_scale$scn<-'scn1'
     message("File not found, running code.")
     
     #save simulated index
-    load('./output slope/estimated_index_hist_dens.RData') #ind2
+    load('output/slope/estimated_index_hist_dens.RData') #ind2
     setDT(ind2)  # Convert ind2 to data.table if it's not already
     
     
@@ -685,13 +685,13 @@ y_scale$scn<-'scn1'
       facet_wrap(~spp)+
       scale_y_continuous(breaks = c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3))
     
-    save(true_ind3,file = './output slope//estimated_cvtrue_dens.RData')
+    save(true_ind3,file = 'output/slope//estimated_cvtrue_dens.RData')
     
   } else {
     # code to run when the file is missing
     message("File present, loading true cv file")
     
-    load(file = './output slope//estimated_cvtrue_dens.RData')
+    load(file = 'output/slope//estimated_cvtrue_dens.RData')
   
   }  
   
@@ -906,7 +906,7 @@ y_scale$scn<-'scn1'
   
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/true_CV_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/true_CV_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1077,7 +1077,7 @@ y_scale$scn<-'scn1'
   
   
   
-  ragg::agg_png(paste0('.figures/slope/true_CV.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/true_CV.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p1
   dev.off()
@@ -1087,7 +1087,7 @@ y_scale$scn<-'scn1'
   ## Define column names
   col_names <- c('spp', 'year', 'approach', 'sur', 'scn', 'regime', 'cv_sim')
   
-  est_cv_file<-'./output slope//estimated_cvsim_hist_dens.RData'
+  est_cv_file<-'output/slope//estimated_cvsim_hist_dens.RData'
   
   if (!file.exists(est_cv_file)) {
     
@@ -1096,7 +1096,7 @@ y_scale$scn<-'scn1'
     
   
     # Get list of files
-    files <- list.files('./output slope/ms_sim_survey_hist/', pattern = 'index_hist_dens', recursive = TRUE, full.names = TRUE)
+    files <- list.files('output/slope/ms_sim_survey_hist/', pattern = 'index_hist_dens', recursive = TRUE, full.names = TRUE)
     
     # Process all files using lapply and combine results efficiently
     cv2 <- rbindlist(lapply(seq_along(files), function(sim) {
@@ -1174,8 +1174,8 @@ y_scale$scn<-'scn1'
   #unique(cv3[, .(scn, region)])
   
   #save  
-  #save(cv3,file = './output slope//estimated_cvs_spp_dens.RData')
-  #load(file = './output slope//estimated_cvs_spp_dens.RData')
+  #save(cv3,file = 'output/slope//estimated_cvs_spp_dens.RData')
+  #load(file = 'output/slope//estimated_cvs_spp_dens.RData')
   class(cv3)
   
   #df<-df[which(df$spp %in% df_spp1$spp),]
@@ -1392,7 +1392,7 @@ y_scale$scn<-'scn1'
   
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/est_cv_warmcold.png'),  width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/est_cv_warmcold.png'),  width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1619,7 +1619,7 @@ y_scale$scn<-'scn1'
     coord_cartesian(clip = "off")
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/est_cv.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/est_cv.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p1
   dev.off()
@@ -1630,10 +1630,10 @@ y_scale$scn<-'scn1'
   gc()
   
   #load simulated index
-  load('./output slope/estimated_index_hist_dens.RData') #ind2
+  load('output/slope/estimated_index_hist_dens.RData') #ind2
   
   #load true ind
-  load(file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  #true_ind
+  load(file = paste0("output/slope//model_based_EBSNBSBSS.RData"))  #true_ind
   
   #arrange true index data
   true_ind1<-reshape2::melt(true_ind,id.vars='year')
@@ -1691,7 +1691,7 @@ y_scale$scn<-'scn1'
     all.x = TRUE
   )
   
-  est_error_file<-'./output slope//rrmse_rbias_index.RData'
+  est_error_file<-'output/slope//rrmse_rbias_index.RData'
   
   if (!file.exists(est_error_file)) {
     
@@ -1943,7 +1943,7 @@ y_scale$scn<-'scn1'
     )+
     coord_cartesian(clip = "off")
   
-  ragg::agg_png(paste0('.figures/slope/RRMSE_index.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_index.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -2135,7 +2135,7 @@ y_scale$scn<-'scn1'
     coord_cartesian(clip = "off")
     
   
-  ragg::agg_png(paste0('.figures/slope/RRMSE_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -2301,7 +2301,7 @@ y_scale$scn<-'scn1'
   
   # save
   ragg::agg_png(
-    '.figures/slope/RBIAS_index.png',
+    'figures/slope/RBIAS_index.png',
     width = 18, height = 12, units = "in", res = 300
   )
   p
@@ -2467,7 +2467,7 @@ y_scale$scn<-'scn1'
       coord_cartesian(clip = "off")
     
     
-    ragg::agg_png(paste0('.figures/slope/RBIAS_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+    ragg::agg_png(paste0('figures/slope/RBIAS_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
     #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
     p
     dev.off()
@@ -2476,7 +2476,7 @@ y_scale$scn<-'scn1'
 #4 CALCULATION RRMSE AND RBIAS OF CV  #####
 #LOAD
 
-load(file = './output slope//estimated_cvs_spp_dens.RData')#cv3
+load(file = 'output/slope//estimated_cvs_spp_dens.RData')#cv3
 head(cv3)
 # Step 1: Filter based on regime + year
 cv3_filtered <- cv3[
@@ -2695,7 +2695,7 @@ p<-
 
   
 
-ragg::agg_png(paste0('.figures/slope/RRMSE_cv.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/RRMSE_cv.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2883,7 +2883,7 @@ p<-
   coord_cartesian(clip = "off")
 
 
-  ragg::agg_png(paste0('.figures/slope/RRMSE_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3023,7 +3023,7 @@ p<-
     coord_cartesian(clip = "off")
   
   
-  ragg::agg_png(paste0('.figures/slope/RBIAS_cv.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RBIAS_cv.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3189,7 +3189,7 @@ p<-
       )+
       coord_cartesian(clip = "off")
   
-  ragg::agg_png(paste0('.figures/slope/RBIAS_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RBIAS_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3199,8 +3199,8 @@ p<-
 
 #5 CV ratio ####
 #LOAD
-#load(file = './output slope//estimated_cvs.RData') #cv3
-  load(file = './output slope//estimated_cvs_spp_dens.RData') #cv3
+#load(file = 'output/slope//estimated_cvs.RData') #cv3
+  load(file = 'output/slope//estimated_cvs_spp_dens.RData') #cv3
   
 #merge samp data
 setDT(samp_df)
@@ -3237,8 +3237,8 @@ cv4ebs <- merge(cv3, cv3ebs,
 cv4ebs$ratio<-log(cv4ebs$cv_sim/cv4ebs$cv_ebs)
 
 #save
-save(cv4ebs,file = './output slope//estimated_cvratio_dens.RData') #cv4ebs
-load(file = './output slope//estimated_cvratio_dens.RData')
+save(cv4ebs,file = 'output/slope//estimated_cvratio_dens.RData') #cv4ebs
+load(file = 'output/slope//estimated_cvratio_dens.RData')
 
 # Perform the merge (by matching 'scn' with 'samp_scn' and 'region' with 'region')
 cv5ebs <-cv4ebs
@@ -3418,7 +3418,7 @@ p<-
   coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('.figures/slope/logcvratio_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/logcvratio_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3565,6 +3565,6 @@ p1 <-
   ) +
   coord_cartesian(clip = "off")
 
-ragg::agg_png(paste0(".figures/slope/logcvratio.png"), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0("figures/slope/logcvratio.png"), width = 18, height = 12, units = "in", res = 300)
 p1
 dev.off()

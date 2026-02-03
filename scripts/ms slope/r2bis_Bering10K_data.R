@@ -97,8 +97,8 @@ spp1<-c('Yellowfin sole',
 #####################################
 
 #read csv file
-#haul<-readRDS(paste0('./data raw/',file$name))
-#haul<-readRDS(paste0('./data raw/afsc_haul_raw_2023_2_21.rds'))
+#haul<-readRDS(paste0('data/data_raw/',file$name))
+#haul<-readRDS(paste0('data/data_raw/afsc_haul_raw_2023_2_21.rds'))
 haul<-readRDS('Data/data_raw/afsc_haul_raw_2023_2_21.rds')
 
 dim(haul);length(unique(haul$hauljoin))

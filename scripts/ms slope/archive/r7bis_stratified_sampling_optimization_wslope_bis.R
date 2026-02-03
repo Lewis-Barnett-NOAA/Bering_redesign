@@ -131,15 +131,15 @@ grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982' & DepthGEBCO<=4
 slp_cells<-rownames(grid_ebs)
 
 #load slope grid
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 dim(bering_sea_slope_grid)
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-999
 #gridslope<-data.frame(bering_sea_slope_grid,region='SLP')
 
 #load EBS+NBS grid
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
                           data.frame(bering_sea_slope_grid,region='SLP')))
@@ -185,7 +185,7 @@ shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
 for (i in shfiles) {
   
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
+  sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
   
   if (i=='EBSslopeThorson') {
     
@@ -294,11 +294,11 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 
   if (samp_df[s,'type']=='static') {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -904,7 +904,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       
       #save list
         save(all,
-             file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData"))
+             file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData"))
         
         #strata to plot
         dd<-all$result_list$solution$framenew
@@ -926,7 +926,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         dd2$strata<-factor(dd2$strata,levels=c(1:10))
         
         #save plot
-        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p1<-
           ggplot()+
@@ -945,7 +945,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         #palette
         pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
         
-        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p2<-
           ggplot()+
@@ -967,10 +967,10 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           p <- plot_grid(p1, p2) #labels=c('A', 'B')
           
           if (r=='all') {
-            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort376.png')
+            namepng<-paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type']), fontface='bold')
           } else {
-            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'_effort376.png')
+            namepng<-paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'_effort376.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type'],'-',r), fontface='bold')
           }
           
@@ -1007,11 +1007,11 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   
    if (samp_df[s,'type']=='static') {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -1054,7 +1054,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #save list
     load(
-         file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
+         file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
@@ -1229,11 +1229,11 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
   
   if (samp_df[s,'type']=='static') {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -1241,7 +1241,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #load list
     load(
-      file = paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
+      file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"_376.RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
@@ -1276,7 +1276,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     #palette
     pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
     
-    #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+    #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
     #print(
     p<-
       ggplot()+

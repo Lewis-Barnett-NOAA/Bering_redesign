@@ -42,11 +42,11 @@ knots<-'300' #200
 splist<-list.dirs('data/data_processed/',full.names = FALSE,recursive = FALSE)
 
 #folder region - only slope
-fol_region<-c('slope EBS VAST','slope_outshelf EBS VAST')[1]
+fol_region<-c('output/slope/vast')
 dir.create(paste0('./',fol_region))
 
 #load grid
-load('./extrapolation grids/lastversion_grid_EBS.RData')
+load('data/data_processed/lastversion_grid_EBS.RData')
 load('data/data_processed/grid_EBS_NBS.RData')
 
 #selected species
@@ -83,7 +83,7 @@ spp_vect<-c("Atheresthes evermanni","Atheresthes stomias",
             'Bathyraja aleutica')
 
 #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
@@ -285,7 +285,7 @@ n_sim_hist<-100
 #fit with depth or CPE
 cov<-c('depth','cpe')[1]
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#fitfiles<-list.files('./output/slope/vast/',recursive = TRUE,pattern = 'fit.RData')
 #spp<-gsub('/fit.RData','',fitfiles)
 df_conv<-data.frame(spp=c(spp))
 
@@ -329,7 +329,7 @@ df3$Weight_kg<-df3$Cpue_kgha*df3$Effort
 yrs_region<-unique(df3$Year)
 data_geostat<-df3[complete.cases(df3$Weight_kg),]
 
-if (fol_region=='slope EBS VAST') {
+if (fol_region=='output/slope/vast') {
   data_geostat<-subset(data_geostat,Region=='slope')}
 
 #ha to km2 ------ so kg/km2
@@ -339,7 +339,7 @@ data_geostat$Effort<-data_geostat$Effort/100
 data_geostat$CPUEkgkm<-data_geostat$Weight_kg/data_geostat$Effort
 
 #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
@@ -514,14 +514,14 @@ fit <- tryCatch( {fit_model(settings=settings,
                   dimnames=list(1:nrow(bering_sea_slope_grid),sort(unique(data_geostat1$Year)),1:n_sim_hist))
   
   #create folder simulation data
-  dir.create(paste0('./output/species/',sp,'/simulated historical data slope/'))
+  dir.create(paste0('./output/species/',sp,'/simulated_historical_data slope/'))
 
   #save if fit model object complet
   if (class(fit)=='fit_model') {
     
     save(list = 'fit',file=paste(out_dir,fol_region,sp,'fit_st.RData',sep = '/'))
 
-    #load('./slope EBS VAST/Anoplopoma fimbria/fit.RData')
+    #load('./output/slope/vast/Anoplopoma fimbria/fit.RData')
     
     #loop over simulations
     for (isim in 1:n_sim_hist) { #simulations
@@ -549,9 +549,9 @@ fit <- tryCatch( {fit_model(settings=settings,
   }
 
   dir.create(paste0("./output/species/",sp))
-  dir.create(paste0("./output/species/",sp,'/simulated historical data/'))
+  dir.create(paste0("./output/species/",sp,'/simulated_historical_data/'))
   #save data
-  save(sim_dens, file = paste0("./output/species/",sp,'/simulated historical data/sim_dens_slope.RData'))
+  save(sim_dens, file = paste0("./output/species/",sp,'/simulated_historical_data/sim_dens_slope.RData'))
   
   #store
   #sim_hist_dens_spp[,,,sp]<-sim_dens
@@ -562,7 +562,7 @@ fit <- tryCatch( {fit_model(settings=settings,
 # check the slope model that converged
 #####################
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#fitfiles<-list.files('./output/slope/vast/',recursive = TRUE,pattern = 'fit.RData')
 #spp<-gsub('/fit.RData','',fitfiles)
 df_conv<-data.frame(spp=c(spp))
 
@@ -578,11 +578,11 @@ for (sp in spp) {
   cat(paste0('#####  ',sp,'  #######\n'))
   
   #f<-fitfiles[1]
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
-    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+  if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0('./output/slope/vast/',sp,'/fit_st.RData'))
   }
   
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+  if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit_st.RData'))==0) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
   } else if (is.null(fit)) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
@@ -595,15 +595,15 @@ for (sp in spp) {
   #non ST if nonconvergence in st
   # if ( df_conv[which(df_conv$spp==sp),'slope']!='There is no evidence that the model is not converged') {
   
-  # if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))!=0) {
-  #   load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
+  # if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit.RData'))!=0) {
+  #   load(paste0('./output/slope/vast/',sp,'/fit.RData'))
   # }
   # 
   # #EBS+NBS fit
-  # if (file.exists(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))) {
+  # if (file.exists(paste0('./output/vast//',sp,'/fit.RData'))) {
   #   
   #   #load fit file
-  #   load(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))
+  #   load(paste0('./output/vast//',sp,'/fit.RData'))
   #   
   #   #dimensions and check fit
   #   #dim(fit$Report$D_gct) #53464
@@ -646,7 +646,7 @@ write.csv(df_conv,file=('./tables/slope_conv.csv'))
 #save(dens_index_hist_OM, file = paste0("./output/species/dens_index_hist_OM.RData"))
 
 ######################
-# RESHAPE SIMULATED HISTORICAL DATA
+# RESHAPE simulated_historical_data
 ######################
 
 # Initializing parallel backend
@@ -666,7 +666,7 @@ foreach(sp = spp_slope) %do% {
   #sp<-spp[1]
   
   #load data
-  load(paste0('./output/species/', sp, '/simulated historical data/sim_dens_slope.RData'))
+  load(paste0('./output/species/', sp, '/simulated_historical_data/sim_dens_slope.RData'))
   
   #parallel loop over years and simulations
   foreach(y = 2002:2016) %:%

@@ -107,9 +107,9 @@ yrs<-c(2002:2016)
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -152,7 +152,7 @@ dim(grid_ebs)
 ###################################
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 #number of surveys
 n_sur<-100
@@ -194,11 +194,11 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     
   if (samp_df[s,'type']=='static') {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -208,8 +208,8 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     #r<-regime[1]
     
     #load results_optimization
-    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
-    #load(file=paste0('./output slope/multisp_optimization_static_data.RData')) #df
+    load(file=paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+    #load(file=paste0('output/slope/multisp_optimization_static_data.RData')) #df
     df<-df[,c("Lat",'Lon','cell')]
     
     
@@ -476,6 +476,6 @@ for (s in 1:nrow(samp_df)) { #sampling designs
   rm(dfrandom,dfspb,str_alloc,rand,spb)
   
   #store station allocations
-  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
+  save(scn_allocations, file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   }
 }

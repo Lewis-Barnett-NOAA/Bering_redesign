@@ -75,8 +75,8 @@ spp<-c('Limanda aspera',
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
@@ -118,9 +118,9 @@ ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -165,7 +165,7 @@ nbs_samples <- nbs_area * ebs_dens
 ###################################
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 ################
 # SAMPLES PER REGION
@@ -182,11 +182,11 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   
   if (samp_df[s,'type']=='static') {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -195,7 +195,7 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   #r<-regime[1]  
   cat(paste0('########## ',s,' - ',r,' ##########\n'))    
   #scn_allocations
-  load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
+  load(file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   
   for (sur in 1:n_sur) {
     
@@ -686,7 +686,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('.figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
@@ -703,14 +703,14 @@ sur_df<-data.frame(num=1:(length(yrs)*n_sur),
            sur=rep(1:n_sur,each=length(yrs)))
 
 #simulated densities
-load(file = paste0('./output slope/species/ms_sim_dens_all.RData'))  #sim_dens1
+load(file = paste0('output/slope/species/ms_sim_dens_all.RData'))  #sim_dens1
 dimnames(sim_dens1)
 
 #ms_sim_survey folder
-dir.create('./output slope/ms_sim_survey/')
+dir.create('output/slope/ms_sim_survey/')
 
 #create folder
-dir.create(paste0('./output slope/ms_sim_survey_hist/'))
+dir.create(paste0('output/slope/ms_sim_survey_hist/'))
 
 #number of simulations
 n_sim_hist<-100
@@ -727,7 +727,7 @@ for (sim in 1:n_sim_hist) {
   sim_fol <- sprintf("%03d", sim)
   
   #create folder
-  dir.create(paste0('./output slope/ms_sim_survey_hist/sim',sim_fol))
+  dir.create(paste0('output/slope/ms_sim_survey_hist/sim',sim_fol))
   
   #array to store
   # index_hist<-array(NA,
@@ -754,11 +754,11 @@ for (sim in 1:n_sim_hist) {
       
       if (samp_df[s,'type']=='static') {
         #load multispecies data
-        #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+        #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
         regime<-c('all')
       } else {
         #load multispecies data
-        #load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+        #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
         regime<-c('cold','warm')
       }
       
@@ -777,7 +777,7 @@ for (sim in 1:n_sim_hist) {
         #r<-'all'
         
         #load optimization results
-        load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+        load(file=paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
         
         #area
         area_cell<-merge(all$result_list$solution$indices, grid3, by.x='ID',by.y='cell')
@@ -803,7 +803,7 @@ for (sim in 1:n_sim_hist) {
       alloc<-samp_df$n_samples[s]
       
       #load survey allocations by sampling design
-        load(file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
+        load(file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
         #scn_allocations
       #dimnames(scn_allocations)[[3]]<-c('rand','sb')
       
@@ -934,12 +934,12 @@ for (sim in 1:n_sim_hist) {
       }
     }
   
-  save(index_hist, file = paste0('./output slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist_dens.RData'))  
+  save(index_hist, file = paste0('output/slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist_dens.RData'))  
 
 }
 
 
-load(file = paste0('./output slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
+load(file = paste0('output/slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
 index_hist[,,'y2003','rand',1,'scn4','cold']
 #samp_df
 
@@ -952,7 +952,7 @@ all_sim_dfs <- list()
 for (i in 1:100) {
   cat(paste0("### Simulation ", i, " ###\n"))
   
-  file_path <- paste0('./output slope/ms_sim_survey_hist/sim',
+  file_path <- paste0('output/slope/ms_sim_survey_hist/sim',
                       sprintf("%03d", i), '/index_hist_dens.RData')
   load(file_path)  # creates 'index_hist'
   
@@ -978,7 +978,7 @@ dim(combined_sim_df)
 
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 # Make sure the column names match for joining
 samp_df_join <- samp_df %>%
