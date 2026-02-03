@@ -31,11 +31,6 @@ if (!('VAST' %in% installed.packages())) {
 #load/install packages
 pacman::p_load(pack_cran,character.only = TRUE)
 
-#setwd
-out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
-
 #list of sp
 spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
@@ -75,8 +70,8 @@ project_yrs<-((yrs[length(yrs)])+1):(yrs[length(yrs)]+n_proj)
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
@@ -110,8 +105,8 @@ grid_ebs<-grid.ebs_year[which(grid.ebs_year$region != 'EBSslope' & grid.ebs_year
 dim(grid_ebs)
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
@@ -136,7 +131,7 @@ samp_df<-rbind(samp_df,c('baseline','current',520,15,'scnbase'),
 # BASELINE STRATA
 ###################################
 
-load('./output/baseline_strata.RData')
+load('output/baseline_strata.RData')
 #add percent of total area per strata
 baseline_strata$strata_areas$pct<-baseline_strata$strata_areas$Area_in_survey_km2/sum(baseline_strata$strata_areas$Area_in_survey_km2)
 
@@ -145,7 +140,7 @@ baseline_strata$strata_areas$pct<-baseline_strata$strata_areas$Area_in_survey_km
 ###################################
 
 #load SBT scenarios table
-load('./tables/SBT_projection.RData')#df_sbt
+load('tables/SBT_projection.RData')#df_sbt
 
 #name SBT scenarios
 df_sbt$sbt<-paste0('SBT',df_sbt$sbt_n)
@@ -163,7 +158,7 @@ n_sur<-100
 ####################################
 
 # Set the path to the geodatabase file
-gdb_path <- "./shapefiles/CrabStrataShapefiles_GAPgrid.gdb/"
+gdb_path <- "data/CrabStrataShapefiles_GAPgrid.gdb/"
 
 # List the layers/tables in the geodatabase file
 gdb_layers <- st_layers(gdb_path)
@@ -193,8 +188,8 @@ for (i in 1:length(gdb_layers$name)) {
   #i<-3
   
   #load grid of NBS and EBS
-  load('./extrapolation grids/northern_bering_sea_grid.rda')
-  load('./extrapolation grids/eastern_bering_sea_grid.rda')
+  load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+  load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
   grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
   grid$cell<-1:nrow(grid)
   #grid2<-grid
@@ -263,13 +258,11 @@ sur_df<-data.frame(num=1:(length(yrs)*n_sur),
            sur=rep(1:n_sur,each=length(yrs)))
 
 #simulated densities
-load(file = paste0('./output/species/ms_sim_dens.RData'))  #sim_dens1
+load(file = paste0('output/ms simulated densities historical/output/species/ms_sim_dens.RData'))  #sim_dens1
 
-#ms_sim_survey folder
-dir.create('./output/ms_sim_survey/')
-
-#create folder
-dir.create(paste0('./output/ms_sim_survey_hist/'))
+#create folders
+dir.create('output/ms simulated surveys historical/')
+dir.create('output/ms simulated surveys future/')
 
 #loop over n combinations of simulated
 for (sim in 1:n_sim_hist) {
@@ -280,7 +273,7 @@ for (sim in 1:n_sim_hist) {
   sim_fol <- sprintf("%03d", sim)
   
   #create folder
-  dir.create(paste0('./output/ms_sim_survey_hist/sim',sim_fol))
+  dir.create(paste0('output/ms simulated surveys historical/sim',sim_fol))
   
   #array to store
   index_hist<-array(NA,
@@ -369,7 +362,7 @@ for (sim in 1:n_sim_hist) {
       } else {
         
         #load optimization results
-        load(paste0("./output/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
+        load(paste0("output/optimization/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
         
         #area
         area_cell<-merge(all$result_list$solution$indices, grid2, by.x='ID',by.y='cell')
@@ -438,7 +431,7 @@ for (sim in 1:n_sim_hist) {
       alloc<-ifelse(samp=='scnbase_bis',494,520)
       
       #load survey allocations by sampling design
-      load(file = paste0('./output/survey_allocations_',samp,'.RData')) #scn_allocations
+      load(file = paste0('output/survey allocations/survey_allocations_',samp,'.RData')) #scn_allocations
       dimnames(scn_allocations)[[3]]<-c('sys','rand','sb')
       
         #array to store results  
@@ -586,16 +579,13 @@ for (sim in 1:n_sim_hist) {
         }
   }
   
-  save(index_hist, file = paste0('./output/ms_sim_survey_hist/sim',sim_fol,'/index_hist_crab_v2.RData'))  
+  save(index_hist, file = paste0('output/ms simulated surveys historical/sim',sim_fol,'/index_hist_crab_v2.RData'))  
 
 }
 
 ################
 # PROJECTED
 ################
-
-#dir create sim survey projected
-dir.create('./output/ms_sim_survey_proj')
 
 #create a df of 5years x 100sur/sim x x 8sbt scenarios (it changes on the projected since it simulations have different indeces)
 n_sur<-100
@@ -618,7 +608,7 @@ for (sim in 1:n_sim_proj) {
   sim_fol <- sprintf("%03d", sim)
   
   #create folder
-  dir.create(paste0('./output/ms_sim_survey_proj/sim',sim_fol))
+  dir.create(paste0('output/ms simulated surveys future/sim',sim_fol))
 
   
 #loop over projections
@@ -631,7 +621,7 @@ for (sbt in df_sbt$sbt_n) {
   
   #sbt<-df_sbt$sbt_n[1]
   #load densities projections
-  load(paste0('./output/species/SBT',sbt,' ms_sim_proj_dens.RData'))
+  load(paste0('output/species/SBT',sbt,' ms_sim_proj_dens.RData'))
   
   #array to store
   index_proj<-array(NA,
@@ -725,7 +715,7 @@ for (sbt in df_sbt$sbt_n) {
     } else {
       
       #load optimization results
-      load(paste0("./output/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
+      load(paste0("output/optimization/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
       
       #area
       area_cell<-merge(all$result_list$solution$indices, grid2, by.x='ID',by.y='cell')
@@ -790,7 +780,7 @@ for (sbt in df_sbt$sbt_n) {
     alloc<-ifelse(samp=='scnbase_bis',494,520)
     
     #load survey allocations by sampling design
-    load(file = paste0('./output/survey_allocations_',samp,'.RData')) #scn_allocations
+    load(file = paste0('output/survey allocations/survey_allocations_',samp,'.RData')) #scn_allocations
     dimnames(scn_allocations)[[3]]<-c('sys','rand','sb')
       
     #loop over n combinations of simulated
@@ -916,7 +906,7 @@ for (sbt in df_sbt$sbt_n) {
       }
      }
     }
-  save(index_proj, file = paste0('./output/ms_sim_survey_proj/sim',sim_fol,'/SBT',sbt,' index_proj_crab_v2.RData'))  
+  save(index_proj, file = paste0('output/ms simulated surveys future/sim',sim_fol,'/SBT',sbt,' index_proj_crab_v2.RData'))  
   
   } 
 }

@@ -29,11 +29,6 @@ if (!('VAST' %in% installed.packages())) {
 #load/install packages
 pacman::p_load(pack_cran,character.only = TRUE)
 
-#setwd
-out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
-
 #list of sp
 spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 
@@ -73,8 +68,8 @@ project_yrs<-((yrs[length(yrs)])+1):(yrs[length(yrs)]+n_proj)
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
@@ -128,7 +123,7 @@ samp_df<-rbind(samp_df,c('baseline','current',520,15,'scnbase'),
 ###################################
 
 #load baseline strata
-load('./output/baseline_strata.RData')
+load('output/baseline_strata.RData')
 #add percent of total area per strata
 baseline_strata$strata_areas$pct<-baseline_strata$strata_areas$Area_in_survey_km2/sum(baseline_strata$strata_areas$Area_in_survey_km2)
 
@@ -137,7 +132,7 @@ baseline_strata$strata_areas$pct<-baseline_strata$strata_areas$Area_in_survey_km
 ###################################
 
 #load SBT scenarios table
-load('./tables/SBT_projection.RData')#df_sbt
+load('tables/SBT_projection.RData')#df_sbt
 
 #name SBT scenarios
 df_sbt$sbt<-paste0('SBT',df_sbt$sbt_n)
@@ -180,8 +175,8 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
     
     
     #load results_optimization
-    load(file=paste0('./output/ms_optim_allocations_',samp,'.RData')) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
-    load(file=paste0('./output/multisp_optimization_static_data.RData')) #df
+    load(file=paste0('output/optimization/ms_optim_allocations_',samp,'.RData')) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+    load(file=paste0('output/optimization/multisp_optimization_static_data.RData')) #df
     df<-df[,c("Lat",'Lon','cell')]
     
     
@@ -203,7 +198,7 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
   }
   
   #load baseline strata and specify corner stations
-  load('./output/baseline_strata.RData')
+  load('output/baseline_strata.RData')
   baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
   baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
   
@@ -424,7 +419,7 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
   rm(dfcurrent,dfrandom,dfspb,str_alloc,cur,rand,spb)
   
   #store station allocations
-  save(scn_allocations, file = paste0('./output/survey_allocations_',samp,'.RData')) 
+  save(scn_allocations, file = paste0('output/survey allocations/survey_allocations_',samp,'.RData')) 
   
 }
 
@@ -479,8 +474,8 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
       
       
       #load results_optimization
-      load(file=paste0('./output/ms_optim_allocations_',samp,'.RData')) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
-      load(file=paste0('./output/multisp_optimization_static_data.RData')) #df
+      load(file=paste0('output/optimization/ms_optim_allocations_',samp,'.RData')) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+      load(file=paste0('output/optimization/multisp_optimization_static_data.RData')) #df
       df<-df[,c("Lat",'Lon','cell')]
       
       
@@ -502,7 +497,7 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
     }
     
     #load baseline strata and specify corner stations
-    load('./output/baseline_strata.RData')
+    load('output/baseline_strata.RData')
     baseline_strata$locations[grep('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),]
     baseline_strata$locations$corner<-ifelse(grepl('GF|HG|JI|IH|ON|QP|PO',baseline_strata$locations$stationid),'TRUE','FALSE')
     
@@ -615,7 +610,7 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
     
     #s<-1
     
-    load(file =paste0('./output/survey_allocations_scn',s,'.RData'))
+    load(file =paste0('output/survey allocations/survey_allocations_scn',s,'.RData'))
     
     #dimnames(scn_allocations)
     
@@ -747,7 +742,7 @@ for (samp in unique(samp_df$samp_scn)) { #sampling designs
     annotate("text", x = 2, y = -12, label = "38% strata added - mean 5 stations", size = 5, hjust = 0.5)
   
   #save index plot
-  ragg::agg_png(paste0('./figures/changes_opt_existing.tiff'), width = 7, height = 4, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/changes_opt_existing.tiff'), width = 7, height = 4, units = "in", res = 300)
   p
   dev.off()
   

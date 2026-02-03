@@ -27,11 +27,6 @@ if (!('pacman' %in% installed.packages())) {
 #load/install packages
 pacman::p_load(pack_cran,character.only = TRUE)
 
-#setwd
-out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
-
 #list of sp
 spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
 crabs<-c('BB_RKC',"PBL_BKC" ,"PBL_RKC" ,"STM_BKC" ,"SNW_CRB" ,"TNR_CRB")
@@ -97,14 +92,14 @@ n_proj<-5
 project_yrs<-((yrs[length(yrs)])+1):(yrs[length(yrs)]+n_proj)
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
 
 #load baseline strata data
-load('./output/baseline_strata.RData') #baseline_strata
+load('output/baseline_strata.RData') #baseline_strata
 
 #add percent of total area per strata
 baseline_strata$strata_areas$pct<-baseline_strata$strata_areas$Area_in_survey_km2/sum(baseline_strata$strata_areas$Area_in_survey_km2)
@@ -130,7 +125,7 @@ samp_df<-rbind(samp_df,c('existing','systematic',520,15,'scnbase'),
 ###################################
 
 #load SBT scenarios table
-load('./tables/SBT_projection.RData')#df_sbt
+load('tables/SBT_projection.RData')#df_sbt
 
 #name SBT scenarios
 df_sbt$sbt<-paste0('SBT',df_sbt$sbt_n)
@@ -144,7 +139,7 @@ n_sim<- 100
 ####################################
 
 # Set the path to the geodatabase file
-gdb_path <- "./shapefiles/CrabStrataShapefiles_GAPgrid.gdb/"
+gdb_path <- "data/CrabStrataShapefiles_GAPgrid.gdb/"
 
 # List the layers/tables in the geodatabase file
 gdb_layers <- st_layers(gdb_path)
@@ -174,8 +169,8 @@ for (i in 1:length(gdb_layers$name)) {
   #i<-3
   
   #load grid of NBS and EBS
-  load('./extrapolation grids/northern_bering_sea_grid.rda')
-  load('./extrapolation grids/eastern_bering_sea_grid.rda')
+  load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+  load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
   grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
   grid$cell<-1:nrow(grid)
   #grid2<-grid
@@ -236,7 +231,7 @@ EBS_C_cells<-grid2[which(grid2$EBS_CO_CB_strata==TRUE),'cell']
 # HISTORICAL INDEX
 ######################
 
-gapindex<-readRDS('./data raw/afsc_ebs_nbs_gapindex_2024_03_29.rds')
+gapindex<-readRDS('data/data_raw/afsc_ebs_nbs_gapindex_2024_03_29.rds')
 hauls_ind<-gapindex$haul[c('HAULJOIN','REGION','STRATUM',
                       'START_LATITUDE','END_LATITUDE','START_LONGITUDE','END_LONGITUDE',
                       'STATIONID', 'BOTTOM_DEPTH','GEAR_TEMPERATURE')]
@@ -271,7 +266,7 @@ summary(all1)
 ###################################
 
 #example to get exact effort
-gapindex<-readRDS('./data raw/afsc_haul_raw_2023_2_21.rds')
+gapindex<-readRDS('data/data_raw/afsc_haul_raw_2023_2_21.rds')
 gapindex$haul$EFFORT<-round(gapindex$haul$DISTANCE_FISHED*gapindex$haul$NET_WIDTH/10,digits=1) #ha 
 gapindex$haul[which(gapindex$haul$HAULJOIN %in% c('-13481','-13482')),]
 
@@ -330,7 +325,7 @@ ind2<-data.frame(matrix(NA,nrow = 0,ncol = 7))
 names(ind2)<-c('spp','year','approach','sur','scn','index','sim')
 
 #list of files (100 files, one for each simulated data)
-files<-list.files('./output/ms_sim_survey_hist/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
+files<-list.files('output/ms simulated surveys historical/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
 files<-files[!grepl('*/index_hist_crab.RData$',files)]
   
   
@@ -367,8 +362,8 @@ for (sim in 1:100) {
 }
 
 #save simulated index
-save(ind2,file = './output/estimated_index_hist.RData') #ind2
-#load('./output/estimated_index_hist.RData')
+save(ind2,file = 'output/survey performance/estimated_index_hist.RData') #ind2
+#load('output/estimated_index_hist.RData')
 
 #aggregate df to get mean, q95 and q5 for each group (sp, year, sampling scenario and approach)
 df<-aggregate(index ~ spp + year + scn + approach,ind2,FUN = function(x) c(mean = mean(x), q95 = quantile(x,probs=0.95) , q5 = quantile(x,probs=0.05)) )
@@ -386,7 +381,7 @@ df<-merge(df,df_spp1,by='spp')
 df$year<-as.integer(df$year)
 
 #load true index and density of histoorical
-load(file = paste0("./output/species/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
+load(file = paste0("output/survey performance/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
 names(dens_index_hist_OM)
 
 #loop over crab stocks to store true density and index (spatially clipping)
@@ -416,8 +411,8 @@ for (c in crabs) {
 }
 
 #save true dens and index of historical including crab stocks
-save(dens_index_hist_OM,file = paste0("./output/species/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
-#load(file = paste0("./output/species/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
+save(dens_index_hist_OM,file = paste0("output/species/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
+#load(file = paste0("output/species/dens_index_hist_OM.RData"))  #dens_index_hist_OM, 
 
 #df to store results
 true_ind<-data.frame(matrix(NA,nrow = length(yrs),ncol = length(c(spp,crabs))))
@@ -448,8 +443,8 @@ true_ind1$year<-as.integer(true_ind1$year)
 true_ind1$dummy<-'true index'
 
 #save true ind
-save(true_ind,file = paste0("./output/true_ind_hist.RData"))  
-load(file = paste0("./output/true_ind_hist.RData"))  #true_ind
+save(true_ind,file = paste0("output/survey performance/true_ind_hist.RData"))  
+load(file = paste0("output/survey performance/true_ind_hist.RData"))  #true_ind
 
 #fxn to turn axis into scientific
 scientific_10 <- function(x) {
@@ -528,7 +523,7 @@ ggplot() +
 
 
 #save index plot
-ragg::agg_png(paste0('./figures/ms_hist_indices_v5.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_hist_indices_v5.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -612,7 +607,7 @@ ggplot()+
   facet_wrap(~common,scales='free_y',dir='h',nrow = 5)
 
 #save index plot
-ragg::agg_png(paste0('./figures/ms_hist_diff_v5.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_hist_diff_v5.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -631,7 +626,7 @@ cv2<-data.frame(matrix(NA,nrow = 0,ncol = 7))
 names(cv2)<-c('spp','year','approach','sur','scn','cv','sim')
 
 #list of files (100 files, one for each simulated data)
-files<-list.files('./output/ms_sim_survey_hist/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
+files<-list.files('output/ms simulated surveys historical/',pattern = 'index_hist',recursive = TRUE,full.names = TRUE)
 files<-files[!grepl('crab.RData',files)]
 
   
@@ -673,8 +668,8 @@ setDT(cv2)
 cv2[spp==sp & scn==iscn & approach==apr & sim==1 & sur==su]
 
 #save cv sim data  
-save(cv2,file = './output/estimated_cvsim_hist.RData')
-#load(file = './output/estimated_cvsim_hist.RData')
+save(cv2,file = 'output/survey performance/estimated_cvsim_hist.RData')
+#load(file = 'output/estimated_cvsim_hist.RData')
 mean(cv2[which(cv2$spp == "Boreogadus saida" & cv2$scn == "scnbase"),'cv'])
 mean(cv2[which(cv2$spp == "Boreogadus saida" & cv2$scn != "scnbase"),'cv'])
 
@@ -802,8 +797,8 @@ p<-
   geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
   
 #save plot
-ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
-#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_hist_indices_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
+#ragg::agg_png(paste0('figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -861,7 +856,7 @@ p<-
     shape = 'none')  #facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)  geom_blank(data=y_scale,aes(x=year,y=scale,fill=scn,group =interaction(scn,apr)))
 
 #save plot
-ragg::agg_png(paste0('./figures/ms_hist_cv_timeseries_v5.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_hist_cv_timeseries_v5.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -904,7 +899,7 @@ p<-
   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
 
   #save plot
-  ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_allspp_v5.png'), width = 6, height = 5, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/ms_hist_indices_cv_box_allspp_v5.png'), width = 6, height = 5, units = "in", res = 300)
   p
   dev.off()
   
@@ -914,7 +909,7 @@ p<-
 ######################
 
 #get the estimated CV time series for each replicate, sampling scenario and approach
-load(file = './output/estimated_cvsim_hist.RData') #cv2 by sim, sur and scn
+load(file = 'output/survey performance/estimated_cvsim_hist.RData') #cv2 by sim, sur and scn
   
 #year to character
 cv2$year<-as.character(cv2$year)
@@ -926,7 +921,7 @@ names(cv2)[6]<-'cvsim'
 
 #get estimated index SD for each survey across years, sampling scenario and approach
 #index_sd by sim, and scn
-load('./output/estimated_index_hist.RData') #ind2
+load('output/survey performance/estimated_index_hist.RData') #ind2
 summary(ind2)
 index_sd<-aggregate(index ~ spp + year + scn + approach + sim,ind2,FUN = function(x) c(sd = sd(x)))
 #summary(index_sd)
@@ -944,7 +939,7 @@ est_df<-merge(cv2,index_sd,by=c('spp','year','scn','approach','sim'),all.x=TRUE)
 dim(est_df)
 
 #get true ind
-load('./output/true_ind_hist.RData') #true_ind
+load('output/survey performance/true_ind_hist.RData') #true_ind
 
 #true index reshape
 true_ind2<-reshape2::melt(true_ind,id.vars='year')
@@ -1026,14 +1021,14 @@ for (sp in unique(all_df$spp)[10:20]) {
     }
   }
   
-  save(corr_df,file = paste0('./output/full_spearman_',sp,'.RData'))
+  save(corr_df,file = paste0('output/survey performance/full_spearman_',sp,'.RData'))
   
 }
 
 #corr_df<-corr_df[which(corr_df$spp!='Boreogadus saida'),]
-#save(corr_df,file = './output/full_spearman_1-8.RData')
+#save(corr_df,file = 'output/full_spearman_1-8.RData')
 
-files_list<-list.files('./output/',pattern = 'full_spearman',full.names = TRUE)
+files_list<-list.files('output/survey performance/',pattern = 'full_spearman',full.names = TRUE)
 
 data_list <- lapply(files_list, function(file) {
   load(file)
@@ -1070,7 +1065,7 @@ percent_above_threshold0 <- combined_data %>%
     mean_rho = mean(rho,na.rm = TRUE),
     percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
 
-write.csv(percent_above_threshold0, file = "./tables/spearman_all.csv", row.names = FALSE)
+write.csv(percent_above_threshold0, file = "tables/spearman_all.csv", row.names = FALSE)
 
 spp_cr<-c(
 'Chionoecetes opilio',
@@ -1088,7 +1083,7 @@ percent_above_threshold000$approach<-factor(percent_above_threshold000$approach)
 levels(percent_above_threshold000$approach)<-rev(c('systematic','balanced random','random'))
 percent_above_threshold000$common<-gsub('\n',' ',percent_above_threshold000$common)
 
-write.csv(percent_above_threshold000, file = "./tables/spearman_all1.csv", row.names = FALSE)
+write.csv(percent_above_threshold000, file = "tables/spearman_all1.csv", row.names = FALSE)
 
 df$scn<-factor(df$scn,
                levels = c('scnbase','scnbase_bis','scn3','scn2','scn1'))
@@ -1100,7 +1095,7 @@ percent_above_threshold1 <- combined_data %>%
             mean_rho = mean(rho,na.rm = TRUE),
             percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
 
-write.csv(percent_above_threshold1, file = "./tables/spearman_approach.csv", row.names = FALSE)
+write.csv(percent_above_threshold1, file = "tables/spearman_approach.csv", row.names = FALSE)
 
 
 percent_above_threshold2 <- combined_data %>%
@@ -1110,7 +1105,7 @@ percent_above_threshold2 <- combined_data %>%
     mean_rho = mean(rho,na.rm = TRUE),
     percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
 
-write.csv(percent_above_threshold2, file = "./tables/spearman_scn.csv", row.names = FALSE)
+write.csv(percent_above_threshold2, file = "tables/spearman_scn.csv", row.names = FALSE)
 
 
 percent_above_threshold3 <- combined_data %>%
@@ -1120,7 +1115,7 @@ percent_above_threshold3 <- combined_data %>%
     mean_rho = mean(rho,na.rm = TRUE),
     percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
 
-write.csv(percent_above_threshold3, file = "./tables/spearman_spp.csv", row.names = FALSE)
+write.csv(percent_above_threshold3, file = "tables/spearman_spp.csv", row.names = FALSE)
 
 percent_above_threshold4 <- combined_data %>%
   group_by(scn,approach) %>%
@@ -1129,7 +1124,7 @@ percent_above_threshold4 <- combined_data %>%
     mean_rho = mean(rho,na.rm = TRUE),
     percent_significant = mean(pvalue < 0.05,na.rm = TRUE) * 100)
 
-write.csv(percent_above_threshold4, file = "./tables/spearman_design.csv", row.names = FALSE)
+write.csv(percent_above_threshold4, file = "tables/spearman_design.csv", row.names = FALSE)
 
 ###################
 # contiunuation RRMSE
@@ -1150,8 +1145,8 @@ all_df2$approach<-factor(all_df2$approach,levels=c('sys','sb','rand'))
 
 #save rrmse
 df3<-all_df2
-save(df3,file = './output/rrmse_cv_hist.RData')
-load('./output/rrmse_cv_hist.RData')
+save(df3,file = 'output/survey performance/rrmse_cv_hist.RData')
+load('output/survey performance/rrmse_cv_hist.RData')
 #remove existing bis design and EBSNBS spp
 df3<-subset(df3,scn!='scnbase_bis')
 df3<-subset(df3,common %in% unique(df3$common)[!grepl("_EBSNBS", as.character(unique(df3$common)))])
@@ -1221,7 +1216,7 @@ p<-
   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
   
   #save plot
-  ragg::agg_png(paste0('./figures/ms_hist_rrmse_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/ms_hist_rrmse_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
   
@@ -1260,7 +1255,7 @@ p<-
   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
   
   #save plot210notio
-  ragg::agg_png(paste0('./figures/ms_hist_indices_rrmse_box_allsp_v5.png'), width = 6, height = 5, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/ms_hist_indices_rrmse_box_allsp_v5.png'), width = 6, height = 5, units = "in", res = 300)
   p
   dev.off()
 
@@ -1272,7 +1267,7 @@ p<-
   # df1$bias<-(df1$cvsim-df1$cvtrue)/df1$cvtrue
   # 
   # #get the estimated CV time series for each replicate, sampling scenario and approach
-  # load(file = './output/estimated_cvsim_hist.RData') #cv2
+  # load(file = 'output/estimated_cvsim_hist.RData') #cv2
   # #cv2[approach=='sb' & scn=='scnbase' & spp=='Limanda aspera' & year=='2019' & sim=='1']
   # 
   # #year to character
@@ -1283,14 +1278,14 @@ p<-
   # names(cv2)[6]<-'cvsim'
   # 
   # #get estimated index SD for each survey across years, sampling scenario and approach
-  # load('./output/estimated_index_hist.RData') #ind2
+  # load('output/estimated_index_hist.RData') #ind2
   # summary(ind2)
   # index_sd<-aggregate(index ~ spp + year + scn + approach + sim,ind2,FUN = function(x) c(sd = sd(x)))
   # summary(index_sd)
   # summary(index_sd[which(index_sd$approach=='sys' & index_sd$scn=='scnbase_bis'),])
   # 
   # #get true ind
-  # load('./output/true_ind_hist.RData') #ind2
+  # load('output/true_ind_hist.RData') #ind2
   # 
   # #true index reshape
   # true_ind2<-reshape2::melt(true_ind,id.vars='year')
@@ -1334,7 +1329,7 @@ p<-
   # df3$scn<-factor(df3$scn,levels=c('scnbase','scnbase_bis',paste0('scn',3:1)))
   # df3$approach<-factor(df3$approach,levels=c('sys','sb','rand'))
   # 
-  # save(df3,file = './output/rrmse_cv_hist.RData')
+  # save(df3,file = 'output/rrmse_cv_hist.RData')
   # 
   # y_scale<-aggregate(rrmse ~ spp+common+label, df3,max)
   # y_scale$scale<-y_scale$rrmse+y_scale$rrmse*0.2
@@ -1348,12 +1343,12 @@ p<-
   # 
   # 
   # #get the estimated CV time series for each replicate, sampling scenario and approach
-  # #load(file = './output/estimated_cvsim_hist.RData') #cv2
+  # #load(file = 'output/estimated_cvsim_hist.RData') #cv2
   # #true cv
   # 
   # 
   # 
-  # #load(file = './output/rrmse_cv_hist.RData') #df3
+  # #load(file = 'output/rrmse_cv_hist.RData') #df3
   # 
   # df3$cvbias<-df3$mean_cvsim-df3$mean_cvtrue
   #   df3$rbias<-100*(df3$cvbias/df3$mean_cvtrue)
@@ -1438,7 +1433,7 @@ p<-
   #   #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
   #   
   #   
-  #   ragg::agg_png(paste0('./figures/ms_hist_bias_cv_box_v3.png'), width = 13, height = 8, units = "in", res = 300)
+  #   ragg::agg_png(paste0('figures/ms_hist_bias_cv_box_v3.png'), width = 13, height = 8, units = "in", res = 300)
   #   p
   #   dev.off()
   #   
@@ -1508,7 +1503,7 @@ p<-
   #   # #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
   #   
   #   #save plot210notio
-  #   ragg::agg_png(paste0('./figures/ms_hist_indices_bias_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
+  #   ragg::agg_png(paste0('figures/ms_hist_indices_bias_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
   #   p
   #   dev.off()
    
@@ -1521,9 +1516,9 @@ p<-
   #combine true indeces
   ############################
   #files true indices
-  files<-list.files('./output/species/',pattern = ' ms_sim_proj_ind',full.names = TRUE)
+  files<-list.files('output/species/',pattern = ' ms_sim_proj_ind',full.names = TRUE)
   #files true densities from projected
-  densfiles<-list.files('./output/species/',pattern = 'ms_sim_proj_dens',full.names = TRUE)
+  densfiles<-list.files('output/species/',pattern = 'ms_sim_proj_dens',full.names = TRUE)
   
   #df to store values
   proj_ind2<-data.frame(matrix(NA,nrow = 0,ncol = 5))
@@ -1594,8 +1589,8 @@ p<-
   }
   
   #save true indices with crab stocks
-  save(proj_ind2,file = './output/true_ind_proj.RData') 
-  load('./output/true_ind_proj.RData') #proj_ind2
+  save(proj_ind2,file = 'output/survey performance/true_ind_proj.RData') 
+  load('output/survey performance/true_ind_proj.RData') #proj_ind2
   
   #rename
   colnames(proj_ind2)[4]<-'true_ind'
@@ -1613,7 +1608,7 @@ p<-
         
     #sbt<-1
     
-     files<-list.files('./output/ms_sim_survey_proj/',pattern = paste0('SBT',sbt),recursive = TRUE,full.names = TRUE)
+     files <- list.files('output/ms simulated surveys future/', pattern = paste0('SBT', sbt), recursive = TRUE, full.names = TRUE)
 
      for (sim in 1:100) {
        
@@ -1645,8 +1640,8 @@ p<-
      }
   }
   
-  save(ind2,file = './output/estimated_index_proj.RData')
-  #load('./output/estimated_index_proj.RData')
+  save(ind2,file = 'output/survey performance/estimated_index_proj.RData')
+  #load('output/estimated_index_proj.RData')
 
   #rename
   head(ind2)
@@ -1786,7 +1781,7 @@ p<-
   
   
 #save plot
-ragg::agg_png(paste0('./figures/SBT3_proj_indices_v5.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/SBT3_proj_indices_v5.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -1808,7 +1803,7 @@ dev.off()
 
 for (sbt in 1:8) {
   
-  files<-list.files('./output/ms_sim_survey_proj/',pattern = paste0('SBT',sbt),recursive = TRUE,full.names = TRUE)
+  files<-list.files('output/ms simulated surveys future/',pattern = paste0('SBT',sbt),recursive = TRUE,full.names = TRUE)
   
   for (sim in 1:100) {
     
@@ -1839,8 +1834,8 @@ for (sbt in 1:8) {
 }
 
 cvsim<-ind2
-save(cvsim,file = './output/cvsim_proj.RData')
-load('./output/cvsim_proj.RData') #cvsim
+save(cvsim,file = 'output/survey performance/cvsim_proj.RData')
+load('output/survey performance/cvsim_proj.RData') #cvsim
 
 
 # Convert your data frame to a data.table
@@ -1913,7 +1908,7 @@ summary(means_opt2)
 #   facet_wrap(~sbt,dir='h',nrow = 2)
 # 
 # #save plot210notio
-# ragg::agg_png(paste0('./figures/sbt_ss_cv_proj_box.png'), width = 12, height =6, units = "in", res = 300)
+# ragg::agg_png(paste0('figures/sbt_ss_cv_proj_box.png'), width = 12, height =6, units = "in", res = 300)
 # p
 # dev.off()
 
@@ -2015,7 +2010,7 @@ ggplot()+
   
 
 #save plot210notio
-ragg::agg_png(paste0('./figures/sbt_ms_cv_proj_box_v5.png'), width = 12, height = 6, units = "in", res = 300)
+ragg::agg_png(paste0('figures/sbt_ms_cv_proj_box_v5.png'), width = 12, height = 6, units = "in", res = 300)
 p
 dev.off()
 
@@ -2134,7 +2129,7 @@ ggplot()+
   facet_wrap(~common,scales='free_y',dir='h',nrow = 5)
   
 #save plot
-ragg::agg_png(paste0('./figures/spp_ms_proj_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/spp_ms_proj_cv_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -2177,7 +2172,7 @@ ggplot()+
 #geom_blank(data=y_scale,aes(x=scn,y=scale,fill=scn,group =interaction(scn,apr)))
 
 #save plot210notio
-ragg::agg_png(paste0('./figures/ms_proj_indices_cv_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_proj_indices_cv_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
 p
 dev.off()
 
@@ -2186,17 +2181,17 @@ dev.off()
 ######################
   
 #get simulated (estimated) CV
-load('./output/cvsim_proj.RData') #cvsim
+load('output/survey performance/cvsim_proj.RData') #cvsim
 setDT(cvsim)
 names(cvsim)[6]<-'cvsim'
 
 #get true index per simulated data and projection scn
-load(file = './output/true_ind_proj.RData')  #proj_ind2,
+load(file = 'output/survey performance/true_ind_proj.RData')  #proj_ind2,
 setDT(proj_ind2)
 names(proj_ind2)[4]<-'true_ind'
 
 #estimated index
-load('./output/estimated_index_proj.RData') #ind2
+load('output/survey performance/estimated_index_proj.RData') #ind2
 setDT(ind2)
 names(ind2)[6]<-'est_ind'
 
@@ -2273,8 +2268,8 @@ for (sbtscn in 1:8) {
     }
   }
     
-save(rrmse,file = './output/rrmse_cv_proj.RData')
-load(file = './output/rrmse_cv_proj.RData') #rrmse,
+save(rrmse,file = 'output/survey performanceoutput/rrmse_cv_proj.RData')
+load(file = 'output/survey performanceoutput/rrmse_cv_proj.RData') #rrmse,
 
 df2<-rrmse
 
@@ -2369,7 +2364,7 @@ p<-
 
 
 #save plot210notio
-ragg::agg_png(paste0('./figures/sbt_ms_rrmse_proj_box_v5.png'), width = 12, height = 6, units = "in", res = 300)
+ragg::agg_png(paste0('figures/sbt_ms_rrmse_proj_box_v5.png'), width = 12, height = 6, units = "in", res = 300)
 p
 dev.off()
 
@@ -2493,7 +2488,7 @@ p<-
 
 
 #save plot
-ragg::agg_png(paste0('./figures/spp_ms_proj_rrmse_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/spp_ms_proj_rrmse_box_v5.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -2536,7 +2531,7 @@ p<-
   guides(fill=guide_legend(ncol=1,order=1,override.aes = list(lwd=0.5)),linetype=guide_legend(ncol=1,order = 2,override.aes = list(lwd=0.5)))#+#facet_wrap(~com_sci,scales='free',dir='v',nrow = 3)
 
 #save plot210notio
-ragg::agg_png(paste0('./figures/ms_proj_indices_rrmse_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
+ragg::agg_png(paste0('figures/ms_proj_indices_rrmse_box_allsp_v3.png'), width = 6, height = 5, units = "in", res = 300)
 p
 dev.off()
 
