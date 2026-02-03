@@ -83,7 +83,7 @@ spp_vect<-c("Atheresthes evermanni","Atheresthes stomias",
             'Bathyraja aleutica')
 
 #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 
@@ -339,7 +339,7 @@ data_geostat$Effort<-data_geostat$Effort/100
 data_geostat$CPUEkgkm<-data_geostat$Weight_kg/data_geostat$Effort
 
 #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-99
 

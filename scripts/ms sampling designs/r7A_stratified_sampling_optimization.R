@@ -100,8 +100,8 @@ n_spp<-length(spp)
 ###################################
 
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)

@@ -107,9 +107,9 @@ yrs<-c(2002:2016)
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),

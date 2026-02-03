@@ -124,15 +124,15 @@ length(spp_conv_slope);length(spp_sim_dens_slope)
 ###################################
 
 #load slope grid
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 dim(bering_sea_slope_grid)
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-999
 #gridslope<-data.frame(bering_sea_slope_grid,region='SLP')
 
 #load EBS+NBS grid
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
                           data.frame(bering_sea_slope_grid,region='SLP')))

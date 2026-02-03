@@ -95,7 +95,7 @@ spp1<-c('Yellowfin sole',
 #so, we need to divide slope data by the sr index
 #471 is for Alaska skate - while we are using Aleutian skate 472
 #data_sratio<-readRDS('data/data_raw/shelf_slope_sratio_bootstrap.rds')
-data_sratio<-readRDS('./data raw/shelf_slope_sratio_bootstrap.rds')
+data_sratio<-readRDS('data/data_raw/shelf_slope_sratio_bootstrap.rds')
 unique(data_sratio$SPECIES_CODE)
 
 #convert SR of one speccies into another
@@ -103,7 +103,7 @@ data_sratio[which(data_sratio$SPECIES_CODE=='471'),'SPECIES_CODE']<-'472'
 
 #read length raw data
 #data_length<-readRDS('data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
-data_length<-readRDS('./data raw/ak_bts_ebs_nbs_slope.rds') #data_length
+data_length<-readRDS('data/data_raw/ak_bts_ebs_nbs_slope.rds') #data_length
 head(data_length)
 head(data_length$specimen)
 dim(data_length$specimen)
@@ -196,7 +196,7 @@ for (sp in unique(data_sratio1$scientific_name)) {
     data_geostat2$CPUEkgkm<-data_geostat2$Weight_kg/data_geostat2$Effort
     
     # #add grid to get prediction for simulate data on each cell of the grid (sim$b_i)
-    # load('./extrapolation grids/bering_sea_slope_grid.rda')
+    # bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
     # names(bering_sea_slope_grid)[4]<-'Stratum'
     # bering_sea_slope_grid$Stratum<-99
     # 

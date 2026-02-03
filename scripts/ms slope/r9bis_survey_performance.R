@@ -105,9 +105,9 @@ n_yrs<-length(yrs)
 
 # GRIDS #####
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -511,7 +511,7 @@ p<-
     facet_wrap(~common, scales='free_y', dir='h', nrow = 5)
 
 #save index plot
-ragg::agg_png(paste0('.figures/slope/ms_ind_EBSNBSBSS.png'), width = 14, height = 8, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/ms_ind_EBSNBSBSS.png'), width = 14, height = 8, units = "in", res = 300)
 p
 dev.off()
 
@@ -906,7 +906,7 @@ y_scale$scn<-'scn1'
   
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/true_CV_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/true_CV_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1077,7 +1077,7 @@ y_scale$scn<-'scn1'
   
   
   
-  ragg::agg_png(paste0('.figures/slope/true_CV.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/true_CV.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p1
   dev.off()
@@ -1392,7 +1392,7 @@ y_scale$scn<-'scn1'
   
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/est_cv_warmcold.png'),  width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/est_cv_warmcold.png'),  width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -1619,7 +1619,7 @@ y_scale$scn<-'scn1'
     coord_cartesian(clip = "off")
   
   #save plot
-  ragg::agg_png(paste0('.figures/slope/est_cv.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/est_cv.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p1
   dev.off()
@@ -1943,7 +1943,7 @@ y_scale$scn<-'scn1'
     )+
     coord_cartesian(clip = "off")
   
-  ragg::agg_png(paste0('.figures/slope/RRMSE_index.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_index.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -2135,7 +2135,7 @@ y_scale$scn<-'scn1'
     coord_cartesian(clip = "off")
     
   
-  ragg::agg_png(paste0('.figures/slope/RRMSE_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -2301,7 +2301,7 @@ y_scale$scn<-'scn1'
   
   # save
   ragg::agg_png(
-    '.figures/slope/RBIAS_index.png',
+    'figures/slope/RBIAS_index.png',
     width = 18, height = 12, units = "in", res = 300
   )
   p
@@ -2467,7 +2467,7 @@ y_scale$scn<-'scn1'
       coord_cartesian(clip = "off")
     
     
-    ragg::agg_png(paste0('.figures/slope/RBIAS_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+    ragg::agg_png(paste0('figures/slope/RBIAS_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
     #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
     p
     dev.off()
@@ -2695,7 +2695,7 @@ p<-
 
   
 
-ragg::agg_png(paste0('.figures/slope/RRMSE_cv.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/RRMSE_cv.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2883,7 +2883,7 @@ p<-
   coord_cartesian(clip = "off")
 
 
-  ragg::agg_png(paste0('.figures/slope/RRMSE_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RRMSE_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3023,7 +3023,7 @@ p<-
     coord_cartesian(clip = "off")
   
   
-  ragg::agg_png(paste0('.figures/slope/RBIAS_cv.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RBIAS_cv.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3189,7 +3189,7 @@ p<-
       )+
       coord_cartesian(clip = "off")
   
-  ragg::agg_png(paste0('.figures/slope/RBIAS_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/slope/RBIAS_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
   #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
   p
   dev.off()
@@ -3418,7 +3418,7 @@ p<-
   coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('.figures/slope/logcvratio_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/logcvratio_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3565,6 +3565,6 @@ p1 <-
   ) +
   coord_cartesian(clip = "off")
 
-ragg::agg_png(paste0(".figures/slope/logcvratio.png"), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0("figures/slope/logcvratio.png"), width = 18, height = 12, units = "in", res = 300)
 p1
 dev.off()

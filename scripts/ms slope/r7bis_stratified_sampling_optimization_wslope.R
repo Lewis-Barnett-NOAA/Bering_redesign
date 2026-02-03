@@ -131,15 +131,15 @@ grid_ebs<-subset(grid.ebs_year,region=='EBSslope' & Year=='1982' & DepthGEBCO<=4
 slp_cells<-rownames(grid_ebs)
 
 #load slope grid
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 dim(bering_sea_slope_grid)
 names(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-999
 #gridslope<-data.frame(bering_sea_slope_grid,region='SBS')
 
 #load EBS+NBS grid
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
                           data.frame(eastern_bering_sea_grid,region='EBS'),
                           data.frame(bering_sea_slope_grid,region='SBS')))
@@ -913,7 +913,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         dd2$strata<-factor(dd2$strata,levels=c(1:10))
         
         #save plot
-        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p1<-
           ggplot()+
@@ -932,7 +932,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
         #palette
         pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
         
-        #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+        #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
         #print(
         p2<-
           ggplot()+
@@ -954,10 +954,10 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
           p <- plot_grid(p1, p2) #labels=c('A', 'B')
           
           if (r=='all') {
-            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png')
+            namepng<-paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type']), fontface='bold')
           } else {
-            namepng<-paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'.png')
+            namepng<-paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,'.png')
             title <- ggdraw() + draw_label(paste(samp_df[s,'region'],samp_df[s,'strat_var'],samp_df[s,'type'],'-',r), fontface='bold')
           }
           
@@ -1265,7 +1265,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     #palette
     #pal <- wes_palette("Zissou1", 1000, type = "continuous")      #save plot
     
-    #ragg::agg_png(paste0('.figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
+    #ragg::agg_png(paste0('figures/slope/',"ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_effort.png'),  width = 7, height = 7, units = "in", res = 300)
     #print(
     p<-
       ggplot()+
@@ -1291,7 +1291,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 # cowplot::ggdraw(legend)
 
 #plots
-agg_png(paste0('.figures/slope/sampling intensity survey designs_dens.png'), width = 9, height = 13, units = "in", res = 300)
+agg_png(paste0('figures/slope/sampling intensity survey designs_dens.png'), width = 9, height = 13, units = "in", res = 300)
 plot_grid(plotlist = plot_list[13:24],nrow = 4)
 dev.off()
 1

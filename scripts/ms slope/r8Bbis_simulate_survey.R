@@ -75,8 +75,8 @@ spp<-c('Limanda aspera',
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 grid2<-grid
@@ -118,9 +118,9 @@ ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -686,7 +686,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('.figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 

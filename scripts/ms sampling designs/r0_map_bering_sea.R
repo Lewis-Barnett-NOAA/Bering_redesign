@@ -187,7 +187,7 @@ eez_sh2<-spTransform(eez_sh2,CRSobj = CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=
 #####################################
 
 #create directory
-dir.create('./data raw/',showWarnings = FALSE)
+dir.create('data/data_raw/',showWarnings = FALSE)
 
 #get id shared folder from google drive
 id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
@@ -203,11 +203,11 @@ file<-files.2[grep('haul',files.2$name),]
 
 #download file
 googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
+                            path = paste0('data/data_raw/',file$name),
                             overwrite = TRUE)
 
 #read csv file
-haul<-readRDS(paste0('./data raw/',file$name))
+haul<-readRDS(paste0('data/data_raw/',file$name))
 dim(haul);length(unique(haul$hauljoin))
 
 haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
@@ -284,8 +284,8 @@ pts<-baseline_strata$locations
 #####################################
 
 #load grid of NBS and EBS (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data)
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #add col and row number
@@ -551,8 +551,8 @@ ggplot()+
 #################################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #df to spatialpoint df

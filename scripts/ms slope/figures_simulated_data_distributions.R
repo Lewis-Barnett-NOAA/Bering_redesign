@@ -68,9 +68,9 @@ df_sp<-data.frame(sci=sel_sp,
 
   
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -178,7 +178,7 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 # 
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
+# agg_png(paste0('figures/slope/temperature_regime2.png'), width = 6, height = 2, units = "in", res = 300)
 # print(p)
 # dev.off()
 
@@ -339,7 +339,7 @@ bold_years<-c(2002,2004,2008,2010,2012,2016)
 # print(p)
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
+# agg_png(paste0('figures/slope/depth_distribution_occurrence1.png'), width = 7, height = 4, units = "in", res = 300)
 # print(p)
 # dev.off()
 # 
@@ -483,7 +483,7 @@ ggplot(prob_df, aes(x = depth_mid, y = prob_presence, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/depth_distribution_occurrence3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -694,7 +694,7 @@ ggplot(plot_df, aes(x = depth_mid, y = mean_density, color = year_type)) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/depth_distribution_density3.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -876,7 +876,7 @@ p <-
   )
 
 #save env plot
-agg_png(paste0('.figures/slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/depth_distribution_occurrence5.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -941,7 +941,7 @@ ggplot() +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('.figures/slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/abundance_fraction.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -954,9 +954,9 @@ dens<-sim_dens1[,sel_sp,as.character(2002:2022),]
 dimnames(dens)
 
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-#load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+#bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 #colnames(bering_sea_slope_grid)[4]<-'Stratum'
 #bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1054,7 +1054,7 @@ p<-
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 
 #save env plot
-agg_png(paste0('.figures/slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
+agg_png(paste0('figures/slope/abundance_fraction_sim.png'), width = 7, height = 4, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1312,7 +1312,7 @@ metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland
 #   scale_y_continuous(expand = expansion(mult = 0.1)) + 
 #   facet_wrap(~common,scales='free')
 #   
-#   agg_png(paste0('.figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+#   agg_png(paste0('figures/slope/cog_pred1.png'), width = 5.5, height = 5.5, units = "in", res = 300)
 #   print(p1)
 #   dev.off()
   
@@ -1458,7 +1458,7 @@ metrics_df$common<-factor(metrics_df$common,levels=c("Alaska pollock","Greenland
     #   inherit.aes = FALSE,
     #   size = 3.5,lineheight = 0.8
     # )
-  agg_png(paste0('.figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
+  agg_png(paste0('figures/slope/cog_pred.png'), width = 5.5, height = 5.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1622,9 +1622,9 @@ obs_df1$depth_bin <- cut(obs_df1$depth_m, breaks = seq(0, 600, by = 25), include
 # SIMULATED METRICS ####
   
 #load grid of NBS and EBS
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
-load('data/extrapolation_grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -1832,7 +1832,7 @@ p <- ggplot(data = summary_stats) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('.figures/slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog.tiff'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1862,7 +1862,7 @@ ggplot(data = subset(metrics_df, species %in% sel_sp)) +
   facet_wrap(~common, scales = 'free')
 
 #save env plot
-agg_png(paste0('.figures/slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog_abu.png'), width = 7, height = 6.5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -1913,7 +1913,7 @@ p1<-
     scale_y_continuous(expand = expansion(mult = 0.1)) + 
     facet_wrap(~common, scales = 'free')
   
-  agg_png(paste0('.figures/slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+  agg_png(paste0('figures/slope/cog_sim1.png'), width = 6.5, height = 6.5, units = "in", res = 300)
   print(p1)
   dev.off()
   
@@ -1967,7 +1967,7 @@ p1<-
   
   
   
-agg_png(paste0('.figures/slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/cog_sim_v3.png'), width = 6.5, height = 6.5, units = "in", res = 300)
 print(p1)
 dev.off()
 
@@ -2049,7 +2049,7 @@ rect_data <- data.frame(xmin = c(2002, 2005.5, 2013.5),
 # 
 # 
 # #save env plot
-# agg_png(paste0('.figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
+# agg_png(paste0('figures/slope/effective_area_sim.png'), width = 7.5, height = 7, units = "in", res = 300)
 # print(p)
 # dev.off()
 
@@ -2269,7 +2269,7 @@ scale_y_discrete(limits = rev, expand = expansion(mult = c(0.05, .35))) +
   labs(x = 'depth range (Q90 - Q10, m)', y = '')
 
   #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -2338,7 +2338,7 @@ ggplot(data = metrics_df) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -2372,7 +2372,7 @@ p2<-
   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -2702,7 +2702,7 @@ ggplot(plot_df, aes(y = Year)) +
  #  )
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_pred2.png'), width = 7.5, height = 6.5, units = "in", res = 300)
 print(p3)
 dev.off()
 
@@ -2782,7 +2782,7 @@ p2 <- ggplot(metrics_df, aes(y = Year)) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_pred.png'), width = 8, height = 7, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3012,7 +3012,7 @@ p2<-
   labs(x = 'depth range (Q90 - Q10, m)', y = '')
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim4.png'), width = 8, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3081,7 +3081,7 @@ ggplot(data = metrics_df) +
 
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim1.png'), width = 7, height = 5, units = "in", res = 300)
 print(p)
 dev.off()
 
@@ -3115,7 +3115,7 @@ p2<-
   labs(x = 'Depth at 90th percentile - Depth at 10th percentile (m)',y='SBT (°C)' )
 
 #save env plot
-agg_png(paste0('.figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
+agg_png(paste0('figures/slope/interdecile_depth_sim3.png'), width = 7, height = 5, units = "in", res = 300)
 print(p2)
 dev.off()
 
@@ -3224,6 +3224,6 @@ ggplot() +
   labs(x = "year", y = "",title='static stratification')
 
 
-agg_png(paste0('.figures/slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
+agg_png(paste0('figures/slope/flexible_stratification.png'), width = 7, height = 7, units = "in", res = 300)
 cowplot::plot_grid(p2,p1,ncol = 1)
 dev.off()

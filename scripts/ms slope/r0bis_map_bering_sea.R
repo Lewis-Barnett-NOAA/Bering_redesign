@@ -162,7 +162,7 @@ ak_bathy_5<-ak_bathy_5[complete.cases(ak_bathy_5$ak_bathy_NAD83),]
 # 
 # #download file
 # googledrive::drive_download(file=file$id,
-#                             path = paste0('./data raw/',file$name),
+#                             path = paste0('data/data_raw/',file$name),
 #                             overwrite = TRUE)
 
 #read haul data file
@@ -256,8 +256,8 @@ ggplot() +
 #####################################
 
 #load grid of NBS and EBS (available from https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data)
-load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #add col and row number
@@ -549,8 +549,8 @@ dev.off()
 # dir.create('./output/',showWarnings = FALSE)
 # 
 # #load grid of NBS and EBS
-# load('data/extrapolation_grids/northern_bering_sea_grid.rda')
-# load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
+# northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+# eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 # grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 # grid$cell<-1:nrow(grid)
 # #df to spatialpoint df

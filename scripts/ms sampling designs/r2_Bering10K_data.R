@@ -109,7 +109,7 @@ files.2<-googledrive::drive_ls(id.data$id)
 #####################################
 
 #create directory
-dir.create('./data raw/',showWarnings = FALSE)
+dir.create('data/data_raw/',showWarnings = FALSE)
 
 #get haul (stations) data
 file<-files.2[grep('haul',files.2$name),]
@@ -117,11 +117,11 @@ file<-files.2[grep('haul',files.2$name),]
 
 #download file
 googledrive::drive_download(file=file$id,
-                            path = paste0('./data raw/',file$name),
+                            path = paste0('data/data_raw/',file$name),
                             overwrite = TRUE)
 
 #read csv file
-haul<-readRDS(paste0('./data raw/',file$name))
+haul<-readRDS(paste0('data/data_raw/',file$name))
 dim(haul);length(unique(haul$hauljoin))
 
 #get year and month from haul
@@ -134,11 +134,11 @@ haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
 
 #https://github.com/James-Thorson-NOAA/FishStatsUtils/tree/main/data
 #load grids
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
 dim(eastern_bering_sea_grid)
-load('./extrapolation grids/northern_bering_sea_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
 dim(northern_bering_sea_grid)
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 dim(bering_sea_slope_grid)
 
 #convert to dataframe and add region
