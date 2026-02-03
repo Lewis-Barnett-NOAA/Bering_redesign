@@ -275,10 +275,10 @@ if (!file.exists(true_index_file)) {
     mod1<-'fit_st.RData'
       
     #get list of fit data
-    ff<-list.files(paste0('./slope EBS VAST/',sp),mod1,recursive = TRUE)
+    ff<-list.files(paste0('./output/slope/vast/',sp),mod1,recursive = TRUE)
     
     #load fit file
-    load(paste0('./slope EBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/slope/vast/',sp,'/',ff)) #fit
     #getLoadedDLLs() #if check loaded DLLs
     #check_fit(fit$parameter_estimates)
     

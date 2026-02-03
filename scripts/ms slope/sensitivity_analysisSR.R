@@ -359,7 +359,7 @@ for (sp in unique(data_sratio1$scientific_name)) {
   }
   
   #load EBS+NBS index
-  load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+  load(paste0('./output/slope/vast/',sp,'/fit_st.RData'))
   slope<-data.frame(fit$Report$Index_ctl[1,,])
   rownames(slope)<-NULL
   colnames(slope)<-c('SBS')

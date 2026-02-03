@@ -42,7 +42,7 @@ knots<-'300' #200
 splist<-list.dirs('data/data_processed/',full.names = FALSE,recursive = FALSE)
 
 #folder region - only slope
-fol_region<-c('slope EBS VAST','slope_outshelf EBS VAST')[1]
+fol_region<-c('output/slope/vast')
 dir.create(paste0('./',fol_region))
 
 #load grid
@@ -285,7 +285,7 @@ n_sim_hist<-100
 #fit with depth or CPE
 cov<-c('depth','cpe')[1]
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#fitfiles<-list.files('./output/slope/vast/',recursive = TRUE,pattern = 'fit.RData')
 #spp<-gsub('/fit.RData','',fitfiles)
 df_conv<-data.frame(spp=c(spp))
 
@@ -329,7 +329,7 @@ df3$Weight_kg<-df3$Cpue_kgha*df3$Effort
 yrs_region<-unique(df3$Year)
 data_geostat<-df3[complete.cases(df3$Weight_kg),]
 
-if (fol_region=='slope EBS VAST') {
+if (fol_region=='output/slope/vast') {
   data_geostat<-subset(data_geostat,Region=='slope')}
 
 #ha to km2 ------ so kg/km2
@@ -521,7 +521,7 @@ fit <- tryCatch( {fit_model(settings=settings,
     
     save(list = 'fit',file=paste(out_dir,fol_region,sp,'fit_st.RData',sep = '/'))
 
-    #load('./slope EBS VAST/Anoplopoma fimbria/fit.RData')
+    #load('./output/slope/vast/Anoplopoma fimbria/fit.RData')
     
     #loop over simulations
     for (isim in 1:n_sim_hist) { #simulations
@@ -562,7 +562,7 @@ fit <- tryCatch( {fit_model(settings=settings,
 # check the slope model that converged
 #####################
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+#fitfiles<-list.files('./output/slope/vast/',recursive = TRUE,pattern = 'fit.RData')
 #spp<-gsub('/fit.RData','',fitfiles)
 df_conv<-data.frame(spp=c(spp))
 
@@ -578,11 +578,11 @@ for (sp in spp) {
   cat(paste0('#####  ',sp,'  #######\n'))
   
   #f<-fitfiles[1]
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
-    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+  if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0('./output/slope/vast/',sp,'/fit_st.RData'))
   }
   
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+  if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit_st.RData'))==0) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
   } else if (is.null(fit)) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
@@ -595,8 +595,8 @@ for (sp in spp) {
   #non ST if nonconvergence in st
   # if ( df_conv[which(df_conv$spp==sp),'slope']!='There is no evidence that the model is not converged') {
   
-  # if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))!=0) {
-  #   load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
+  # if (length(list.files(paste0('./output/slope/vast/',sp,'/'),pattern = 'fit.RData'))!=0) {
+  #   load(paste0('./output/slope/vast/',sp,'/fit.RData'))
   # }
   # 
   # #EBS+NBS fit

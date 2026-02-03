@@ -201,7 +201,7 @@ for (sp in spp[c(17,18,21,23)]) {
   #################
   
   #read data_geostat_temp file
-  #load(paste0('./slope EBS VAST/',sp,'/data_geostat_temp.RData'))
+  #load(paste0('./output/slope/vast/',sp,'/data_geostat_temp.RData'))
   data_geostat1<-readRDS(paste0('./output/vast/',sp,'/data_geostat_temp.rds'))
   
   #data_geostat<-data_geostat1[which(data_geostat1$Region %in% c("slope")),]
