@@ -180,11 +180,11 @@ for (sp in spp) {
     ###################################
     
     #fit file
-    ff<-list.files(paste0('./shelf EBS NBS VAST/',sp,'/'),'fit',recursive=TRUE)
+    ff<-list.files(paste0('./output/vast/',sp,'/'),'fit',recursive=TRUE)
     
     
     #load fit file
-    load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/vast/',sp,'/',ff)) #fit
     
     #################################################
     # ARRANGE PREDICTED DENSITIES FROM OM

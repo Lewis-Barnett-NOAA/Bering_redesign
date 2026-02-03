@@ -159,7 +159,7 @@ for (sp in spp[c(17,18,21,23)]) {
   dir.create(paste0('./output/species/',sp,'/'))
   
   #get list of fit data
-  ff<-list.files(paste0('./shelf EBS NBS VAST/',sp),mod1,recursive = TRUE)
+  ff<-list.files(paste0('./output/vast/',sp),mod1,recursive = TRUE)
   
   if (length(ff)==0) {
     next
@@ -168,7 +168,7 @@ for (sp in spp[c(17,18,21,23)]) {
   }
   
   #load fit file
-  load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+  load(paste0('./output/vast/',sp,'/',ff)) #fit
   #getLoadedDLLs() #if check loaded DLLs
   #check_fit(fit$parameter_estimates)
   
@@ -187,10 +187,10 @@ for (sp in spp[c(17,18,21,23)]) {
   # 
   # #download file
   # googledrive::drive_download(file=file$id,
-  #                             path = paste0('./shelf EBS NBS VAST/',sp,'/data_geostat_temp.rds'),
+  #                             path = paste0('./output/vast/',sp,'/data_geostat_temp.rds'),
   #                             overwrite = TRUE)
   # 
-  # data_geostat<-readRDS(paste0('./shelf EBS NBS VAST/',sp,'/data_geostat_temp.rds'))
+  # data_geostat<-readRDS(paste0('./output/vast/',sp,'/data_geostat_temp.rds'))
   
   #predictions
   #d_i<-fit$Report$D_i #nrow(fit$data_frame)
@@ -202,7 +202,7 @@ for (sp in spp[c(17,18,21,23)]) {
   
   #read data_geostat_temp file
   #load(paste0('./slope EBS VAST/',sp,'/data_geostat_temp.RData'))
-  data_geostat1<-readRDS(paste0('./shelf EBS NBS VAST/',sp,'/data_geostat_temp.rds'))
+  data_geostat1<-readRDS(paste0('./output/vast/',sp,'/data_geostat_temp.rds'))
   
   #data_geostat<-data_geostat1[which(data_geostat1$Region %in% c("slope")),]
   

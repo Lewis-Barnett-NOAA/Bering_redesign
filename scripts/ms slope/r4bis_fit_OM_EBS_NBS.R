@@ -73,7 +73,7 @@ spp<-c('Limanda aspera',
        'Bathyraja aleutica')
 
 #folder region
-fol_region<-c('shelf EBS NBS VAST')
+fol_region<-c('output/vast')
 
 #load grid
 load('data/data_processed/grid_EBS_NBS.RData')

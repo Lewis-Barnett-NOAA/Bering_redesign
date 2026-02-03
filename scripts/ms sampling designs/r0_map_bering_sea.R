@@ -60,7 +60,7 @@ ak_sppoly<-as(ebs_layers$akland, 'Spatial')
 #####################################
 
 #create directory
-dir.create('./shapefiles/',showWarnings = FALSE)
+dir.create('data/shapefiles/',showWarnings = FALSE)
 
 #name shapefiles 
 shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
@@ -82,13 +82,13 @@ for (i in shfiles) {
     
     #download data
     googledrive::drive_download(file=id.data$id[j],
-                                path = paste0('./shapefiles/',id.data$name[j]),
+                                path = paste0('data/shapefiles/',id.data$name[j]),
                                 overwrite = TRUE)
     
   }
   
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
+  sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
   
   if (i=='EBSslopeThorson') {
     
@@ -149,7 +149,7 @@ ak_bathy_5<-ak_bathy_5[complete.cases(ak_bathy_5$ak_bathy_NAD83),]
 #########################################################
 
 #create directory
-dir.create('./shapefiles/',showWarnings = FALSE)
+dir.create('data/shapefiles/',showWarnings = FALSE)
 
 #get id shared folder from google drive
 id.bering.folder<-files[which(files$name=='EEZ'),'id']
@@ -160,13 +160,13 @@ id.data<-googledrive::drive_ls(id.bering.folder$id)
 for (j in 1:nrow(id.data)) {
   
   googledrive::drive_download(file=id.data$id[j],
-                              path = paste0('./shapefiles/',id.data$name[j]),
+                              path = paste0('data/shapefiles/',id.data$name[j]),
                               overwrite = TRUE)
   
 }
 
 #shapefile EEZ
-eez_sh<-rgdal::readOGR(dsn='./shapefiles',layer = 'EEZ_Land_v3_202030')
+eez_sh<-rgdal::readOGR(dsn='data/shapefiles',layer = 'EEZ_Land_v3_202030')
 
 #clip EEZ
 bbox = c(latN = 70, latS = 50, lonW = -200, lonE = -150)

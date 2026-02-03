@@ -185,7 +185,7 @@ shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
 for (i in shfiles) {
   
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
+  sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
   
   if (i=='EBSslopeThorson') {
     

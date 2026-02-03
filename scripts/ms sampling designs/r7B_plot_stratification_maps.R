@@ -852,7 +852,7 @@ for (sp in spp) {
   #load(paste0('./output/species/',sp,'/projection_data.RData')) #temp_dens_vals
   
   #load fit OM
-  load(paste0('./shelf EBS NBS VAST/',sp,'/fit-001.RData'))
+  load(paste0('./output/vast/',sp,'/fit-001.RData'))
   
   #removed cells because of depth
   rem_cells<-D6[which(D6$include==FALSE),'cell']

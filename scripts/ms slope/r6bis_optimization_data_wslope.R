@@ -217,7 +217,7 @@ for (sp in spp) {
     
     
     #load model  
-    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+    load(paste0('./output/slope/vast/',sp,'/fit_st.RData'))
 
     #get predicted densities for sp
     temp_dens_vals[,,sp] <- unlist(fit$Report$D_gct[, 1, as.character(yrs)]) #[kg/km2]
@@ -244,7 +244,7 @@ for (sp in spp) {
     true_index[,,sp]<-0
     
     #load slope fit
-    load(paste0('./slope EBS VAST/',spp_conv_slope[1],'/fit_st.RData'))
+    load(paste0('./output/slope/vast/',spp_conv_slope[1],'/fit_st.RData'))
     
     #get map info
     mdl <- make_map_info(Region = fit$settings$Region, 

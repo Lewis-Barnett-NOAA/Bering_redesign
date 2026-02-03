@@ -310,10 +310,10 @@ if (!file.exists(true_index_file)) {
     
     
     #get list of fit data
-    ff<-list.files(paste0('./shelf EBS NBS VAST/',sp),'fit',recursive = TRUE)
+    ff<-list.files(paste0('./output/vast/',sp),'fit',recursive = TRUE)
     
     #load fit file
-    load(paste0('./shelf EBS NBS VAST/',sp,'/',ff)) #fit
+    load(paste0('./output/vast/',sp,'/',ff)) #fit
     #getLoadedDLLs() #if check loaded DLLs
     #check_fit(fit$parameter_estimates)
     

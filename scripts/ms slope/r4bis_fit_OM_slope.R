@@ -600,10 +600,10 @@ for (sp in spp) {
   # }
   # 
   # #EBS+NBS fit
-  # if (file.exists(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))) {
+  # if (file.exists(paste0('./output/vast//',sp,'/fit.RData'))) {
   #   
   #   #load fit file
-  #   load(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))
+  #   load(paste0('./output/vast//',sp,'/fit.RData'))
   #   
   #   #dimensions and check fit
   #   #dim(fit$Report$D_gct) #53464

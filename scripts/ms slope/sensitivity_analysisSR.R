@@ -366,7 +366,7 @@ for (sp in unique(data_sratio1$scientific_name)) {
   df_ind<-cbind(df_ind,slope)
   
   #load EBS+NBS index
-  load(paste0('./shelf EBS NBS VAST/',sp,'/fit.RData'))
+  load(paste0('./output/vast/',sp,'/fit.RData'))
   ebs_ind<-data.frame(fit$Report$Index_ctl[1,as.character(2002:2016),1:3])
   rownames(ebs_ind)<-NULL
   colnames(ebs_ind)<-c('EBS_NBS','NBS','EBS')
