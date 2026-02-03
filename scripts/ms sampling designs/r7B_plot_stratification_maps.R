@@ -40,11 +40,6 @@ if (!('VAST' %in% installed.packages())) {
 #load/install packages
 pacman::p_load(pack_cran,character.only = TRUE)
 
-#setwd
-out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/'
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
-
 #version VAST (cpp)
 version<-'VAST_v14_0_1'
 
@@ -111,9 +106,6 @@ panel_extent <- data.frame(x = c(-1716559.21, -77636.05), #x = c(-1326559.21, -8
 ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs", set.crs = "EPSG:3338")
 ak_sppoly<-as(ebs_layers$akland, 'Spatial')
 
-#create directory
-dir.create('./shapefiles/',showWarnings = FALSE)
-
 #name shapefiles
 shfiles<-c('EBSshelfThorson','NBSThorson','EBSslopeThorson')
 
@@ -139,16 +131,16 @@ for (i in shfiles) {
   for (j in 1:nrow(id.data)) {
     
     #if not file, download
-    if (!(id.data$name[j] %in% list.files('./shapefiles/'))) {
+    if (!(id.data$name[j] %in% list.files('data/shapefiles/'))) {
       #download data
       googledrive::drive_download(file=id.data$id[j],
-                                  path = paste0('./shapefiles/',id.data$name[j]),
+                                  path = paste0('data/shapefiles/',id.data$name[j]),
                                   overwrite = TRUE)}
     
   }
   
   #shapefile EBS
-  sh<-rgdal::readOGR(dsn='./shapefiles/',layer = i)
+  sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
   
   #if slope reproject
   if (i=='EBSslopeThorson') {
@@ -181,7 +173,7 @@ pal<-wesanderson::wes_palette('Zissou1',15,type='continuous')
 #####################################
 
 #create directory
-dir.create('./additional/',showWarnings = FALSE)
+dir.create('additional/',showWarnings = FALSE)
 
 #get id shared folder from google drive
 id.bering.folder<-files[which(files$name=='Additional'),'id']
@@ -192,11 +184,11 @@ id.data<-files.1[which(files.1$name=='ebs_nbs_temperature_full_area.csv'),]
 
 #download file
 googledrive::drive_download(file=id.data$id,
-                            path = paste0('./additional/',id.data$name),
+                            path = paste0('additional/',id.data$name),
                             overwrite = TRUE)
 
 #extract station EBS bottom trawl
-st_EBS<-read.csv('./additional//ebs_nbs_temperature_full_area.csv')
+st_EBS<-read.csv('additional//ebs_nbs_temperature_full_area.csv')
 
 #filter 2019 stations, an example year where EBS and NBS surveys were carried out
 st_EBS<-subset(st_EBS,year==2019 ) #& survey_definition_id ==98
@@ -244,8 +236,8 @@ st_EBS<-as.data.frame(st_EBS)
 ###################################
 
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
+load('data/extrapolation_grids/northern_bering_sea_grid.rda')
+load('data/extrapolation_grids/eastern_bering_sea_grid.rda')
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),data.frame(eastern_bering_sea_grid,region='EBS')))
 grid$cell<-1:nrow(grid)
 #add col and row number
@@ -270,7 +262,7 @@ grid<-x5[,c('Lat','Lon','cell','area','col','row')]
 # BASELINE/CURRENT SAMPLING DESIGN
 ###################################
 
-load('./output/baseline_strata.RData') #baseline_strata
+load('output/baseline_strata.RData') #baseline_strata
 
 ###################################
 # Sampling designs (from script #11) 
@@ -295,7 +287,7 @@ samp_df$n<-1:nrow(samp_df)
 ###################################
 
 # Set the path to the geodatabase file
-gdb_path <- "./shapefiles/CrabStrataShapefiles_GAPgrid.gdb/"
+gdb_path <- "data/shapefiles/CrabStrataShapefiles_GAPgrid.gdb/"
 
 # List the layers/tables in the geodatabase file
 gdb_layers <- st_layers(gdb_path)
@@ -320,7 +312,7 @@ gdb_table6 <- st_read(dsn = gdb_path, layer = gdb_layers$name[6])
 #5rows - str x 3columns - apr 
 
 #load optimization data
-load(paste0('./output/multisp_optimization_static_data.RData')) #df
+load(paste0('output/optimization/multisp_optimization_static_data.RData')) #df
 #load(paste0('./output/species/',sp,'/projection_data.RData')) #temp_dens_vals
 D6<-df
 #removed cells because of depth
@@ -337,7 +329,7 @@ for (samp in samp_df$samp_scn[3:5]) {
   
   #samp<-samp_df$samp_scn[3]
   
-  load(file = paste0("./output/survey_allocations_",samp,".RData")) #scn_allocations
+  load(file = paste0("output/optimization/survey_allocations_",samp,".RData")) #scn_allocations
   #load(file = paste0("./output/survey_allocations_scn1.RData")) #scn_allocations
   
   #rename due to error
@@ -385,7 +377,7 @@ for (samp in samp_df$samp_scn[3:5]) {
   if (samp %in% paste0('scn',1:3)) {
     #STRATIFICATION
     #load files for stratification (all) and example allocations
-    load(file = paste0("./output/ms_optim_allocations_",samp,".RData")) #all
+    load(file = paste0("output/optimization/ms_optim_allocations_",samp,".RData")) #all
     
     strata<-rbind(all$result_list$solution$indices,
                   data.frame(ID=rem_cells,X1=NA))
@@ -833,12 +825,12 @@ pp1a<-cowplot::plot_grid(ppa,legend1,nrow = 2,ncol=1,rel_heights = c(1,0.08))
 
 
 #if length 3
-ragg::agg_png(paste0('./figures/stratification_maps_legendscnlog.png'), width = 5, height = 15, units = "in", res = 300)
+ragg::agg_png(paste0('figures/stratification_maps_legendscnlog.png'), width = 5, height = 15, units = "in", res = 300)
 print(pp1a)
 dev.off()
 
 
-ragg::agg_png(paste0('./figures/stratification_maps_legends_all.png'),  width = 5, height = 15, units = "in", res = 300)
+ragg::agg_png(paste0('figures/stratification_maps_legends_all.png'),  width = 5, height = 15, units = "in", res = 300)
 print(pp1)
 dev.off()
 
@@ -1015,7 +1007,7 @@ for (sp in spp) {
 
 ##################3baseline
 
-load('./output/baseline_strata.RData')
+load('output/baseline_strata.RData')
 
 baseline_strata$cell_strata<-as.data.frame(baseline_strata$cell_strata)
 baseline_strata$cell_strata<-merge(baseline_strata$cell_strata,baseline_strata$n_samples,by.x='Stratum',by.y='stratum')
@@ -1167,11 +1159,11 @@ cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot
 
 
 
-  ragg::agg_png(paste0('./figures/sampling designs nsamples.png'), width = 10, height = 10, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/sampling designs nsamples.png'), width = 10, height = 10, units = "in", res = 300)
   cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot_list_nsamples[[2]],plot_list_nsamples[[1]])
   dev.off()
 
-  ragg::agg_png(paste0('./figures/sampling designs propsamples.png'), width = 10, height = 10, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/sampling designs propsamples.png'), width = 10, height = 10, units = "in", res = 300)
   cowplot::plot_grid(plot_list_sampleprop[['baseline']],plot_list_sampleprop[[3]],plot_list_sampleprop[[2]],plot_list_sampleprop[[1]])
   dev.off()
   
@@ -1193,10 +1185,10 @@ cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot
     samp<-samp_df[s,'samp_scn']
     
     #load multispecies data
-    load(paste0('./output/multisp_optimization_static_data.RData')) #df
+    load(paste0('output/optimization/multisp_optimization_static_data.RData')) #df
     
     #load optimized stratification
-    load(file = paste0("./output/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
+    load(file = paste0("output/optimization/ms_optim_allocations_",samp_df[s,'samp_scn'],".RData")) #all
     
     strata<-rbind(all$result_list$solution$indices,
                   data.frame(ID=rem_cells,X1=NA))
@@ -1426,15 +1418,15 @@ cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot
     }
     
     # #save plots
-    # ragg::agg_png(paste0('./figures/sampling designs ss ratio_',samp_df[s,'strat_var'],'.png'), width = 20, height = 7, units = "in", res = 300)
+    # ragg::agg_png(paste0('figures/sampling designs ss ratio_',samp_df[s,'strat_var'],'.png'), width = 20, height = 7, units = "in", res = 300)
     # print(cowplot::plot_grid(pgrid1, legend1, nrow = 2, rel_heights = c(1, .1)))
     # dev.off()
     # 
-    # ragg::agg_png(paste0('./figures/sampling designs ss n_',samp_df[s,'strat_var'],'.png'), width = 20, height = 7, units = "in", res = 300)
+    # ragg::agg_png(paste0('figures/sampling designs ss n_',samp_df[s,'strat_var'],'.png'), width = 20, height = 7, units = "in", res = 300)
     # print(cowplot::plot_grid(pgrid2, legend2, nrow = 2, rel_heights = c(1, .1)))
     # dev.off()
     # 
-    # ragg::agg_png(paste0('./figures/sampling designs ms_',samp_df[s,'strat_var'],'.png'), width = 5, height = 5, units = "in", res = 300)
+    # ragg::agg_png(paste0('figures/sampling designs ms_',samp_df[s,'strat_var'],'.png'), width = 5, height = 5, units = "in", res = 300)
     # print(pm)
     # dev.off()
     
@@ -1456,10 +1448,10 @@ cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot
     com<-spp_name[which(spp_name$spp==isp),'common']
     
     #fit file
-    ff<-list.files(paste0('./shelf EBS NBS VAST/',isp,'/'),'fit',recursive=TRUE)
+    ff<-list.files(paste0('output/OM EBS-NBS/',isp,'/'),'fit',recursive=TRUE)
     
     #load fit file
-    load(paste0('./shelf EBS NBS VAST/',isp,'/',ff)) #fit
+    load(paste0('output/OM EBS-NBS/',isp,'/',ff)) #fit
     
     #get spatial random fields
     spf<-fit$Report$Omega1_gc
@@ -1567,20 +1559,20 @@ cowplot::plot_grid(plot_list_nsamples[['baseline']],plot_list_nsamples[[3]],plot
   print(cowplot::plot_grid(pgridi2, prandi2, nrow = 2))
   print(cowplot::plot_grid(pgridi3, prandi3, nrow = 2))
 
-  ragg::agg_png(paste0('./figures/str_ss_ms_rf1b.png'),  width = 20, height = 6, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/str_ss_ms_rf1b.png'),  width = 20, height = 6, units = "in", res = 300)
   print(cowplot::plot_grid(pgridi1, prandi1, nrow = 2))
   dev.off()
-  ragg::agg_png(paste0('./figures/str_ss_ms_rf2b.png'),  width = 20, height = 6, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/str_ss_ms_rf2b.png'),  width = 20, height = 6, units = "in", res = 300)
   print(cowplot::plot_grid(pgridi2, prandi2, nrow = 2))
   dev.off()
   
   #save plot
-  ragg::agg_png(paste0('./figures/str_ss_ms_rfselb.png'),  width = 15, height = 6, units = "in", res = 300)
+  ragg::agg_png(paste0('figures/str_ss_ms_rfselb.png'),  width = 15, height = 6, units = "in", res = 300)
   print(cowplot::plot_grid(pgridi3, prandi3, nrow = 2))
   dev.off()
   
   # #save plot
-  # ragg::agg_png(paste0('./figures/SpatialRandomFields.png'),  width = 20, height = 7, units = "in", res = 300)
+  # ragg::agg_png(paste0('figures/SpatialRandomFields.png'),  width = 20, height = 7, units = "in", res = 300)
   # print(cowplot::plot_grid(pgrid1, legend1, nrow = 2, rel_heights = c(1, .15)))
   # dev.off()
   
