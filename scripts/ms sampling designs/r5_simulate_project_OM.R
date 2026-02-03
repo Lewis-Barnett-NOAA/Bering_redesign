@@ -162,7 +162,7 @@ samp_df<-rbind(samp_df,c('baseline','current',520,15,'scnbase'),
 ###################################
  
 #save SBT table
-load('./tables/SBT_projection.RData')#df_sbt
+load('output/tables/SBT_projection.RData')#df_sbt
  
 #name scenario
 df_sbt$sbt<-paste0('SBT',df_sbt$sbt_n)

@@ -277,7 +277,7 @@ for (sbt in unique(df_sbt$sbt_n)) {
   
   #save sbt rasters 
   #save raster
-  writeRaster(sbt_stack, paste0('data processed/SBT projections/SBT_',sbt,'_',paste0(range(yrs)[1],'-',range(yrs)[2]),'.grd'),overwrite=TRUE)
+  writeRaster(sbt_stack, paste0('data/data_processed/SBT projections/SBT_',sbt,'_',paste0(range(yrs)[1],'-',range(yrs)[2]),'.grd'),overwrite=TRUE)
 }
 
 #pgrid2<-cowplot::plot_grid(plotlist = plot_sbt, ncol = 1)

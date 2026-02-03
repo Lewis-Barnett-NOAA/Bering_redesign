@@ -68,7 +68,7 @@ spp<-c('Limanda aspera',
 #selected species
 
 #read coinvergence and st slope
-df_conv<-read.csv('./tables/slope_conv.csv')
+df_conv<-read.csv('output/tables/slope_conv.csv')
 slp_conv<-df_conv[which(df_conv$slope_st=='convergence'),'spp']
 ebsnbs_conv<-df_conv[which(df_conv$EBS_NBS=='convergence'),'spp']
 

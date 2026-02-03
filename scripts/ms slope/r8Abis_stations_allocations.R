@@ -152,7 +152,7 @@ dim(grid_ebs)
 ###################################
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 #number of surveys
 n_sur<-100

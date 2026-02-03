@@ -46,7 +46,7 @@ fol_region<-c('output/slope/vast')
 dir.create(paste0('./',fol_region))
 
 #load grid
-load('./extrapolation grids/lastversion_grid_EBS.RData')
+load('data/data_processed/lastversion_grid_EBS.RData')
 load('data/data_processed/grid_EBS_NBS.RData')
 
 #selected species

@@ -165,7 +165,7 @@ nbs_samples <- nbs_area * ebs_dens
 ###################################
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 ################
 # SAMPLES PER REGION
@@ -978,7 +978,7 @@ dim(combined_sim_df)
 
 
 #load table that relate survey design (here scn) to variables
-load(file='./tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df_dens.RData') #samp_df
 
 # Make sure the column names match for joining
 samp_df_join <- samp_df %>%

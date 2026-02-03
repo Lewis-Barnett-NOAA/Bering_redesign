@@ -102,7 +102,7 @@ yrs<-sort(c(cyrs,wyrs))
 # check the slope model that converged
 #####################
 
-df_conv<-read.csv('./tables/slope_conv.csv')
+df_conv<-read.csv('output/tables/slope_conv.csv')
 
 spp_conv_ebsnbs<-c(
       df_conv[which(df_conv$EBS_NBS=='convergence'),'spp'])

@@ -316,7 +316,7 @@ samp_df<-rbind(samp_df,samp_slope)
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
 #save table that relate survey design (here scn) to variables
-save(samp_df,file='./tables/samp_df_dens.RData')
+save(samp_df,file='output/tables/samp_df_dens.RData')
 
 #########################
 # loop over optimized sampling designs
