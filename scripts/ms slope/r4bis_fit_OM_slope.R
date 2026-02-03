@@ -514,7 +514,7 @@ fit <- tryCatch( {fit_model(settings=settings,
                   dimnames=list(1:nrow(bering_sea_slope_grid),sort(unique(data_geostat1$Year)),1:n_sim_hist))
   
   #create folder simulation data
-  dir.create(paste0('./output/species/',sp,'/simulated historical data slope/'))
+  dir.create(paste0('./output/species/',sp,'/simulated_historical_data slope/'))
 
   #save if fit model object complet
   if (class(fit)=='fit_model') {
@@ -549,9 +549,9 @@ fit <- tryCatch( {fit_model(settings=settings,
   }
 
   dir.create(paste0("./output/species/",sp))
-  dir.create(paste0("./output/species/",sp,'/simulated historical data/'))
+  dir.create(paste0("./output/species/",sp,'/simulated_historical_data/'))
   #save data
-  save(sim_dens, file = paste0("./output/species/",sp,'/simulated historical data/sim_dens_slope.RData'))
+  save(sim_dens, file = paste0("./output/species/",sp,'/simulated_historical_data/sim_dens_slope.RData'))
   
   #store
   #sim_hist_dens_spp[,,,sp]<-sim_dens
@@ -646,7 +646,7 @@ write.csv(df_conv,file=('./tables/slope_conv.csv'))
 #save(dens_index_hist_OM, file = paste0("./output/species/dens_index_hist_OM.RData"))
 
 ######################
-# RESHAPE SIMULATED HISTORICAL DATA
+# RESHAPE simulated_historical_data
 ######################
 
 # Initializing parallel backend
@@ -666,7 +666,7 @@ foreach(sp = spp_slope) %do% {
   #sp<-spp[1]
   
   #load data
-  load(paste0('./output/species/', sp, '/simulated historical data/sim_dens_slope.RData'))
+  load(paste0('./output/species/', sp, '/simulated_historical_data/sim_dens_slope.RData'))
   
   #parallel loop over years and simulations
   foreach(y = 2002:2016) %:%

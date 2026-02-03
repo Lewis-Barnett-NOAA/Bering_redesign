@@ -65,7 +65,7 @@ spp<-c('Limanda aspera',
 ######################################
 
 #create directory
-dir.create('./tables/',showWarnings = FALSE)
+dir.create('output/tables/',showWarnings = FALSE)
   
 #create SBT projections
 df_sbt<-data.frame(y2022=c(0,0,0,0,0,0,0,0,0,0,0,0),
@@ -84,7 +84,7 @@ df_sbt<-df_sbt[-grep('cold',df_sbt$Scenario),]
 df_sbt$sbt_n<-1:nrow(df_sbt)
 
 #save SBT table
-save(df_sbt,file = './tables/SBT_projection.RData')
+save(df_sbt,file = 'output/tables/SBT_projection.RData')
 
 #load grid
 load('data/data_processed/grid_EBS_NBS.RData')
