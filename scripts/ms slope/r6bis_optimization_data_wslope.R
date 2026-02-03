@@ -395,9 +395,9 @@ for (sp in spp) {
   dfdyn<-cbind(dfdyn,densdyn)
 }
 
-save(dfst,file=paste0('./output slope/multisp_optimization_static_data_slope_st.RData'))
-save(dfdyn,file=paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
-#load(file=paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
+save(dfst,file=paste0('output/slope/multisp_optimization_static_data_slope_st.RData'))
+save(dfdyn,file=paste0('output/slope/multisp_optimization_static_data_slope_dyn.RData'))
+#load(file=paste0('output/slope/multisp_optimization_static_data_slope_dyn.RData'))
 #load(file=paste0('./output/multisp_optimization_static_data_slope.RData'))
 
 
@@ -406,36 +406,36 @@ save(dfdyn,file=paste0('./output slope/multisp_optimization_static_data_slope_dy
 #####################
 
 #DYNAMIC  
-load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_dyn.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_dyn.RData'))
 head(dfdyn)
 dim(dfdyn)
 df_ebs_nbs<-dfdyn
 df_ebs_nbs<-df_ebs_nbs[order(df_ebs_nbs$cell),]
-load(paste0('./output slope/multisp_optimization_static_data_slope_dyn.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_slope_dyn.RData'))
 head(dfdyn)
 dim(dfdyn)
 df_slope<-dfdyn
 df_slope<-df_slope[order(df_slope$cell),]
 
 df<-rbind(df_ebs_nbs,df_slope)
-save(df,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
-load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
+save(df,file=paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData'))
 dyn_df<-df
 
 #STATIC
-load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_st.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_st.RData'))
 head(dfst)
 dim(dfst)
 df_ebs_nbs<-dfst
 df_ebs_nbs<-df_ebs_nbs[order(df_ebs_nbs$cell),]
-load(paste0('./output slope/multisp_optimization_static_data_slope_st.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_slope_st.RData'))
 head(dfst)
 dim(dfst)
 df_slope<-dfst
 df_slope<-df_slope[order(df_slope$cell),]
 df<-rbind(df_ebs_nbs,df_slope)
-save(df,file=paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
-load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
+save(df,file=paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
+load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData'))
 st_df<-df
 
 

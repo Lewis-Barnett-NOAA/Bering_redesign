@@ -73,7 +73,7 @@ slp_conv<-df_conv[which(df_conv$slope_st=='convergence'),'spp']
 ebsnbs_conv<-df_conv[which(df_conv$EBS_NBS=='convergence'),'spp']
 
 #create folder simulation data
-dir.create(paste0('./output slope//species/'))
+dir.create(paste0('output/slope//species/'))
 
 ###################################
 # Grid EBS+NBS
@@ -336,19 +336,19 @@ foreach(sp = ebsnbs_conv) %do% {
 stopCluster(cl)
 
 #store HIST simulated data
-save(sim_dens1, file = paste0('./output slope//species/ms_sim_dens.RData'))  
-#load(file = paste0('./output slope//species/ms_sim_dens.RData'))  
+save(sim_dens1, file = paste0('output/slope/species/ms_sim_dens.RData'))  
+#load(file = paste0('output/slope//species/ms_sim_dens.RData'))  
 
 ########################################################################################
 # JOIN EBS+NBS and SLP ARRAY
 ########################################################################################
 
 #sim_dens1
-load(file = paste0('./output slope//species/ms_sim_dens.RData'))  
+load(file = paste0('output/slope//species/ms_sim_dens.RData'))  
 ebsnbs_simdens<-sim_dens1
 
 #sim_dens1
-load(file = paste0('./output slope//species/ms_sim_dens_slope.RData'))  
+load(file = paste0('output/slope//species/ms_sim_dens_slope.RData'))  
 slp_simdens<-sim_dens1
 dimnames(slp_simdens)
 
@@ -412,10 +412,10 @@ for (sp in spp) {
 }
 
 #store HIST simulated data
-save(sim_dens1, file = paste0('./output slope//species/ms_sim_dens_all.RData'))  
+save(sim_dens1, file = paste0('output/slope//species/ms_sim_dens_all.RData'))  
 
 # load the RData file
-load(file = './output slope/species/ms_sim_dens_all.RData')  # loads object sim_dens1
+load(file = 'output/slope/species/ms_sim_dens_all.RData')  # loads object sim_dens1
 
 # check the object name
 ls()  # should show sim_dens1

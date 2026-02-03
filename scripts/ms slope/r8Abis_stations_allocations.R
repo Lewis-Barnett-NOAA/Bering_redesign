@@ -194,11 +194,11 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     
   if (samp_df[s,'type']=='static') {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
     #load multispecies data
-    load(paste0('./output slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
+    load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -208,8 +208,8 @@ for (s in 1:nrow(samp_df)) { #sampling designs
     #r<-regime[1]
     
     #load results_optimization
-    load(file=paste0("./output slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
-    #load(file=paste0('./output slope/multisp_optimization_static_data.RData')) #df
+    load(file=paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+    #load(file=paste0('output/slope/multisp_optimization_static_data.RData')) #df
     df<-df[,c("Lat",'Lon','cell')]
     
     
@@ -476,6 +476,6 @@ for (s in 1:nrow(samp_df)) { #sampling designs
   rm(dfrandom,dfspb,str_alloc,rand,spb)
   
   #store station allocations
-  save(scn_allocations, file = paste0('./output slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
+  save(scn_allocations, file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
   }
 }
