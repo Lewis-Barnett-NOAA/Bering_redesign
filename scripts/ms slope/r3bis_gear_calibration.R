@@ -503,7 +503,7 @@ catch_bss <- data_length$catch[
   which(data_length$catch$HAULJOIN %in% unique(x = hauls_bss$HAULJOIN)),
 ]
 catch_bss <- merge(x = catch_bss,
-                   y = hauls_bssj[, c('HAULJOIN', 'YEAR')],
+                   y = hauls_bss[, c('HAULJOIN', 'YEAR')],
                    by = c('HAULJOIN'))
 catch_bss <- merge(x = catch_bss,
                    y = spp_code1,
@@ -542,7 +542,7 @@ for (sp in spp_vect) {
                            'ADJ_WEIGHT_FREQ90', 'ADJ_WEIGHT_FREQ10'))
   
   #merge
-  data_geostat2 <- merge(x = data_geostat1, y = wl1,
+  data_geostat2 <- merge(x = data_geostat, y = wl1,
                          by.x = c('hauljoin', 'scientific_name'),
                          by.y = c('HAULJOIN', 'scientific_name'),
                          all.x = TRUE)
@@ -580,7 +580,7 @@ for (sp in spp_vect) {
                aes(x = cpue_kgha, y = ADJ_KG_HA)) +
     #scale_x_continuous(limits = c(0, max(data_geostat2$cpue_kgha) * 0.9)) +
     #scale_y_continuous(limits = c(0, max(data_geostat2$cpue_kgha) * 0.9)) +
-    geom_smooth(data = subset(data = data_geostat2, subset = cpue_kgha != 0), 
+    geom_smooth(data = subset(x = data_geostat2, subset = cpue_kgha != 0), 
                 aes(x = cpue_kgha, y = ADJ_KG_HA), 
                 method = "lm", color = "grey", se = FALSE) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
@@ -592,7 +592,7 @@ for (sp in spp_vect) {
   plots[[sp]] <- p  
 }
 
-#multiplot of all species cpue ratio by haul
-cowplot::plot_grid(plotlist = plots,nrow=2)
-#ggsave("figures/slope/compare_obs_adj_cpue.png")
+# multiplot of all species cpue ratio by haul
+cowplot::plot_grid(plotlist = plots, nrow = 2)
+ggsave("figures/slope/compare_obs_adj_cpue.png")
 
