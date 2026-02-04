@@ -28,15 +28,9 @@ if (!('pacman' %in% installed.packages())) {
 #load/install packages
 pacman::p_load(pack_cran,character.only = TRUE)
 
-#setwd - depends on computer using
-#out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
-out_dir<-'/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/' #mac
-#out_dir<-'/Users/daniel/Work/VM' #VM
-setwd(out_dir)
-
 #range years of data
-sta_y<-1982
-end_y<-2022
+sta_y <- 1982
+end_y <- 2022
 
 #selected species
 spp<-c('Limanda aspera',
@@ -92,41 +86,17 @@ spp1<-c('Yellowfin sole',
         'Rex sole',
         'Aleutian skate')
 
-#get files from google drive and set up
-files<-googledrive::drive_find()
-3 #for dvilasg@uw.edu
-
-#get id shared folder from google drive
-id.bering.folder<-files[which(files$name=='Bering redesign RWP project'),'id']
-
-#list of files and folder
-files.1<-googledrive::drive_ls(id.bering.folder$id)
-id.data<-files.1[which(files.1$name=='data'),'id']
-files.2<-googledrive::drive_ls(id.data$id)
-
 #####################################
 # Get haul (sampling stations)
 #####################################
 
-#create directory
-dir.create('data/data_raw/',showWarnings = FALSE)
-
-#get haul (stations) data
-file<-files.2[grep('haul',files.2$name),]
-#file.id<-files.2[which(files.2$name %in% file),]
-
-#download file
-googledrive::drive_download(file=file$id,
-                            path = paste0('data/data_raw/',file$name),
-                            overwrite = TRUE)
-
 #read csv file
-haul<-readRDS(paste0('data/data_raw/',file$name))
+haul<-readRDS(file = 'data/data_raw/afsc_haul_raw_2023_2_21.rds')
 dim(haul);length(unique(haul$hauljoin))
 
 #get year and month from haul
-haul$month<-month(as.POSIXlt(haul$date, format="%d/%m/%Y"))
-haul$year<-year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
+haul$month <- lubridate::month(as.POSIXlt(haul$date, format="%d/%m/%Y"))
+haul$year <- lubridate::year(as.POSIXlt(haul$date, format="%d/%m/%Y"))
 
 #####################################
 # Bering Sea grid
@@ -153,10 +123,11 @@ bering_sea_slope_grid$region<-'EBSslope'
 #rbind regions
 grid.ebs<-rbind(northern_bering_sea_grid,
                eastern_bering_sea_grid,
-               bering_sea_slope_grid[,c("Lat","Lon","Area_in_survey_km2",'Stratum',"region")])
+               bering_sea_slope_grid[,c("Lat","Lon","Area_in_survey_km2",
+                                        'Stratum',"region")])
 
 #check km2 per region (grid data)
-aggregate(Area_in_survey_km2 ~ region, grid.ebs,FUN=sum)
+aggregate(Area_in_survey_km2 ~ region, grid.ebs, FUN = sum)
 
 #####################################
 # Add GEBCO depth (downloaded on August 2022)
@@ -517,7 +488,7 @@ for (sp in spp) {
 #check temp ROMS vs temp in situ
 #save data_geostat with SBT
 data_geostat<-
-readRDS(paste0('data/data_processed/species/Gadus macrocephalus//data_geostat_temp.rds'))
+readRDS(paste0('data/data_processed/species/Gadus macrocephalus/data_geostat_temp.rds'))
 
 #plot check temperatures
 plot(x=data_geostat$Temp,y=data_geostat$bottom_temp_c,xlab='ROMS',ylab='insitu')
