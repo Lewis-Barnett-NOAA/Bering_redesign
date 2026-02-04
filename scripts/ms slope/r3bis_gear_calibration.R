@@ -524,4 +524,5 @@ for (sp in spp_vect) {
 
 #multiplot of all species cpue ratio by haul
 cowplot::plot_grid(plotlist = plots,nrow=2)
+#ggsave("figures/slope/compare_obs_adj_cpue.png")
 
