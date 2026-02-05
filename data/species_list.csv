@@ -6,7 +6,7 @@ Atheresthes stomias,10110,10110,T
 Reinhardtius hippoglossoides,10115,10115,T
 Lepidopsetta polyxystra,10261,10260,F
 Lepidopsetta bilineata,10262,10260,F
-Lepidopsetta sp.,10260,10260,F
+Lepidopsetta sp,10260,10260,F
 Hippoglossoides elassodon,10130,10130,T
 Pleuronectes quadrituberculatus,10285,10285,F
 Hippoglossoides robustus,10140,10140,F
@@ -20,7 +20,7 @@ Chionoecetes bairdi,68560,68560,T
 Sebastes alutus,30060,30060,T
 Sebastes melanostictus,30052,30050,T
 Sebastes aleutianus,30051,30050,T
-rougheye and blackspotted rockfish unid.,30050,30050,T
+REBS rockfishes,30050,30050,T
 Atheresthes evermanni,10112,10112,T
 Sebastes borealis,30576,30576,T
 Sebastolobus alascanus,30020,30020,T
