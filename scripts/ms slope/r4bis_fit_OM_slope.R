@@ -39,9 +39,9 @@ version <- "VAST_v14_0_1"
 knots <- "300"
 
 # list of sp
-splist <- list.dirs("data/data_processed/",
-                    full.names = FALSE,
-                    recursive = FALSE)
+# splist <- list.dirs("data/data_processed/",
+#                     full.names = FALSE,
+#                     recursive = FALSE)
 
 # folder region - only slope
 fol_region <- "output/slope/vast"
@@ -49,21 +49,28 @@ if (!dir.exists(paths = fol_region))
   dir.create(path = fol_region, recursive = TRUE)
 
 
-# load grid
-load("data/data_processed/lastversion_grid_EBS.RData", verbose = T) ## HOW IS THIS CREATED?
-# load("data/data_processed/grid_EBS_NBS.RData")
+## load grid
+load('data/data_processed/grid_bs.RData')
+grid_bs_year <- grid_bs_year |> 
+  subset(subset = region == "EBSslope" & Year %in% 2002:2016)
+
+species_list <- read.csv(file = "data/species_list.csv")
+species_list <- subset(x = species_list,
+                       subset = SPECIES_CODE %in% 
+                         unique(x = sort(x = species_list$GROUP_CODE)) 
+                       & SLOPE == TRUE)
 
 # selected species
-spp <- c("Limanda aspera", "Gadus chalcogrammus", "Gadus macrocephalus",
-         "Atheresthes stomias", "Reinhardtius hippoglossoides",
-         "Lepidopsetta polyxystra", "Hippoglossoides elassodon",
-         "Pleuronectes quadrituberculatus", "Hippoglossoides robustus",
-         "Boreogadus saida", "Eleginus gracilis", "Anoplopoma fimbria",
-         "Chionoecetes opilio", "Paralithodes platypus", 
-         "Paralithodes camtschaticus", "Chionoecetes bairdi", "Sebastes alutus",
-         "Sebastes melanostictus", "Atheresthes evermanni", "Sebastes borealis",
-         "Sebastolobus alascanus", "Glyptocephalus zachirus", 
-         "Bathyraja aleutica")
+# spp <- c("Limanda aspera", "Gadus chalcogrammus", "Gadus macrocephalus",
+#          "Atheresthes stomias", "Reinhardtius hippoglossoides",
+#          "Lepidopsetta polyxystra", "Hippoglossoides elassodon",
+#          "Pleuronectes quadrituberculatus", "Hippoglossoides robustus",
+#          "Boreogadus saida", "Eleginus gracilis", "Anoplopoma fimbria",
+#          "Chionoecetes opilio", "Paralithodes platypus", 
+#          "Paralithodes camtschaticus", "Chionoecetes bairdi", "Sebastes alutus",
+#          "Sebastes melanostictus", "Atheresthes evermanni", "Sebastes borealis",
+#          "Sebastolobus alascanus", "Glyptocephalus zachirus", 
+#          "Bathyraja aleutica")
 
 spp_vect <- c("Atheresthes evermanni", "Atheresthes stomias",
               "Gadus chalcogrammus", "Gadus macrocephalus",
@@ -71,137 +78,136 @@ spp_vect <- c("Atheresthes evermanni", "Atheresthes stomias",
               "Bathyraja aleutica")
 
 # add grid to get prediction for simulate data on each cell of the grid
-bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
-names(bering_sea_slope_grid)[4] <- "Stratum"
-bering_sea_slope_grid$Stratum <- 99
+# bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
+# names(bering_sea_slope_grid)[4] <- "Stratum"
+# bering_sea_slope_grid$Stratum <- 99
 
 # load grid per year for all EBS
-load(file = "data/data_processed/grid_EBS_NBS.RData")
-grid_ebs <- subset(x = grid.ebs_year,
-                   subset = region == "EBSslope" & Year %in% 2002:2016)
-
-splist <- list()
-splist <- vector("list", length(spp))
-names(splist) <- spp
-
-for (sp in spp) {
-  # read data
-  if (sp %in% spp_vect) {
-    df1 <- readRDS(file = paste0("data/data_processed/species/", sp,
-                                 "/data_geostat_slope_adj.rds"))
-  } else {
-    df1 <- readRDS(file = paste0("data/data_processed/species/", sp,
-                                 "/data_geostat.rds"))
-    df1$ADJ_KG_HA <- NA_real_
-  }
-  
-  # slope only
-  df1 <- subset(
-    x = df1,
-    subset = survey_name == "Eastern Bering Sea Slope Bottom Trawl Survey"
-  )
-  df1$survey_name <- "slope"
-  
-  yrs <- unique(x = df1$year)
-  df1 <- subset(x = df1, subset = year %in% yrs)
-  
-  # unified CPUE
-  if (sp %in% spp_vect) {
-    df1$cpue_kgha <- df1$ADJ_KG_HA
-  } 
-  
-  
-  # standard columns
-  df1 <- df1[, c("lat_start", "lon_start", "year", "scientific_name",
-                 "cpue_kgha", "effort", "depth_m", "survey_name")]
-  
-  colnames(df1) <- c("Lat", "Lon", "Year", "Species", "Cpue_kgha",
-                     "Effort", "Depth", "Region")
-  
-  # weight
-  df1$Weight_kg <- df1$Cpue_kgha * df1$Effort
-  df1$CPUEkgkm <- df1$Cpue_kgha
-  
-  # grid for predictions
-  grids <- data.frame(
-    Lat = grid_ebs$Lat,
-    Lon = grid_ebs$Lon,
-    Year = grid_ebs$Year,
-    Species = sp,
-    Weight_kg = mean(df1$Weight_kg, na.rm = TRUE),
-    Effort = grid_ebs$Area_in_survey_km2,
-    Depth = grid_ebs$DepthGEBCO,
-    Region = grid_ebs$region,
-    CPUEkgkm = mean(df1$Cpue_kgha, na.rm = TRUE),
-    stringsAsFactors = TRUE
-  )
-  
-  # bind observations and grid
-  df1 <- rbind(
-    df1[, c("Lat", "Lon", "Year", "Species", "Weight_kg", "Effort",
-            "Depth", "Region", "CPUEkgkm")],
-    grids
-  )
-  
-  splist[[sp]] <- df1
-}
+# load(file = "data/data_processed/grid_EBS_NBS.RData")
+# grid_ebs <- subset(x = grid.ebs_year,
+#                    subset = region == "EBSslope" & Year %in% 2002:2016)
+# 
+# splist <- list()
+# splist <- vector("list", length(spp))
+# names(splist) <- spp
+# for (sp in spp) {
+#   # read data
+#   if (sp %in% spp_vect) {
+#     df1 <- readRDS(file = paste0("data/data_processed/species/", sp,
+#                                  "/data_geostat_slope_adj.rds"))
+#   } else {
+#     df1 <- readRDS(file = paste0("data/data_processed/species/", sp,
+#                                  "/data_geostat.rds"))
+#     df1$ADJ_KG_HA <- NA_real_
+#   }
+#   
+#   # slope only
+#   df1 <- subset(
+#     x = df1,
+#     subset = survey_name == "Eastern Bering Sea Slope Bottom Trawl Survey"
+#   )
+#   df1$survey_name <- "slope"
+#   
+#   yrs <- unique(x = df1$year)
+#   df1 <- subset(x = df1, subset = year %in% yrs)
+#   
+#   # unified CPUE
+#   if (sp %in% spp_vect) {
+#     df1$cpue_kgha <- df1$ADJ_KG_HA
+#   } 
+#   
+#   
+#   # standard columns
+#   df1 <- df1[, c("lat_start", "lon_start", "year", "scientific_name",
+#                  "cpue_kgha", "effort", "depth_m", "survey_name")]
+#   
+#   colnames(df1) <- c("Lat", "Lon", "Year", "Species", "Cpue_kgha",
+#                      "Effort", "Depth", "Region")
+#   
+#   # weight
+#   df1$Weight_kg <- df1$Cpue_kgha * df1$Effort
+#   df1$CPUEkgkm <- df1$Cpue_kgha
+#   
+#   # grid for predictions
+#   grids <- data.frame(
+#     Lat = grid_ebs$Lat,
+#     Lon = grid_ebs$Lon,
+#     Year = grid_ebs$Year,
+#     Species = sp,
+#     Weight_kg = mean(df1$Weight_kg, na.rm = TRUE),
+#     Effort = grid_ebs$Area_in_survey_km2,
+#     Depth = grid_ebs$DepthGEBCO,
+#     Region = grid_ebs$region,
+#     CPUEkgkm = mean(df1$Cpue_kgha, na.rm = TRUE),
+#     stringsAsFactors = TRUE
+#   )
+#   
+#   # bind observations and grid
+#   df1 <- rbind(
+#     df1[, c("Lat", "Lon", "Year", "Species", "Weight_kg", "Effort",
+#             "Depth", "Region", "CPUEkgkm")],
+#     grids
+#   )
+#   
+#   splist[[sp]] <- df1
+# }
 
 # bind all species
-df2 <- dplyr::bind_rows(splist)
-BSS_data_geostat <- df2
+# df2 <- dplyr::bind_rows(splist)
+# BSS_data_geostat <- df2
 
 # add missing environmental covariate
-BSS_data_geostat$SBT_insitu <- NA_real_
+# BSS_data_geostat$SBT_insitu <- NA_real_
 
 # remove missing weights
-BSS_data_geostat <- 
-  BSS_data_geostat[complete.cases(BSS_data_geostat$Weight_kg), ]
+# BSS_data_geostat <- 
+  # BSS_data_geostat[complete.cases(BSS_data_geostat$Weight_kg), ]
 
 # convert area from ha to km2
-BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100
+# BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100
 
 # final layout
-BSS_data_geostat <- BSS_data_geostat[, c("Lat", "Lon", "Year", "Species",
-                                         "Weight_kg", "Effort", "Depth",
-                                         "SBT_insitu", "Region")]
+# BSS_data_geostat <- BSS_data_geostat[, c("Lat", "Lon", "Year", "Species",
+                                         # "Weight_kg", "Effort", "Depth",
+                                         # "SBT_insitu", "Region")]
 
-colnames(BSS_data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
-                                "Swept_area", "Depth", "SBT_insitu", "Region")
+# colnames(BSS_data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
+#                                 "Swept_area", "Depth", "SBT_insitu", "Region")
 
-BSS_data_geostat$Region <- "BSS"
+# BSS_data_geostat$Region <- "BSS"
 
 # save rds all species BSS data_geostat
-saveRDS(object = BSS_data_geostat,
-        file = paste("data/data_processed/data_geostat_BSS.rds"))
+# saveRDS(object = BSS_data_geostat,
+#         file = paste("data/data_processed/data_geostat_BSS.rds"))
 
-ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs",
-                                        set.crs = "EPSG:3338")
-ebs_layers$survey.strata <- sf::st_transform(x = ebs_layers$survey.strata,
-                                             crs = "EPSG:4326")
+# ebs_layers <- akgfmaps::get_base_layers(select.region = "ebs",
+#                                         set.crs = "EPSG:3338")
+# ebs_layers$survey.strata <- sf::st_transform(x = ebs_layers$survey.strata,
+#                                              crs = "EPSG:4326")
 
 # selected species - remove spp without observations in the slope
-spp_slope <- c("Gadus chalcogrammus", "Gadus macrocephalus",
-               "Atheresthes stomias", "Reinhardtius hippoglossoides",
-               "Hippoglossoides elassodon", "Anoplopoma fimbria",
-               "Chionoecetes opilio", "Chionoecetes bairdi",
-               "Sebastes alutus", "Sebastes melanostictus",
-               "Atheresthes evermanni", "Sebastes borealis",
-               "Sebastolobus alascanus", "Glyptocephalus zachirus",
-               "Bathyraja aleutica")
+# spp_slope <- c("Gadus chalcogrammus", "Gadus macrocephalus",
+#                "Atheresthes stomias", "Reinhardtius hippoglossoides",
+#                "Hippoglossoides elassodon", "Anoplopoma fimbria",
+#                "Chionoecetes opilio", "Chionoecetes bairdi",
+#                "Sebastes alutus", "Sebastes melanostictus",
+#                "Atheresthes evermanni", "Sebastes borealis",
+#                "Sebastolobus alascanus", "Glyptocephalus zachirus",
+#                "Bathyraja aleutica")
 
 # number of simulations
 n_sim_hist <- 100
 
 # fit with depth or CPE
-cov <- "depth"
-df_conv <- data.frame(spp = c(spp))
-df_conv$slope_st <- NA
+# df_conv <- data.frame(spp = c(spp))
+# df_conv$slope_st <- NA
 
 # loop over species
-for (sp in spp_slope) {
-  cat(paste0("############### ", sp, " #########################\n"))
+for (sp in species_list$SCIENTIFIC_NAME) {
+  # cat(paste0("############### ", sp, " #########################\n"))
   
   # filter by sp
+  paste0("data/data_processed/species/", sp)
   df3 <- subset(x = df2, 
                 subset = Species == sp,
                 select = c("Lat", "Lon", "Year", "Species", "CPUEkgkm",
