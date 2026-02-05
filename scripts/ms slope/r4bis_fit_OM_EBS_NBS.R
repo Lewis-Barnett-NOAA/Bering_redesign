@@ -67,8 +67,8 @@ spp<-c('Limanda aspera',
        'Sebastes alutus',
        'Sebastes melanostictus',
        'Atheresthes evermanni',
-       'Sebastes borealis',
-       'Sebastolobus alascanus',
+       #'Sebastes borealis',
+       #'Sebastolobus alascanus',
        'Glyptocephalus zachirus',
        'Bathyraja aleutica')
 
@@ -121,13 +121,13 @@ for (sp in spp) {
   data_geostat<-df4[complete.cases(df4[,c('Weight_kg')]),]
   data_geostat<-subset(data_geostat,Year %in% yrs)
   
-  #if kamtchatka flounder only use data from 1991 because of misidentification issue
+  #if kamchatka flounder only use data from 1992 because of misidentification issue
   if (sp=='Atheresthes evermanni') {
     data_geostat<-subset(data_geostat,Year > 1991)
   }
   #if arrowtooth flounder only use data from 1992 because of misidentification issue
   if (sp=='Atheresthes stomias') {
-    data_geostat<-subset(data_geostat,Year > 1992)
+    data_geostat<-subset(data_geostat,Year > 1991)
   }
   
   #covariate data - filter by year and complete cases for env variables
