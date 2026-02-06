@@ -99,13 +99,13 @@ saveRDS(object = cpue_data,
 grid_bs <- rbind(
   FishStatsUtils::eastern_bering_sea_grid |>
     as.data.frame() |> 
-    transform(region = "EBSshelf"),
+    transform(region = "EBS"),
   FishStatsUtils::northern_bering_sea_grid |>
     as.data.frame() |> 
     transform(region = "NBS"),
   FishStatsUtils::bering_sea_slope_grid |>
     as.data.frame() |> 
-    transform(region = "EBSslope") |>
+    transform(region = "BSS") |>
     transform(Stratum = "NA") |>
     subset(select = c("Lat","Lon","Area_in_survey_km2", 'Stratum',"region"))
 )
@@ -210,10 +210,12 @@ for (y in start_year:end_year) {
                     Lon = as.vector(lons),
                     temp = as.vector(mean_nc))
   
-  #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). longitude greater than 180 degrees
+  #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). 
+  #longitude greater than 180 degrees
   df_nc1 <- df_nc[which(df_nc$Lon >= 180), ]
   
-  #convert eastern longitude to western values (higher). longitude should be negative
+  #convert eastern longitude to western values (higher). 
+  #longitude should be negative
   df_nc1$Lon <- df_nc1$Lon - 360
   
   #filter values from the grid 
@@ -248,7 +250,7 @@ for (y in start_year:end_year) {
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-save(grid_bs_year, file = 'data/data_processed/grid_bs.RData')
+saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs.RDS')
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  For each species, extract sea bottom temperature to observed data 
@@ -316,18 +318,12 @@ for (ispp in unique(x = cpue_data$scientific_name)) {
     #46956 cells
     #259 time steps
     
-    #get variables
-    #names(nc$var)
-    
     #get latitude
     lats <- ncvar_get(nc,"lat_rho")
-    
     #get longitude
     lons <- ncvar_get(nc,"lon_rho")
-    
     #get SBT
     temp<-ncvar_get(nc,'temp')
-    
     #get time
     t_axis<-ncvar_get(nc,"ocean_time")
     
@@ -345,10 +341,12 @@ for (ispp in unique(x = cpue_data$scientific_name)) {
                       Lon=as.vector(lons),
                       temp=as.vector(mean_nc))
     
-    #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). longitude greater than 180 degrees
+    #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). 
+    #longitude greater than 180 degrees
     df_nc1<-df_nc[which(df_nc$Lon>=180),]
     
-    #convert eastern longitude to western values (higher). longitude should be negative
+    #convert eastern longitude to western values (higher). 
+    #longitude should be negative
     df_nc1$Lon<-df_nc1$Lon-360
     
     #filter values from the grid 
@@ -378,17 +376,9 @@ for (ispp in unique(x = cpue_data$scientific_name)) {
     
     #add results
     df1_temp<-rbind(df1_temp,df2)
-    
   }
-  
-  ##scale covariates
-  df1_temp$Scalebottom_temp_c<-scale(df1_temp$bottom_temp_c)
-  df1_temp$ScaleTemp<-scale(df1_temp$Temp)
-  df1_temp$LogDepth<-log(df1_temp$depth_m)
-  df1_temp$ScaleLogDepth<-scale(df1_temp$LogDepth)
   
   #save data_geostat with SBT
   saveRDS(df1_temp,
           paste0('data/data_processed/species/', ispp, '/data_geostat.rds'))
-  
 }
