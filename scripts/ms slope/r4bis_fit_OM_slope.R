@@ -60,18 +60,6 @@ species_list <- subset(x = species_list,
                          unique(x = sort(x = species_list$GROUP_CODE)) 
                        & SLOPE == TRUE)
 
-# selected species
-# spp <- c("Limanda aspera", "Gadus chalcogrammus", "Gadus macrocephalus",
-#          "Atheresthes stomias", "Reinhardtius hippoglossoides",
-#          "Lepidopsetta polyxystra", "Hippoglossoides elassodon",
-#          "Pleuronectes quadrituberculatus", "Hippoglossoides robustus",
-#          "Boreogadus saida", "Eleginus gracilis", "Anoplopoma fimbria",
-#          "Chionoecetes opilio", "Paralithodes platypus", 
-#          "Paralithodes camtschaticus", "Chionoecetes bairdi", "Sebastes alutus",
-#          "Sebastes melanostictus", "Atheresthes evermanni", "Sebastes borealis",
-#          "Sebastolobus alascanus", "Glyptocephalus zachirus", 
-#          "Bathyraja aleutica")
-
 spp_vect <- c("Atheresthes evermanni", "Atheresthes stomias",
               "Gadus chalcogrammus", "Gadus macrocephalus",
               "Hippoglossoides elassodon", "Reinhardtius hippoglossoides",
@@ -161,15 +149,15 @@ spp_vect <- c("Atheresthes evermanni", "Atheresthes stomias",
 
 # remove missing weights
 # BSS_data_geostat <- 
-  # BSS_data_geostat[complete.cases(BSS_data_geostat$Weight_kg), ]
+# BSS_data_geostat[complete.cases(BSS_data_geostat$Weight_kg), ]
 
 # convert area from ha to km2
 # BSS_data_geostat$Effort <- BSS_data_geostat$Effort / 100
 
 # final layout
 # BSS_data_geostat <- BSS_data_geostat[, c("Lat", "Lon", "Year", "Species",
-                                         # "Weight_kg", "Effort", "Depth",
-                                         # "SBT_insitu", "Region")]
+# "Weight_kg", "Effort", "Depth",
+# "SBT_insitu", "Region")]
 
 # colnames(BSS_data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
 #                                 "Swept_area", "Depth", "SBT_insitu", "Region")
@@ -202,55 +190,47 @@ n_sim_hist <- 100
 # df_conv <- data.frame(spp = c(spp))
 # df_conv$slope_st <- NA
 
+# load grid per year for all EBS
+load(file = "data/data_processed/grid_bs.RData")
+grid_bss <- subset(x = grid_bs_year, 
+                   subset = region == "EBSslope" & 
+                     Year %in% 2002:2016)
+
 # loop over species
 for (sp in species_list$SCIENTIFIC_NAME) {
   # cat(paste0("############### ", sp, " #########################\n"))
   
   # filter by sp
-  paste0("data/data_processed/species/", sp)
-  df3 <- subset(x = df2, 
-                subset = Species == sp,
-                select = c("Lat", "Lon", "Year", "Species", "CPUEkgkm",
-                           "Effort", "Depth", "Region"))
-  
-  # get weight
-  df3$Weight_kg <- df3$CPUEkgkm * df3$Effort
-  
-  # data geostat
-  yrs_region <- unique(x = df3$Year)
-  data_geostat <- df3[complete.cases(df3$Weight_kg), ]
-  
-  if (fol_region == "output/slope/vast") {
-    data_geostat <- subset(data_geostat, Region == "slope")
-  }
-  
-  # ha to km2
-  # data_geostat$Effort <- data_geostat$Effort / 100
-  # data_geostat$CPUEkgkm <- data_geostat$Weight_kg / data_geostat$Effort
-  
-  # load grid per year for all EBS
-  load(file = "data/data_processed/grid_EBS_NBS.RData")
-  grid_ebs <- subset(x = grid.ebs_year, 
-                     subset = region == "EBSslope" & 
-                       Year %in% 2002:2016)
+  data_geostat <-
+    readRDS(file = paste0("data/data_processed/species/", sp, 
+                          "/data_geostat.rds")) |>
+    subset(subset = survey  == "BSS",
+           select = c(lat_start, lon_start, year, scientific_name, 
+                      weight_kg, area_swept_km2, depth_m,
+                      ScaleLogDepth, survey, cpue_kgkm2 ))
+  names(x = data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
+                               "Effort", "depth_m", "depth_scaled", 
+                               "Region", "CPUEkgkm")
   
   # grid with info to get prediction
-  grids <- data.frame(Lat = grid_ebs$Lat,
-                      Lon = grid_ebs$Lon,
-                      Year = grid_ebs$Year,
-                      Species = rep(sp, times = nrow(grid_ebs)),
-                      Weight_kg = mean(data_geostat$CPUEkgkm),
-                      Effort = grid_ebs$Area_in_survey_km2,
-                      Depth = grid_ebs$DepthGEBCO,
-                      Region = grid_ebs$region,
-                      CPUEkgkm = mean(data_geostat$CPUEkgkm),
-                      stringsAsFactors = TRUE)
-  
   data_geostat1 <- rbind(
     data_geostat[, c("Lat", "Lon", "Year", "Species", "Weight_kg", "Effort",
-                     "Depth", "Region", "CPUEkgkm")],
-    grids
+                     "depth_scaled", "Region", "CPUEkgkm")],
+    data.frame(Lat = grid_bss$Lat,
+               Lon = grid_bss$Lon,
+               Year = grid_bss$Year,
+               Species = sp,
+               Weight_kg = mean(data_geostat$Weight_kg),
+               Effort = grid_bss$Area_in_survey_km2,
+               Depth = (log(grid_bss$depth_m) - mean(log(data_geostat$depth_m))) /
+                 sd(log(data_geostat$depth_m)) ,
+               Region = grid_bss$region,
+               CPUEkgkm = mean(data_geostat$CPUEkgkm),
+               stringsAsFactors = TRUE)
   )
+  
+  (scaled_data * attr(scaled_data, "scaled:scale")) + 
+    attr(scaled_data, "scaled:center")
   
   # scale depth
   data_geostat1$ScaleLogDepth <- scale(x = log(x = data_geostat1$Depth))
