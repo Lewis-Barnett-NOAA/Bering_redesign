@@ -1,11 +1,9 @@
 ####################################################################
 ####################################################################
-##
-##    Sloper Operating Spatiotemporal Distribution Models
+##    Shelf and Slope Operating Spatiotemporal Distribution Models
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, 
 ##    Lukas DeFilippo, Andre Punt
-##
 ####################################################################
 ####################################################################
 
@@ -17,18 +15,6 @@ set.seed(6)
 
 # libraries from cran to call or install/load
 pack_cran <- c("splines", "ggplot2", "dplyr", "doParallel", "VAST")
-
-# install pacman to use p_load function
-if (!("pacman" %in% installed.packages())) {
-  install.packages("pacman")
-}
-
-# install VAST
-if (!("VAST" %in% installed.packages())) {
-  devtools::install_github("james-thorson/VAST@main",
-                           INSTALL_opts = "--no-staged-install")
-}
-library(VAST)
 
 # load/install packages
 pacman::p_load(pack_cran, character.only = TRUE)
@@ -43,163 +29,227 @@ fol_region <- "output/slope/vast"
 if (!dir.exists(paths = fol_region)) 
   dir.create(path = fol_region, recursive = TRUE)
 
-## Load grid
-load('data/data_processed/grid_bs.RData')
-grid_bs_year <- grid_bs_year |> 
-  subset(subset = region == "EBSslope" & Year %in% 2002:2016)
+# load grid per year for all Bering Sea
+grid_bs <- readRDS(file = "data/data_processed/grid_bs.RDS")
 
 species_list <- read.csv(file = "data/species_list.csv")
 species_list <- subset(x = species_list,
                        subset = SPECIES_CODE %in% 
-                         unique(x = sort(x = species_list$GROUP_CODE)) 
-                       & SLOPE == TRUE)
-
-spp_vect <- c("Atheresthes evermanni", "Atheresthes stomias",
-              "Gadus chalcogrammus", "Gadus macrocephalus",
-              "Hippoglossoides elassodon", "Reinhardtius hippoglossoides",
-              "Bathyraja aleutica")
+                         unique(x = sort(x = species_list$GROUP_CODE)))
 
 # number of simulations
 n_sim <- 100
 
-# fit with depth or CPE
-df_conv <- data.frame(spp = species_list$SCIENTIFIC_NAME,
-                      max_grad = NA,
-                      convergence_message = NA)
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Fit VAST models
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# load grid per year for all EBS
-load(file = "data/data_processed/grid_bs.RData")
-grid_bss <- subset(x = grid_bs_year, 
-                   subset = region == "EBSslope" & 
-                     Year %in% 2002:2016)
+## Dataframe to store convergence results
+df_conv <- data.frame()
 
+for (ispp in 1:nrow(x = species_list)) {
+  for (iregion in c("bs_slope", "bs_shelf")) {
+    
+    ## Filter data_geostat to region
+    data_geostat <-
+      readRDS(file = paste0("data/data_processed/species/", 
+                            species_list$SCIENTIFIC_NAME[ispp], 
+                            "/data_geostat.rds")) |>
+      subset(subset = survey %in% list("bs_slope" = "BSS",
+                                       "bs_shelf" = c("EBS", "NBS"))[[iregion]],
+             select = c(lat_start, lon_start, year, scientific_name, 
+                        weight_kg, area_swept_km2, depth_m, Temp, survey, cpue_kgkm2 ))
+    names(x = data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
+                                 "Effort", "Depth", "Temp", "Region", "CPUEkgkm")
+    
+    ## Filter interpolation grid to region
+    interpolation_grid <- 
+      subset(x = grid_bs, 
+             subset = region %in% list("bs_slope" = "BSS",
+                                       "bs_shelf" = c("EBS", "NBS"))[[iregion]] 
+             & Year %in% list(
+               "bs_slope" = 2002:2016,
+               "bs_shelf" = seq(from = ifelse(test = species_list$SCIENTIFIC_NAME[ispp]
+                                              %in% c("Atheresthes stomias", 
+                                                     "Atheresthes evermanni"),
+                                              yes = 1992,
+                                              no = 1982),
+                                to = 2022)
+             )[[iregion]] 
+      )
+    
+    n_interpolation_cells <- table(interpolation_grid$Year) |> unique()
+    
+    # grid with info to get prediction
+    data_geostat1 <- rbind(
+      data_geostat[, c("Lat", "Lon", "Year", "Species", "Weight_kg", "Effort",
+                       "Depth", "Temp", "Region", "CPUEkgkm")],
+      data.frame(Lat = interpolation_grid$Lat,
+                 Lon = interpolation_grid$Lon,
+                 Year = interpolation_grid$Year,
+                 Species = species_list$SCIENTIFIC_NAME[ispp],
+                 Weight_kg = mean(data_geostat$Weight_kg),
+                 Effort = interpolation_grid$Area_in_survey_km2,
+                 Depth = interpolation_grid$depth_m,
+                 Temp = interpolation_grid$Temp,
+                 Region = interpolation_grid$region,
+                 CPUEkgkm = mean(data_geostat$CPUEkgkm),
+                 stringsAsFactors = TRUE)
+    )
+    
+    ## Scale depth by the mean and sd of the observed depths 
+    mean_logdepth <- mean(x = log(x = data_geostat$Depth))
+    sd_logdepth <- sd(x = log(x = data_geostat$Depth))
+    
+    data_geostat1$Depth <-
+      (log(ifelse(test = data_geostat1$Depth <= 0, 
+                  yes = 1,
+                  no = data_geostat1$Depth)) - mean_logdepth) / sd_logdepth
+    
+    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ##  Species/Region specific VAST settings to help with convergence issues
+    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    ## Anisotropy
+    aniso <- ifelse(
+      test = species_list$SCIENTIFIC_NAME[ispp] %in% c("Anoplopoma fimbria",
+                                                       "Atheresthes stomias") 
+      & iregion == "bs_slope",
+      yes = FALSE, 
+      no = TRUE
+    )
+    
+    ## Newton Steps
+    steps <- ifelse(
+      test = species_list$SCIENTIFIC_NAME[ispp] %in% c("Hippoglossoides elassodon",
+                                                       "Sebastolobus alascanus")
+      & iregion == "bs_slope",
+      yes = 5, 
+      no = 1
+    )
+    
+    ## Spatial and Spatiotemporal Field Configurations
+    if (species_list$SCIENTIFIC_NAME[ispp] %in% 
+        c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
+          "Hippoglossoides elassodon", "Sebastes alutus",
+          "Sebastolobus alascanus") 
+        & iregion == "bs_slope") {
+      fieldconfig <- matrix(c(0, "IID", 0, "Identity", 0, "IID", 0, "Identity"),
+                            ncol = 2, nrow = 4,
+                            dimnames = list(c("Omega", "Epsilon", "Beta",
+                                              "Epsilon_year"),
+                                            c("Component_1", "Component_2")))
+    } else {
+      fieldconfig <- matrix(c("IID", "IID", 0, "Identity",
+                              "IID", "IID", 0, "Identity"),
+                            ncol = 2, nrow = 4,
+                            dimnames = list(c("Omega", "Epsilon", "Beta",
+                                              "Epsilon_year"),
+                                            c("Component_1", "Component_2")))
+    }
+    
+    ## Number of Spatial knots for estimation
+    knots <- list("bs_shelf" = 500, "bs_slope" = 300)[[iregion]]
+    
+    ## Rho configurations
+    rhoconfig <- c("Beta1" = 2, "Beta2" = 2,
+                   "Epsilon1" = 4, "Epsilon2" = 4)
+    
+    ## Observation model
+    ObsModel <- c(2, 1)
+    
+    ## Error Distributions, number of knots, and 
+    # different specifications that aided convergence in prior runs(?)
+    if (species_list$SCIENTIFIC_NAME[ispp] %in% 
+        c("Sebastes melanostictus","Sebastes alutus",
+          "Bathyraja aleutica","Sebastolobus alascanus") &
+        iregion == "bs_shelf"
+    ) {
+      knots <- 300  
+      rhoconfig["Epsilon1"] <- 2
+      ObsModel <- c(1, 1)
+    } 
+    
+    
+    region <- list("bs_shelf" = c("northern_bering_sea",
+                                  "eastern_bering_sea"),
+                   "bs_slope" = "bering_sea_slope")[[iregion]]
+    
+    
+    ## Set up VAST model settings
+    settings <- 
+      make_settings(n_x = knots,
+                    Region = region,
+                    purpose = "index2",
+                    bias.correct = FALSE,
+                    knot_method = "grid",
+                    use_anisotropy = aniso,
+                    FieldConfig = fieldconfig,
+                    RhoConfig = rhoconfig,
+                    Version = version,
+                    ObsModel = ObsModel,
+                    max_cells = Inf,
+                    Options = c("Calculate_Range" = FALSE,
+                                "Calculate_effective_area" = FALSE)
+      )
+    
+    ## Setup covariate data
+    covariate_data <- 
+      subset(x = data_geostat1,
+             select = c("Lon", "Lat", "Year", 
+                        list("bs_shelf" = "Temp",
+                             "bs_slope" = "Depth")[[iregion]])
+      )
+    if (iregion == "bs_slope")
+      covariate_data$Year <- NA
+    formula <- list("bs_shelf" = ' ~ bs(SBT_insitu, degree=3, intercept=FALSE)',
+                    "bs_slope" = " ~ bs(Depth, degree=2, intercept=FALSE)")[[iregion]]
+    formula <- " ~ bs(Depth, degree=2, intercept=FALSE)"
+    X1config_cp <- array(c(1, 1), dim = c(1, 1))
+    X2config_cp <- X1config_cp
+    
+    ## Specify which records in the input dataframe are used for estimation
+    ## (pred_TF == 0) and which are used just for prediction (pred_TF == 1)
+    pred_TF <- rep(1, nrow(x = data_geostat1))
+    pred_TF[1:nrow(x = data_geostat)] <- 0
+    
+    # fit
+    fit <- tryCatch({
+      fit_model(settings = settings,
+                Lat_i = data_geostat1$Lat,
+                Lon_i = data_geostat1$Lon,
+                t_i = data_geostat1$Year,
+                b_i = data_geostat1$Weight_kg,
+                c_iz = as.numeric(x = factor(x = data_geostat1$Species)) - 1,
+                a_i = data_geostat1$Effort,
+                input_grid = data_geostat1[pred_TF == 1],
+                getJointPrecision = TRUE,
+                test_fit = FALSE,
+                covariate_data = covariate_data,
+                X1_formula = formula,
+                X2_formula = formula,
+                newtonsteps = steps,
+                PredTF_i = pred_TF,
+                working_dir = paste0("output/", iregion, "/vast/",
+                                     species_list$SCIENTIFIC_NAME[ispp], "/"))
+    }, error = function(cond) {
+      message("Did not converge.")
+      return(NULL)
+    })
+    
+    
+    ## Convergence messaging
+    df_conv <- rbind(df_conv,
+                     data.frame(region = iregion,
+                                species = species_list$SCIENTIFIC_NAME[ispp],
+                                max_grad = fit$parameter_estimates$max_gradient))
 
-# loop over species
-for (sp in species_list$SCIENTIFIC_NAME) {
-  # cat(paste0("############### ", sp, " #########################\n"))
-  
-  # filter by sp
-  data_geostat <-
-    readRDS(file = paste0("data/data_processed/species/", sp, 
-                          "/data_geostat.rds")) |>
-    subset(subset = survey  == "BSS",
-           select = c(lat_start, lon_start, year, scientific_name, 
-                      weight_kg, area_swept_km2, depth_m, survey, cpue_kgkm2 ))
-  names(x = data_geostat) <- c("Lat", "Lon", "Year", "Species", "Weight_kg",
-                               "Effort", "Depth", "Region", "CPUEkgkm")
-  
-  ## Scale depth
-  
-  # grid with info to get prediction
-  data_geostat1 <- rbind(
-    data_geostat[, c("Lat", "Lon", "Year", "Species", "Weight_kg", "Effort",
-                     "Depth", "Region", "CPUEkgkm")],
-    data.frame(Lat = grid_bss$Lat,
-               Lon = grid_bss$Lon,
-               Year = grid_bss$Year,
-               Species = sp,
-               Weight_kg = mean(data_geostat$Weight_kg),
-               Effort = grid_bss$Area_in_survey_km2,
-               Depth = grid_bss$depth_m,
-               Region = grid_bss$region,
-               CPUEkgkm = mean(data_geostat$CPUEkgkm),
-               stringsAsFactors = TRUE)
-  )
-  
-  ## Scale depth by the mean and sd of the observed depths 
-  mean_logdepth <- mean(x = log(x = data_geostat$Depth))
-  sd_logdepth <- sd(x = log(x = data_geostat$Depth))
-  
-  data_geostat1$Depth <-
-    (log(data_geostat1$Depth) - mean_logdepth) / sd_logdepth
-  
-  ## Some extra settings to help with convergence issues
-  ## Anisotropy
-  aniso <- ifelse(test = sp %in% c("Anoplopoma fimbria", "Atheresthes stomias"),
-                  yes = FALSE, 
-                  no = TRUE)
-  
-  ## FIeld Configurations
-  if (sp %in% c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
-                "Hippoglossoides elassodon", "Sebastes alutus",
-                "Sebastes melanostictus", "Sebastolobus alascanus")) {
-    fieldconfig <- matrix(c(0, "IID", 0, "Identity", 0, "IID", 0, "Identity"),
-                          ncol = 2, nrow = 4,
-                          dimnames = list(c("Omega", "Epsilon", "Beta",
-                                            "Epsilon_year"),
-                                          c("Component_1", "Component_2")))
-  } else {
-    fieldconfig <- matrix(c("IID", "IID", 0, "Identity",
-                            "IID", "IID", 0, "Identity"),
-                          ncol = 2, nrow = 4,
-                          dimnames = list(c("Omega", "Epsilon", "Beta",
-                                            "Epsilon_year"),
-                                          c("Component_1", "Component_2")))
   }
   
-  ## Newton Steps for convergence issues
-  steps <- ifelse(test = sp %in% c("Hippoglossoides elassodon",
-                                   "Sebastes melanostictus",
-                                   "Sebastolobus alascanus"), 
-                  yes = 5, 
-                  no = 1)
   
-  ## Set up VAST model settings
-  settings <- make_settings(n_x = 300,
-                            Region = "bering_sea_slope",
-                            purpose = "index2",
-                            bias.correct = FALSE,
-                            knot_method = "grid",
-                            use_anisotropy = aniso,
-                            FieldConfig = fieldconfig,
-                            RhoConfig = c("Beta1" = 2, "Beta2" = 2,
-                                          "Epsilon1" = 4, "Epsilon2" = 4),
-                            Version = version,
-                            ObsModel = c(2, 1),
-                            max_cells = Inf,
-                            Options = c("Calculate_Range" = FALSE,
-                                        "Calculate_effective_area" = FALSE))
   
-  ## Setup covariate data
-  covariate_data <- data_geostat1[complete.cases(data_geostat1[, "Depth"]), ]
-  covariate_data$Year <- NA
-  formula <- " ~ bs(Depth, degree=2, intercept=FALSE)"
-  X1config_cp <- array(c(1, 1), dim = c(1, 1))
-  X2config_cp <- X1config_cp
   
-  ## Specify which records in the input dataframe are used for estimation
-  ## (pred_TF == 0) and which are used just for prediction (pred_TF == 1)
-  pred_TF <- rep(1, nrow(x = data_geostat1))
-  pred_TF[1:nrow(x = data_geostat)] <- 0
   
-  # fit
-  fit <- tryCatch({
-    fit_model(settings = settings,
-              Lat_i = data_geostat1$Lat,
-              Lon_i = data_geostat1$Lon,
-              t_i = data_geostat1$Year,
-              b_i = data_geostat1$Weight_kg,
-              c_iz = as.numeric(x = factor(x = data_geostat1$Species)) - 1,
-              a_i = data_geostat1$Effort,
-              input_grid = bering_sea_slope_grid,
-              getJointPrecision = TRUE,
-              test_fit = FALSE,
-              covariate_data = covariate_data,
-              X1_formula = formula,
-              X2_formula = formula,
-              newtonsteps = steps,
-              PredTF_i = pred_TF,
-              working_dir = paste(fol_region, "/", sp, "/"))
-  }, error = function(cond) {
-    message("Did not converge.")
-    return(NULL)
-  })
-  
-  ## Convergence messaging
-  df_conv$convergence_message[which(df_conv$spp == sp)] <-
-    fit$parameter_estimates$Convergence_check
-  df_conv$max_grad[which(df_conv$spp == sp)] <-
-    fit$parameter_estimates$max_gradient
   
   # simulate historical data
   n_interpolation_cells <- unique(x = table(grid_bss$Year))
@@ -215,7 +265,7 @@ for (sp in species_list$SCIENTIFIC_NAME) {
     save(list = "fit",
          file = paste(out_dir, fol_region, sp, "fit.RData", sep = "/"))
     
-    ## Create 
+    ## Create Simulated Densities
     for (isim in 1:n_sim) {
       cat(paste(" ############# Simulation", isim, "of", n_sim, "\n"))
       Sim1 <- FishStatsUtils::simulate_data(fit = fit, 
