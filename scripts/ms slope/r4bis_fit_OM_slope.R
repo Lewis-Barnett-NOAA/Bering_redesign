@@ -44,11 +44,8 @@ n_sim <- 100
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-## Dataframe to store convergence results
-df_conv <- data.frame()
-
-for (ispp in 1:nrow(x = species_list)) {
-  for (iregion in c("bs_slope", "bs_shelf")) {
+for (ispp in 1:(nrow(x = species_list) - 1)) {
+  for (iregion in c("bs_slope", "bs_shelf")[2]) {
     
     ## Filter data_geostat to region
     data_geostat <-
@@ -202,9 +199,8 @@ for (ispp in 1:nrow(x = species_list)) {
       )
     if (iregion == "bs_slope")
       covariate_data$Year <- NA
-    formula <- list("bs_shelf" = ' ~ bs(SBT_insitu, degree=3, intercept=FALSE)',
+    formula <- list("bs_shelf" = ' ~ bs(Temp, degree=3, intercept=FALSE)',
                     "bs_slope" = " ~ bs(Depth, degree=2, intercept=FALSE)")[[iregion]]
-    formula <- " ~ bs(Depth, degree=2, intercept=FALSE)"
     X1config_cp <- array(c(1, 1), dim = c(1, 1))
     X2config_cp <- X1config_cp
     
@@ -222,7 +218,7 @@ for (ispp in 1:nrow(x = species_list)) {
                 b_i = data_geostat1$Weight_kg,
                 c_iz = as.numeric(x = factor(x = data_geostat1$Species)) - 1,
                 a_i = data_geostat1$Effort,
-                input_grid = data_geostat1[pred_TF == 1],
+                input_grid = data_geostat1[pred_TF == 1, ],
                 getJointPrecision = TRUE,
                 test_fit = FALSE,
                 covariate_data = covariate_data,
@@ -236,16 +232,9 @@ for (ispp in 1:nrow(x = species_list)) {
       message("Did not converge.")
       return(NULL)
     })
-    
-    
-    ## Convergence messaging
-    df_conv <- rbind(df_conv,
-                     data.frame(region = iregion,
-                                species = species_list$SCIENTIFIC_NAME[ispp],
-                                max_grad = fit$parameter_estimates$max_gradient))
 
   }
-  
+}
   
   
   
