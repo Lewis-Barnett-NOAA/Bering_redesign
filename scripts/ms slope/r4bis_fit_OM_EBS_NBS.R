@@ -16,6 +16,9 @@ rm(list = ls(all.names = TRUE))
 #free up memrory and report the memory usage
 gc() 
 
+#set seed
+set.seed(6)
+
 #libraries from cran to call or install/load
 pack_cran<-c("splines",'dplyr','ggplot2')
 
