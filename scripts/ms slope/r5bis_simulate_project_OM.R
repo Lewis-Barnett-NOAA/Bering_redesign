@@ -1,8 +1,8 @@
 ################################################################################
 ################################################################################
 ##
-## Simulate data from OM for historical and projected years
-## Reshape output
+## Simulate data from OM for historical years for shelf
+## Reshape output to combine simulated densities for shelf and slope
 ## Daniel Vilas (danielvilasgonzalez@gmail.com)
 ## Lewis Barnett, Zack Oyafuso, Megsie Siple
 ##
@@ -32,8 +32,8 @@ library(VAST)
 pacman::p_load(pack_cran, character.only = TRUE)
 
 # setwd
-out_dir <- "/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/"
-setwd(out_dir)
+# out_dir <- "/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/"
+# setwd(out_dir)
 
 # species list
 spp <- c("Limanda aspera", "Gadus chalcogrammus", "Gadus macrocephalus",
@@ -88,23 +88,23 @@ grid <- as.data.frame(rbind(
 ))
 grid$cell <- 1:nrow(grid)
 
-for (sp in spp[c(17, 18, 21, 23)]) {
+for (sp in spp) {
   
   cat(paste0("############### ", sp, " #########################\n"))
   mod1 <- "fit.RData"
-  dir.create(paste0("./output/species/", sp, "/"), recursive = TRUE)
+  dir.create(paste0("output/species/", sp, "/"), recursive = TRUE)
   
-  ff <- list.files(paste0("./output/vast/", sp), mod1, recursive = TRUE)
+  ff <- list.files(paste0("output/vast/", sp), mod1, recursive = TRUE)
   if (length(ff) == 0) next
   
-  load(paste0("./output/vast/", sp, "/", ff))
+  load(paste0("output/vast/", sp, "/", ff))
   fit <- reload_model(x = fit)
   
   index <- fit$Report$Index_ctl
   dens <- fit$Report$D_gct
   dens_index_hist_OM[[sp]] <- list("index" = index, "dens" = dens)
   
-  data_geostat1 <- readRDS(paste0("./output/vast/", sp, "/data_geostat_temp.rds"))
+  data_geostat1 <- readRDS(paste0("output/vast/", sp, "/data_geostat_temp.rds"))
   data_geostat <- data_geostat1[which(data_geostat1$Region %in%
                                         c("Eastern Bering Sea Crab/Groundfish Bottom Trawl Survey",
                                           "Northern Bering Sea Crab/Groundfish Survey - EBS Shelf Extension")), ]
@@ -118,7 +118,7 @@ for (sp in spp[c(17, 18, 21, 23)]) {
     dimnames = list(1:nrow(grid), unique(yrs), 1:n_sim_hist)
   )
   
-  dir.create(paste0("./output/species/", sp, "/simulated historical data/"),
+  dir.create(paste0("output/species/", sp, "/simulated_historical_data/"),
              recursive = TRUE)
   
   for (isim in 1:n_sim_hist) {
@@ -135,8 +135,8 @@ for (sp in spp[c(17, 18, 21, 23)]) {
   }
   
   save(sim_dens,
-       file = paste0("./output/species/", sp,
-                     "/simulated historical data/sim_dens.RData"))
+       file = paste0("output/species/", sp,
+                     "/simulated_historical_data/sim_dens.RData"))
   sim_hist_dens_spp[, , , sp] <- sim_dens
 }
 
@@ -155,7 +155,7 @@ sim_dens1 <- array(
 )
 
 foreach(sp = ebsnbs_conv) %do% {
-  load(paste0("./output/species/", sp, "/simulated historical data/sim_dens.RData"))
+  load(paste0("output/species/", sp, "/simulated_historical_data/sim_dens.RData"))
   foreach(y = yrs) %:%
     foreach(sim = 1:n_sim) %do% {
       sim_dens1[, sp, as.character(y), as.character(sim)] <-
