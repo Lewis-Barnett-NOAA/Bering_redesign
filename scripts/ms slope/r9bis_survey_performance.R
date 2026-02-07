@@ -24,8 +24,8 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
+#out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+#setwd(out_dir)
 
 #selected species
 spp<-c('Limanda aspera',
@@ -1633,7 +1633,7 @@ y_scale$scn<-'scn1'
   load('output/slope/estimated_index_hist_dens.RData') #ind2
   
   #load true ind
-  load(file = paste0("output/slope//model_based_EBSNBSBSS.RData"))  #true_ind
+  load(file = paste0("output/slope/model_based_EBSNBSBSS.RData"))  #true_ind
   
   #arrange true index data
   true_ind1<-reshape2::melt(true_ind,id.vars='year')

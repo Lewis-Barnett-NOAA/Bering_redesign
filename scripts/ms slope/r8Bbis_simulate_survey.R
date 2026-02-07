@@ -34,8 +34,8 @@ if (!('VAST' %in% installed.packages())) {
 pacman::p_load(pack_cran,character.only = TRUE)
 
 #setwd
-out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
-setwd(out_dir)
+#out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+#setwd(out_dir)
 
 #list of sp
 spp<-list.dirs('data/data_processed/species/',full.names = FALSE,recursive = FALSE)
