@@ -46,7 +46,6 @@ fol_region<-c('output/slope/vast')
 dir.create(paste0('./',fol_region))
 
 #load grid
-load('data/data_processed/lastversion_grid_EBS.RData')
 load('data/data_processed/grid_EBS_NBS.RData')
 
 #selected species
@@ -514,7 +513,7 @@ fit <- tryCatch( {fit_model(settings=settings,
                   dimnames=list(1:nrow(bering_sea_slope_grid),sort(unique(data_geostat1$Year)),1:n_sim_hist))
   
   #create folder simulation data
-  dir.create(paste0('./output/species/',sp,'/simulated_historical_data slope/'))
+  dir.create(paste0('./output/slope/species/',sp,'/simulated_historical_data/'))
 
   #save if fit model object complet
   if (class(fit)=='fit_model') {
