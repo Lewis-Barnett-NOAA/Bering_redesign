@@ -15,7 +15,7 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Install packages
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pacman::p_load(c("lubridate", "gapindex", 'ncdf4','raster', "FNN"), 
+pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', "FNN"), 
                character.only = TRUE)
 channel <- gapindex::get_connected(check_access = FALSE)
 
@@ -37,11 +37,11 @@ for (iregion in c("BSS", "NBS", "EBS")) { ## loop over regions -- start
     ## Calculate cpue
     gapindex::calc_cpue(gapdata = temp_data) |>
     ## Select relevant fields
-    subset(select = c("HAULJOIN", "SURVEY", "YEAR", "DEPTH_M", "BOTTOM_TEMPERATURE_C",
-                      "LATITUDE_DD_START", "LATITUDE_DD_END",
-                      "LONGITUDE_DD_START",  "LONGITUDE_DD_END",
-                      "SPECIES_CODE", "WEIGHT_KG", "COUNT", "AREA_SWEPT_KM2",
-                      "CPUE_KGKM2", "CPUE_NOKM2")) |>
+    subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
+                      "DEPTH_M", "BOTTOM_TEMPERATURE_C",
+                      "LATITUDE_DD_START", "LONGITUDE_DD_START",
+                      "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
+                      "CPUE_KGKM2")) |>
     ## Merge START_TIME from the haul data into the cpue df
     merge(x = temp_data$haul[, c("HAULJOIN", "START_TIME")],
           by = "HAULJOIN") |>
@@ -56,76 +56,85 @@ for (iregion in c("BSS", "NBS", "EBS")) { ## loop over regions -- start
   temp_cpue$year <- lubridate::year(as.POSIXlt(temp_cpue$START_TIME, 
                                                format="%d/%m/%Y"))
   
-  ## Lower case the field names in temp_cpue and rbind
+  ## Lower case the field names in temp_cpue 
   names(x = temp_cpue) <- tolower(x = names(x = temp_cpue))
+  names(x = temp_cpue)[names(x = temp_cpue) == "latitude_dd_start"] <-
+    "Lat"
+  names(x = temp_cpue)[names(x = temp_cpue) == "longitude_dd_start"] <-
+    "Lon"
+  names(x = temp_cpue)[names(x = temp_cpue) == "bottom_temperature_c"] <-
+    "bottom_temp_c"
+  
+  ## Shorten names of complexes
+  temp_cpue$scientific_name[
+    temp_cpue$scientific_name == "rougheye and blackspotted rockfish unid."
+  ] <- "REBS rockfishes"
+  
+  temp_cpue$scientific_name[
+    temp_cpue$scientific_name == "Lepidopsetta sp."
+  ] <- "Lepidopsetta sp"
+  
+  ## Remove arrowtooth flounder (10110) and Kamchatka flounder (10112) records
+  ## prior to 1992 (just applies to EBS data)
+  temp_cpue <- subset(x = temp_cpue,
+                      subset = !(species_code %in% c(10110, 10112) 
+                                 & year < 1992))
+  
+  ## rbind to cpue_data
   cpue_data <- rbind( cpue_data, temp_cpue )
   
 } ## loop over regions -- end
 
-## Remove arrowtooth flounder (10110) and Kamchatka flounder (10112) records
-## prior to 1992
-cpue_data <- subset(x = cpue_data,
-                    subset = !(species_code %in% c(10110, 10112) & year < 1992))
-
-## Shorten names of complexes
-cpue_data$scientific_name[
-  cpue_data$scientific_name == "rougheye and blackspotted rockfish unid."
-] <- "REBS rockfishes"
-
-cpue_data$scientific_name[
-  cpue_data$scientific_name == "Lepidopsetta sp."
-] <- "Lepidopsetta sp"
-
-names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_start"] <-
-  "lat_start"
-names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_start"] <-
-  "lon_start"
-names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_end"] <-
-  "lat_end"
-names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_end"] <-
-  "lon_end"
-names(x = cpue_data)[names(x = cpue_data) == "bottom_temperature_c"] <-
-  "bottom_temp_c"
-
-cpue_data$start_time <- as.character(x = cpue_data$start_time)
-
-## save data_geostat file for all species
-saveRDS(object = cpue_data, 
-        file = "data/data_processed/cpue_bs_allspp.RDS")
-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Compile interpolation grid
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+utils::data(bering_sea_slope_grid, package = "VAST")
+utils::data(northern_bering_sea_grid, package = "VAST")
+utils::data(eastern_bering_sea_grid, package = "VAST")
+
 grid_bs <- rbind(
-  FishStatsUtils::eastern_bering_sea_grid |>
+  eastern_bering_sea_grid |>
     as.data.frame() |> 
-    transform(region = "EBS"),
-  FishStatsUtils::northern_bering_sea_grid |>
+    transform(Region = "EBS"),
+  northern_bering_sea_grid |>
     as.data.frame() |> 
-    transform(region = "NBS"),
-  FishStatsUtils::bering_sea_slope_grid |>
+    transform(Region = "NBS"),
+  bering_sea_slope_grid |>
     as.data.frame() |> 
-    transform(region = "BSS") |>
+    transform(Region = "BSS") |>
     transform(Stratum = "NA") |>
-    subset(select = c("Lat","Lon","Area_in_survey_km2", 'Stratum',"region"))
-)
+    subset(select = c("Lat", "Lon", "Area_in_survey_km2", "Stratum", "Region")) 
+) |>
+  setNames(nm = c("Lat", "Lon", "Area_km2", "Stratum", "Region"))
 
 #check km2 per region (grid data)
-aggregate(Area_in_survey_km2 ~ region, grid_bs, FUN=sum)
+aggregate(Area_km2 ~ Region, grid_bs, FUN = sum)
+
+saveRDS(object = grid_bs,
+        file = "data/data_processed/grid_bs.RDS")
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Add GEBCO depth (downloaded on August 2022, https://download.gebco.net/)
 ##  to the Bering Sea interpolation grid
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-r <- raster('data/data_raw/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
+r <- terra::rast('data/data_raw/gebco_2022_n70.0_s50.0_w-180.0_e-155.0.asc')
+names(r) <- "depth_raster"
 
 ## Extract depth values for each station of grid - using GEBCO data
-grid_bs$depth_m<- 
-  -raster::extract(x = r, 
-                   y = SpatialPoints(cbind(grid_bs$Lon, grid_bs$Lat)))
+grid_bs$depth_m <- 
+  -terra::extract(x = r,
+                  y = terra::vect(x = grid_bs, 
+                                  geom = c("Lon", "Lat"), 
+                                  crs = terra::crs(r)))$depth_raster
 
-## Constrain grid to those shallower than 400 m
-grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 )
+## Constrain grid to those between 0 and 400 m and 
+grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 & depth_m >= 1 )
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Append Bottom Temperature to Interpolation Grid via Bering 10K ROMS
+## Dimensions of the various netcdf files from the ROMS model output 
+## 258 rows; 182 cols; 46956 cells; 259 time steps
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # list local netcdf files
 base_dir <- "data/data_raw/bering_10k_roms"
@@ -165,7 +174,6 @@ for (y in start_year:end_year) {
   #print year to check progress
   cat(paste("    ----- year", y, "-----\n"))  
   
-  
   sel <- get_roms_file(y, files.hist, files.for)
   
   if (sel$type == "hist") {
@@ -180,12 +188,6 @@ for (y in start_year:end_year) {
   
   # open NetCDF
   nc <- ncdf4::nc_open(file_path)
-  
-  #dimensions netcdf files
-  #258 rows
-  #182 cols
-  #46956 cells
-  #259 time steps
   
   #get latitude
   lats <- ncvar_get(nc,"lat_rho")
@@ -202,13 +204,14 @@ for (y in start_year:end_year) {
   #get weekly temp slices from specific year y
   nc_y <- ncvar_get(nc, "temp")[,,which(grepl(paste0(y,'-'),time_axis))]
   
-  #get mean matrix for this year
+  #get mean matrix for this year. ##SHOULD WE FURTHER SUBSET TO JUST 
+  #SUMMER MONTHS?
   mean_nc <- apply(X = nc_y, MARGIN = c(1, 2), FUN = mean, na.rm = TRUE)
   
   #create dataframe with lats, lons and mean year SBT
   df_nc <- data.frame(Lat = as.vector(lats),
-                    Lon = as.vector(lons),
-                    temp = as.vector(mean_nc))
+                      Lon = as.vector(lons),
+                      temp = as.vector(mean_nc))
   
   #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). 
   #longitude greater than 180 degrees
@@ -250,135 +253,113 @@ for (y in start_year:end_year) {
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
-saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs.RDS')
+saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs_year.RDS')
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  For each species, extract sea bottom temperature to observed data 
 ##  from the Bering 10K ROMS model
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for (ispp in unique(x = cpue_data$scientific_name)) {
+cpue_data_with_sbt <- data.frame()
+for (y in sort(x = unique(x = cpue_data$year))) {
+  #print year to check progress
+  cat(paste("    ---- year", y, "----\n"))
   
-  cat(paste(" ############# ", ispp, " #############\n"))
-  ## Create folder to store results
-  dir.create(path = paste0("data/data_processed/species/", ispp))
+  #subset df by year
+  df2 <- subset(x = cpue_data, year == y)
   
-  #open data_geostat
-  df1 <- subset(x = cpue_data, subset = scientific_name == ispp)
+  #if no data for that year, use stations file
+  # if (nrow(x = df2) == 0 ) {
+  #   
+  #   #filter year and remove negative depth values
+  #   st_year1 <- subset(grid_bs_year, Year == y)
+  #   df3 <- data.frame(matrix(nrow = nrow(st_year1), ncol = ncol(df2)))
+  #   colnames(df3)<-colnames(df2)
+  #   df3$scientific_name <- ispp
+  #   df3$year<-y
+  #   df3$lat_start<-st_year1$Lat
+  #   df3$lat_end<-st_year1$Lat
+  #   df3$lon_start<-st_year1$Lon
+  #   df3$lon_end<-st_year1$Lon
+  #   df3$depth_m<-st_year1$depth_m
+  #   df3$Temp<-st_year1$Temp
+  #   df3$bottom_temp_c<-st_year1$Temp
+  #   df2<-df3
+  #   
+  # }
   
-  #create df to store results
-  df1_temp<-data.frame(matrix(nrow = 0,
-                              ncol = ncol(x = df1) + 4))
-  colnames(df1_temp)<-c(colnames(df1),"Temp")
+  sel <- get_roms_file(y, files.hist, files.for)
   
-  for (y in start_year:end_year) {
-    #print year to check progress
-    cat(paste("    ---- year", y, "----\n"))
-    
-    #subset df by year
-    df2 <- subset(x = df1, year == y)
-    
-    #if no data for that year, use stations file
-    if (nrow(x = df2) == 0 ) {
-      
-      #filter year and remove negative depth values
-      st_year1<-subset(grid_bs_year,Year==y & depth_m > 0)
-      df3<-data.frame(matrix(nrow = nrow(st_year1),ncol = ncol(df2)))
-      colnames(df3)<-colnames(df2)
-      df3$scientific_name<- ispp
-      df3$year<-y
-      df3$lat_start<-st_year1$Lat
-      df3$lat_end<-st_year1$Lat
-      df3$lon_start<-st_year1$Lon
-      df3$lon_end<-st_year1$Lon
-      df3$depth_m<-st_year1$depth_m
-      df3$Temp<-st_year1$Temp
-      df3$bottom_temp_c<-st_year1$Temp
-      df2<-df3
-      
-    }
-    
-    sel <- get_roms_file(y, files.hist, files.for)
-    
-    if (sel$type == "hist") {
-      file_path <- file.path(hist_dir, sel$file)
-    } else {
-      file_path <- file.path(for_dir, sel$file)
-    }
-    
-    if (!file.exists(file_path)) {
-      stop(paste("Missing file:", file_path))
-    }
-    
-    # open NetCDF
-    nc <- ncdf4::nc_open(file_path)
-    
-    #dimensions netcdf file
-    #258 rows
-    #182 cols
-    #46956 cells
-    #259 time steps
-    
-    #get latitude
-    lats <- ncvar_get(nc,"lat_rho")
-    #get longitude
-    lons <- ncvar_get(nc,"lon_rho")
-    #get SBT
-    temp<-ncvar_get(nc,'temp')
-    #get time
-    t_axis<-ncvar_get(nc,"ocean_time")
-    
-    #convert time
-    time_axis <- as.POSIXct(t_axis, origin = "1900-01-01", tz = "GMT") 
-    
-    #get weekly temp slices from specific year y
-    nc_y<-ncvar_get(nc, "temp")[,,which(grepl(paste0(y,'-'),time_axis))]
-    
-    #get mean matrix for this year
-    mean_nc<-apply(nc_y,c(1,2),mean,na.rm=TRUE)
-    
-    #create dataframe with lats, lons and mean year SBT
-    df_nc<-data.frame(Lat=as.vector(lats),
-                      Lon=as.vector(lons),
-                      temp=as.vector(mean_nc))
-    
-    #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). 
-    #longitude greater than 180 degrees
-    df_nc1<-df_nc[which(df_nc$Lon>=180),]
-    
-    #convert eastern longitude to western values (higher). 
-    #longitude should be negative
-    df_nc1$Lon<-df_nc1$Lon-360
-    
-    #filter values from the grid 
-    df_nc2 <- subset(x = df_nc1, 
-                     subset = Lat >= min(df1$lat_start) 
-                     & Lat <= max(df1$lat_start) 
-                     & Lon >= min(df1$lon_start) 
-                     & Lon <= max(df1$lon_start))
-    
-    #remove NA rows
-    df_nc3<-df_nc2[complete.cases(df_nc2),]
-    
-    #create a spatial object
-    coordinates(df_nc3) <- ~ Lon + Lat
-    #plot(df_nc3)
-    #as.data.frame(df_nc)$temp[nc_index]
-    spg <- df2
-    coordinates(spg) <- ~lon_start + lat_start      
-    
-    #get the nearests points from one df to other df
-    nn<-get.knnx(coordinates(df_nc3),coordinates(spg),1)
-    nc_index<-nn$nn.index[,1]
-    
-    #get SBT
-    temps<-as.data.frame(df_nc3)$temp[nc_index]
-    df2$Temp<-temps
-    
-    #add results
-    df1_temp<-rbind(df1_temp,df2)
+  if (sel$type == "hist") {
+    file_path <- file.path(hist_dir, sel$file)
+  } else {
+    file_path <- file.path(for_dir, sel$file)
   }
   
-  #save data_geostat with SBT
-  saveRDS(df1_temp,
-          paste0('data/data_processed/species/', ispp, '/data_geostat.rds'))
+  if (!file.exists(file_path)) {
+    stop(paste("Missing file:", file_path))
+  }
+  
+  # open NetCDF
+  nc <- ncdf4::nc_open(file_path)
+  
+  #get latitude
+  lats <- ncvar_get(nc,"lat_rho")
+  #get longitude
+  lons <- ncvar_get(nc,"lon_rho")
+  #get SBT
+  temp<-ncvar_get(nc,'temp')
+  #get time
+  t_axis<-ncvar_get(nc,"ocean_time")
+  
+  #convert time
+  time_axis <- as.POSIXct(t_axis, origin = "1900-01-01", tz = "GMT") 
+  
+  #get weekly temp slices from specific year y
+  nc_y<-ncvar_get(nc, "temp")[,,which(grepl(paste0(y,'-'),time_axis))]
+  
+  #get mean matrix for this year
+  mean_nc<-apply(nc_y,c(1,2),mean,na.rm=TRUE)
+  
+  #create dataframe with lats, lons and mean year SBT
+  df_nc <- data.frame(Lat = as.vector(x = lats),
+                      Lon = as.vector(x = lons),
+                      temp = as.vector(x = mean_nc))
+  
+  #longitude are in eastern. get SBT for the western hemisphere (Bering Sea). 
+  #longitude greater than 180 degrees
+  df_nc1 <- df_nc[which(df_nc$Lon>=180),]
+  
+  #convert eastern longitude to western values (higher). 
+  #longitude should be negative
+  df_nc1$Lon <- df_nc1$Lon-360
+  
+  #filter values from the grid 
+  df_nc2 <- subset(x = df_nc1, 
+                   subset = Lat >= min(cpue_data$Lat) 
+                   & Lat <= max(cpue_data$Lat) 
+                   & Lon >= min(cpue_data$Lon) 
+                   & Lon <= max(cpue_data$Lon))
+  
+  #remove NA rows
+  df_nc3 <- df_nc2[complete.cases(df_nc2),]
+  
+  #create a spatial object
+  coordinates(df_nc3) <- ~ Lon + Lat
+  spg <- df2
+  coordinates(spg) <- ~ Lon + Lat
+  
+  #get the nearests points from one df to other df
+  nn<-get.knnx(coordinates(df_nc3),coordinates(spg),1)
+  nc_index<-nn$nn.index[,1]
+  
+  #get SBT
+  temps<-as.data.frame(df_nc3)$temp[nc_index]
+  df2$Temp<-temps
+  
+  #rbind cpue data with SBT
+  cpue_data_with_sbt <- rbind(cpue_data_with_sbt, df2)
 }
+
+## save data_geostat file for all species
+saveRDS(object = cpue_data_with_sbt, 
+        file = "data/data_processed/cpue_bs_allspp.RDS")
