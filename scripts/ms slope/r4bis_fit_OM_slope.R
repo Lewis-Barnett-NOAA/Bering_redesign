@@ -14,12 +14,12 @@ rm(list = ls())
 # set.seed(6)
 
 # libraries from cran to call or install/load
-pack_cran <- c("splines", "ggplot2", "dplyr", "doParallel", "VAST")
+pack_cran <- c("VAST", "")
 
 # load/install packages
 pacman::p_load(pack_cran, character.only = TRUE)
 
-out_dir <- here::here()
+out_dir <- getwd()
 
 # version VAST (cpp)
 version <- "VAST_v14_0_1"
@@ -51,7 +51,7 @@ n_sim <- 100
 # for (ispp in nrow(x = species_list)-1 ) {
 for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+  for (iregion in c("bs_slope", "bs_shelf")[2]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -178,6 +178,7 @@ for (ispp in 1:nrow(x = species_list)) {
                     Version = version,
                     ObsModel = ObsModel,
                     max_cells = Inf,
+                    mesh_package = "fmesher",
                     Options = c("Calculate_Range" = FALSE,
                                 "Calculate_effective_area" = FALSE)
       )
