@@ -48,13 +48,13 @@ n_sim <- 100
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (ispp in nrow(x = species_list)-1 ) {
-  # for (ispp in 1:nrow(x = species_list)) {
+# for (ispp in nrow(x = species_list)-1 ) {
+for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
   for (iregion in c("bs_slope", "bs_shelf")[1]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
-    if (iregion == "bs_slope" & species_list$SLOPE[ispp]) next
+    if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
     
     ## Filter data_geostat to region
     cpue_data <- subset(
@@ -217,6 +217,9 @@ for (ispp in nrow(x = species_list)-1 ) {
     ## Save Fit
     saveRDS(object = fit, file = paste0("output/", iregion, "/vast/",
                                         species_name, "/fit.RDS"))
+    
+    
+    
   }
 }
 
@@ -295,3 +298,16 @@ for (ispp in nrow(x = species_list)-1 ) {
 # 
 # stopCluster(cl)
 # save(sim_dens1, file = "output/slope/species/ms_sim_dens_slope.RData")
+
+
+for (ispp in 1:nrow(x = species_list)) {
+  species_name <- species_list$SCIENTIFIC_NAME[ispp]
+  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+    
+    ## Skip Bering slope model run if it's not included in the slope analysis 
+    if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
+
+    
+    cat(iregion, species_name , "\n")  
+  }
+}
