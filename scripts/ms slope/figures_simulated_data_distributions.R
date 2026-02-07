@@ -758,21 +758,21 @@ mean_dens_obs <- obs_df1 %>%
   )
 
 
-p <- ggplot(mean_dens_obs, aes(x = depth_mid, y = mean_density, color = year_type)) +
-  geom_point(alpha = 0.5) +  # Raw mean densities
-  geom_smooth(method = "loess", se = FALSE) +  # Smooth trend
-  labs(x = 'depth (m)', y = 'mean density (kg/km²)') +
-  scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
-  scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
-                     labels = c("cold", "warm"),
-                     name = 'SBT regime') +
-  theme_bw() +
-  theme(strip.text = element_text(size = 12),
-        strip.background = element_blank(),
-        text = element_text(size = 12)) +
-  facet_wrap(~common,scales='free_y')
-
-p
+# p <- ggplot(mean_dens_obs, aes(x = depth_mid, y = mean_density, color = year_type)) +
+#   geom_point(alpha = 0.5) +  # Raw mean densities
+#   geom_smooth(method = "loess", se = FALSE) +  # Smooth trend
+#   labs(x = 'depth (m)', y = 'mean density (kg/km²)') +
+#   scale_x_continuous(limits = c(0, 600), expand = c(0, 0), breaks = c(100, 300, 500)) +
+#   scale_color_manual(values = c('cold' = '#1675ac', 'warm' = '#cc1d1f'),
+#                      labels = c("cold", "warm"),
+#                      name = 'SBT regime') +
+#   theme_bw() +
+#   theme(strip.text = element_text(size = 12),
+#         strip.background = element_blank(),
+#         text = element_text(size = 12)) +
+#   facet_wrap(~common,scales='free_y')
+# 
+# p
 
 #get wilcoxon on observations!
 # Ensure year_type and common are treated as factors
@@ -1077,7 +1077,7 @@ dev.off()
 # COG observed #######
 
 # Load data
-load('./output/slope//obs_df.RData')
+load('data/data_processed/obs_df.RData')
 
 # Convert survey names to factors and rename
 obs_df$survey_name <- as.factor(obs_df$survey_name)
@@ -2396,7 +2396,7 @@ ggplot(metrics_df, aes(x = depth_range, y = factor(Year), fill = mean_temp)) +
 
 
 
-# interdecile depth pred #### ----
+# interdecile depth pred ####
 
 library(ggridges)
 
@@ -3137,7 +3137,7 @@ dev.off()
 
 #background stratification figure ####
 
-# Dummy data for the plot (replace with your actual data)
+# Dummy data for the plot 
 df <- data.frame(
   Year = 2000:2020,
   Value = rnorm(21)
