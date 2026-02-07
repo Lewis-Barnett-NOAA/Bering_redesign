@@ -10,14 +10,7 @@
 # clear all objects
 rm(list = ls())
 
-# set seed
-# set.seed(6)
-
-# libraries from cran to call or install/load
-pack_cran <- c("VAST", "")
-
-# load/install packages
-pacman::p_load(pack_cran, character.only = TRUE)
+library(VAST)
 
 out_dir <- getwd()
 
@@ -41,9 +34,6 @@ species_list <- subset(x = species_list,
                        subset = SPECIES_CODE %in% 
                          unique(x = sort(x = species_list$GROUP_CODE)))
 
-# number of simulations
-n_sim <- 100
-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,7 +41,7 @@ n_sim <- 100
 # for (ispp in nrow(x = species_list)-1 ) {
 for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[2]) {
+  for (iregion in c("bs_slope", "bs_shelf")[1]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -85,17 +75,26 @@ for (ispp in 1:nrow(x = species_list)) {
                 CPUEkgkm = mean(cpue_data$CPUEkgkm),
                 Depth = depth_m) |>
       subset(subset = Region %in% list("bs_slope" = "BSS",
-                                       "bs_shelf" = c("EBS", "NBS"))[[iregion]],
+                                       "bs_shelf" = c("EBS", "NBS"))[[iregion]] 
+             & Year %in% seq(from = list("bs_slope" = 2002,
+                                         "bs_shelf" = 1982)[[iregion]],
+                             to = 2022,
+                             by = 1) ,
              select = names(cpue_data))
     
-    data_geostat <- rbind(
+    ## Specify which records in the input dataframe are used for estimation
+    ## (pred_TF == 0) and which are used just for prediction (pred_TF == 1)
+    data_geostat_w_grid <- rbind(
       cpue_data,
       interpolation_grid_year
     )
     
+    pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
+    pred_TF[1:nrow(x = cpue_data)] <- 0
+    
     ## Covariate Data: combination of the covariate data from the observed
     ## station locations and the interpolation grid
-    covariate_data <- data_geostat |> 
+    covariate_data <- data_geostat_w_grid |> 
       subset(select = c("Lon", "Lat", "Year", "Temp", "Depth"))
     
     ## Scale depth by the mean and sd of the observed depths 
@@ -190,37 +189,59 @@ for (ispp in 1:nrow(x = species_list)) {
     X1config_cp <- array(c(1, 1), dim = c(1, 1))
     X2config_cp <- X1config_cp
     
-    ## Specify which records in the input dataframe are used for estimation
-    ## (pred_TF == 0) and which are used just for prediction (pred_TF == 1)
-    pred_TF <- rep(1, nrow(x = data_geostat))
-    pred_TF[1:nrow(x = cpue_data)] <- 0
-    
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    ##  Fit model
+    ##  Initial fitted model with just the observed stations
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    fit <- VAST::fit_model(settings = settings,
-                           Lat_i = data_geostat$Lat,
-                           Lon_i = data_geostat$Lon,
-                           t_i = data_geostat$Year,
-                           b_i = data_geostat$Weight_kg,
-                           a_i = data_geostat$Area_km2,
-                           input_grid = interpolation_grid,
-                           getJointPrecision = TRUE,
-                           test_fit = FALSE,
-                           covariate_data = covariate_data,
-                           X1_formula = formula,
-                           X2_formula = formula,
-                           newtonsteps = steps,
-                           PredTF_i = pred_TF,
-                           working_dir = paste0("output/", iregion, "/vast/",
-                                                species_name, "/"))
+    initial_fit <- 
+      VAST::fit_model(settings = settings,
+                      Lat_i = cpue_data$Lat,
+                      Lon_i = cpue_data$Lon,
+                      t_i = cpue_data$Year,
+                      b_i = cpue_data$Weight_kg,
+                      a_i = cpue_data$Area_km2,
+                      input_grid = interpolation_grid,
+                      getJointPrecision = TRUE,
+                      test_fit = FALSE,
+                      covariate_data = covariate_data,
+                      X1_formula = formula,
+                      X2_formula = formula,
+                      newtonsteps = steps,
+                      working_dir = paste0("output/", iregion, "/vast/",
+                                           species_name, "/"))
     
     ## Save Fit
-    saveRDS(object = fit, file = paste0("output/", iregion, "/vast/",
-                                        species_name, "/fit.RDS"))
+    saveRDS(object = fit, 
+            file = paste0("output/", iregion, "/vast/", 
+                          species_name, "/initial_fit.RDS"))
     
+    ## Refit the model with the prediction grid in the input data. The 
+    ## PredTF_i argument tells the model not to include the prediction grids 
+    ## in the model estimation, just in the predictions. Use the initial 
+    ## estimated parameters as a starting point to speed up estimation in this
+    ## second round. 
+    fit_w_preds <- 
+      VAST::fit_model(settings = settings,
+                      Lat_i = data_geostat_w_grid$Lat,
+                      Lon_i = data_geostat_w_grid$Lon,
+                      t_i = data_geostat_w_grid$Year,
+                      b_i = data_geostat_w_grid$Weight_kg,
+                      a_i = data_geostat_w_grid$Area_km2,
+                      input_grid = interpolation_grid,
+                      getJointPrecision = TRUE,
+                      test_fit = FALSE,
+                      covariate_data = covariate_data,
+                      X1_formula = formula,
+                      X2_formula = formula,
+                      newtonsteps = steps,
+                      PredTF_i = pred_TF,
+                      startpar = initial_fit$parameter_estimates,
+                      working_dir = paste0("output/", iregion, "/vast/",
+                                           species_name, "/"))
     
-    
+    ## Save Fit
+    saveRDS(object = fit_w_preds, 
+            file = paste0("output/", iregion, "/vast/",
+                          species_name, "/fit_w_preds.RDS"))
   }
 }
 
@@ -307,7 +328,7 @@ for (ispp in 1:nrow(x = species_list)) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
-
+    
     
     cat(iregion, species_name , "\n")  
   }
