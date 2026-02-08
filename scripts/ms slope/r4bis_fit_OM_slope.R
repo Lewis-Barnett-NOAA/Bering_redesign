@@ -41,7 +41,7 @@ species_list <- subset(x = species_list,
 # for (ispp in nrow(x = species_list)-1 ) {
 for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+  for (iregion in c("bs_slope", "bs_shelf")[]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -210,7 +210,7 @@ for (ispp in 1:nrow(x = species_list)) {
                                            species_name, "/"))
     
     ## Save Fit
-    saveRDS(object = fit, 
+    saveRDS(object = initial_fit, 
             file = paste0("output/", iregion, "/vast/", 
                           species_name, "/initial_fit.RDS"))
     
@@ -234,7 +234,7 @@ for (ispp in 1:nrow(x = species_list)) {
                       X2_formula = formula,
                       newtonsteps = steps,
                       PredTF_i = pred_TF,
-                      startpar = initial_fit$parameter_estimates,
+                      startpar = initial_fit$parameter_estimates$par,
                       working_dir = paste0("output/", iregion, "/vast/",
                                            species_name, "/"))
     
