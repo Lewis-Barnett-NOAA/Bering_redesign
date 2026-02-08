@@ -45,9 +45,6 @@ splist<-list.dirs('data/data_processed/',full.names = FALSE,recursive = FALSE)
 fol_region<-c('output/slope/vast')
 dir.create(paste0('./',fol_region))
 
-#load grid
-load('data/data_processed/grid_EBS_NBS.RData')
-
 #selected species
 spp<-c('Limanda aspera',
        'Gadus chalcogrammus',
