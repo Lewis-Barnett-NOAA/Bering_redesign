@@ -122,7 +122,7 @@ for (sp in spp) {
                                 "Northern Bering Sea Crab/Groundfish Survey - Eastern Bering Sea Shelf Survey Extension"))
   
   data_geostat<-df4[complete.cases(df4[,c('Weight_kg')]),]
-  data_geostat<-subset(data_geostat,Year %in% yrs)
+  #data_geostat<-subset(data_geostat,Year %in% yrs)
   
   #if kamchatka flounder only use data from 1992 because of misidentification issue
   if (sp=='Atheresthes evermanni') {
@@ -300,7 +300,7 @@ for (sp in spp) {
                                   "Northern Bering Sea Crab/Groundfish Survey - Eastern Bering Sea Shelf Survey Extension"))
     
     data_geostat<-df4[complete.cases(df4[,c('Weight_kg')]),]
-    data_geostat<-subset(data_geostat,Year %in% yrs)
+    #data_geostat<-subset(data_geostat,Year %in% yrs)
     
     #covariate data - filter by year and complete cases for env variables
     #covariate_data<-subset(df2,Year>=yrs_region[1] & Year<=yrs_region[2])
