@@ -39,9 +39,9 @@ species_list <- subset(x = species_list,
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # for (ispp in nrow(x = species_list)-1 ) {
-for (ispp in 1:nrow(x = species_list)) {
+for (ispp in nrow(x = species_list):1) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[]) {
+  for (iregion in c("bs_slope", "bs_shelf")[2]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -88,19 +88,25 @@ for (ispp in 1:nrow(x = species_list)) {
       cpue_data,
       interpolation_grid_year
     )
-    
-    pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
+        pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
     pred_TF[1:nrow(x = cpue_data)] <- 0
     
-    ## Covariate Data: combination of the covariate data from the observed
-    ## station locations and the interpolation grid
+    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ##  Covariate Data: combination of the covariate data from the observed
+    ##  station locations and the interpolation grid
+    ##  Scale input data and covariate depts by the mean and sd of obs. depths 
+    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     covariate_data <- data_geostat_w_grid |> 
       subset(select = c("Lon", "Lat", "Year", "Temp", "Depth"))
     
-    ## Scale depth by the mean and sd of the observed depths 
     mean_logdepth <- mean(x = log(x = cpue_data$Depth))
     sd_logdepth <- sd(x = log(x = cpue_data$Depth))
-    covariate_data$Depth <- (log(x = covariate_data$Depth) - mean_logdepth) / 
+    
+    data_geostat_w_grid$Depth <- 
+      (log(x = data_geostat_w_grid$Depth) - mean_logdepth) / 
+      sd_logdepth
+    covariate_data$Depth <-
+      (log(x = covariate_data$Depth) - mean_logdepth) / 
       sd_logdepth
     
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -190,15 +196,16 @@ for (ispp in 1:nrow(x = species_list)) {
     X2config_cp <- X1config_cp
     
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    ##  Initial fitted model with just the observed stations
+    ##  Initial fitted model with just the observed stations, 
+    ##  i.e., records where pred_TF == 0
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     initial_fit <- 
       VAST::fit_model(settings = settings,
-                      Lat_i = cpue_data$Lat,
-                      Lon_i = cpue_data$Lon,
-                      t_i = cpue_data$Year,
-                      b_i = cpue_data$Weight_kg,
-                      a_i = cpue_data$Area_km2,
+                      Lat_i = data_geostat_w_grid$Lat[pred_TF == 0],
+                      Lon_i = data_geostat_w_grid$Lon[pred_TF == 0],
+                      t_i = data_geostat_w_grid$Year[pred_TF == 0],
+                      b_i = data_geostat_w_grid$Weight_kg[pred_TF == 0],
+                      a_i = data_geostat_w_grid$Area_km2[pred_TF == 0],
                       input_grid = interpolation_grid,
                       getJointPrecision = TRUE,
                       test_fit = FALSE,
