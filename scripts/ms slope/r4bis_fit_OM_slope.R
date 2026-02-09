@@ -88,8 +88,8 @@ for (ispp in nrow(x = species_list):1) {
       cpue_data,
       interpolation_grid_year
     )
-        pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
-    pred_TF[1:nrow(x = cpue_data)] <- 0
+    data_geostat_w_grid$pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
+    data_geostat_w_grid$$pred_TF[1:nrow(x = cpue_data)] <- 0
     
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ##  Covariate Data: combination of the covariate data from the observed
@@ -240,7 +240,7 @@ for (ispp in nrow(x = species_list):1) {
                       X1_formula = formula,
                       X2_formula = formula,
                       newtonsteps = steps,
-                      PredTF_i = pred_TF,
+                      PredTF_i = data_geostat_w_grid$pred_TF,
                       startpar = initial_fit$parameter_estimates$par,
                       working_dir = paste0("output/", iregion, "/vast/",
                                            species_name, "/"))
