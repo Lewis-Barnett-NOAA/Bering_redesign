@@ -202,11 +202,11 @@ for (ispp in 1:nrow(x = species_list)) {
     initial_fit <- 
       VAST::fit_model(
         settings = settings,
-        Lat_i = data_geostat_w_grid$Lat[data_geostat_w_grid$pred_TF$pred_TF == 0],
-        Lon_i = data_geostat_w_grid$Lon[data_geostat_w_grid$pred_TF$pred_TF == 0],
-        t_i = data_geostat_w_grid$Year[data_geostat_w_grid$pred_TF$pred_TF == 0],
-        b_i = data_geostat_w_grid$Weight_kg[data_geostat_w_grid$pred_TF$pred_TF == 0],
-        a_i = data_geostat_w_grid$Area_km2[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        Lat_i = data_geostat_w_grid$Lat[data_geostat_w_grid$pred_TF == 0],
+        Lon_i = data_geostat_w_grid$Lon[data_geostat_w_grid$pred_TF == 0],
+        t_i = data_geostat_w_grid$Year[data_geostat_w_grid$pred_TF == 0],
+        b_i = data_geostat_w_grid$Weight_kg[data_geostat_w_grid$pred_TF == 0],
+        a_i = data_geostat_w_grid$Area_km2[data_geostat_w_grid$pred_TF == 0],
         input_grid = interpolation_grid,
         getJointPrecision = TRUE,
         test_fit = FALSE,
@@ -214,8 +214,7 @@ for (ispp in 1:nrow(x = species_list)) {
         X1_formula = formula,
         X2_formula = formula,
         newtonsteps = steps,
-        working_dir = paste0("output/", iregion, "/vast/",
-                             species_name, "/")
+        working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
         )
     
     ## Save Fit
