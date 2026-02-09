@@ -39,7 +39,7 @@ species_list <- subset(x = species_list,
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # for (ispp in nrow(x = species_list)-1 ) {
-for (ispp in nrow(x = species_list):1) {
+for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
   for (iregion in c("bs_slope", "bs_shelf")[2]) {
     
@@ -89,7 +89,7 @@ for (ispp in nrow(x = species_list):1) {
       interpolation_grid_year
     )
     data_geostat_w_grid$pred_TF <- rep(1, nrow(x = data_geostat_w_grid))
-    data_geostat_w_grid$$pred_TF[1:nrow(x = cpue_data)] <- 0
+    data_geostat_w_grid$pred_TF[1:nrow(x = cpue_data)] <- 0
     
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ##  Covariate Data: combination of the covariate data from the observed
@@ -200,21 +200,23 @@ for (ispp in nrow(x = species_list):1) {
     ##  i.e., records where pred_TF == 0
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     initial_fit <- 
-      VAST::fit_model(settings = settings,
-                      Lat_i = data_geostat_w_grid$Lat[pred_TF == 0],
-                      Lon_i = data_geostat_w_grid$Lon[pred_TF == 0],
-                      t_i = data_geostat_w_grid$Year[pred_TF == 0],
-                      b_i = data_geostat_w_grid$Weight_kg[pred_TF == 0],
-                      a_i = data_geostat_w_grid$Area_km2[pred_TF == 0],
-                      input_grid = interpolation_grid,
-                      getJointPrecision = TRUE,
-                      test_fit = FALSE,
-                      covariate_data = covariate_data,
-                      X1_formula = formula,
-                      X2_formula = formula,
-                      newtonsteps = steps,
-                      working_dir = paste0("output/", iregion, "/vast/",
-                                           species_name, "/"))
+      VAST::fit_model(
+        settings = settings,
+        Lat_i = data_geostat_w_grid$Lat[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        Lon_i = data_geostat_w_grid$Lon[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        t_i = data_geostat_w_grid$Year[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        b_i = data_geostat_w_grid$Weight_kg[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        a_i = data_geostat_w_grid$Area_km2[data_geostat_w_grid$pred_TF$pred_TF == 0],
+        input_grid = interpolation_grid,
+        getJointPrecision = TRUE,
+        test_fit = FALSE,
+        covariate_data = covariate_data,
+        X1_formula = formula,
+        X2_formula = formula,
+        newtonsteps = steps,
+        working_dir = paste0("output/", iregion, "/vast/",
+                             species_name, "/")
+        )
     
     ## Save Fit
     saveRDS(object = initial_fit, 
