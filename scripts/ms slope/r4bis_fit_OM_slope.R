@@ -11,6 +11,7 @@
 rm(list = ls())
 
 library(VAST)
+library(splines)
 
 out_dir <- getwd()
 
@@ -215,7 +216,7 @@ for (ispp in 1:nrow(x = species_list)) {
         X2_formula = formula,
         newtonsteps = steps,
         working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
-        )
+      )
     
     ## Save Fit
     saveRDS(object = initial_fit, 
