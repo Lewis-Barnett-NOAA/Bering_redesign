@@ -67,13 +67,13 @@ for (i in shfiles) {
   #shapefile EBS
   sh<-rgdal::readOGR(dsn='data/shapefiles/',layer = i)
 
-  # if (i=='EBSslopeThorson') {
-  #   
-  #   #reproject shapefile
-  #   proj4string(sh) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") 
-  #   sh<-spTransform(sh,CRSobj = CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'))
-  #   
-  # }
+  if (i=='EBSslopeThorson') {
+
+    #reproject shapefile
+    proj4string(sh) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+    sh<-spTransform(sh,CRSobj = CRS('+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs'))
+
+  }
   
   #shapefile name
   shname<-paste0(gsub('Thorson','',i),'_sh')
