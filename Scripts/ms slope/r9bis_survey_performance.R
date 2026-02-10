@@ -510,6 +510,28 @@ combined_sim_df <- combined_sim_df[!(regime == "cold" & year %in% c(2002:2005,20
 combined_sim_df <- combined_sim_df[!(regime == "warm" & year %in% 2006:2013)]
 #summary(combined_sim_df$STRS_var)
 
+
+
+# FILTER SPECIES AND STRAT_VAR ####
+#selecting species and removing sampling design depth_dummy 
+true_est #simulated abundance estimate 
+true_ind #predicted abundance estimate 
+est_ind #sampling designs abundance estimate
+
+#sel_spp
+class(true_est);dimnames(true_est)
+class(true_ind);dimnames(true_ind)
+class(combined_sim_df);colnames(combined_sim_df)
+true_est <- true_est[sel_spp, , , , drop = FALSE]
+true_ind <- true_ind[, , sel_spp, drop = FALSE]
+combined_sim_df <- combined_sim_df[species %in% sel_spp]
+
+#sampling design
+depth_dummy_scn<-samp_df[which(samp_df$strat_var=='depth_dummy'),'scenario']
+combined_sim_df <- combined_sim_df[!scenario %in% depth_dummy_scn]
+
+# PLOT SAMPLING DESIGNS ABUNDANCE ESTIMATES ####
+#RELATIVE TO PREDICTED ABUNDANCE ESTIMATES FROM OM 
 #get the mean abundance estimate across replicates
 est_ind <- combined_sim_df[
   ,
@@ -526,13 +548,6 @@ est_ind <- combined_sim_df[
     region
   )
 ]
-
-# PLOT SAMPLING DESIGNS ABUNDANCE ESTIMATES ####
-#RELATIVE TO PREDICTED ABUNDANCE ESTIMATES FROM OM 
-
-true_est #simulated abundance estimate 
-true_ind #predicted abundance estimate 
-est_ind #sampling designs abundance estimate
 
 #merge wit spp common name and sampling design
 setDT(df_spp)
@@ -732,10 +747,10 @@ ggplot(na.omit(df_summary)) +
   geom_errorbar(
     aes(
       x = interaction(region, strat_var),
-      ymin = mean_value - sd_value,
+      ymin = pmax(mean_value - sd_value, 0),
       ymax = mean_value + sd_value,
       color = combined_label,
-      group = interaction(scn_label, approach, spp, regime)
+      group = combined_label
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -747,16 +762,16 @@ ggplot(na.omit(df_summary)) +
       x = interaction(region, strat_var),
       y = mean_value,
       fill = combined_label,
-      group = interaction(scn_label, approach, spp, regime),
+      group = combined_label,
       shape = combined_label
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "true CV", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   
   scale_fill_manual(
     values = colors_warm_cold,
@@ -793,8 +808,8 @@ ggplot(na.omit(df_summary)) +
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -836,7 +851,7 @@ ggplot(na.omit(df_summary)) +
 
   
 #save warm cold true CV
-ragg::agg_png(paste0('./figures slope/true_CV_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/true_CV_warmcold.png'), width = 9, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -858,7 +873,7 @@ p1 <- ggplot(na.omit(df_summary_clean)) +
   geom_errorbar(
     aes(
       x = interaction(region, strat_var),
-      ymin = mean_value - sd_value,
+      ymin = pmax(mean_value - sd_value, 0),
       ymax = mean_value + sd_value,
       color = combined_label1,
       group = interaction(approach, regime1)
@@ -876,14 +891,14 @@ p1 <- ggplot(na.omit(df_summary_clean)) +
       shape = combined_label1,
       group = interaction(approach, regime1)
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "true CV", x = "") +
   theme_bw() +
   
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   
   scale_fill_manual(
     values = colors_static_adaptive,
@@ -920,8 +935,8 @@ p1 <- ggplot(na.omit(df_summary_clean)) +
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -959,7 +974,7 @@ p1 <- ggplot(na.omit(df_summary_clean)) +
     )
   )
   
-ragg::agg_png(paste0('./figures slope/true_CV.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/true_CV.png'), width = 9, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
@@ -1036,10 +1051,10 @@ p <-
   geom_errorbar(
     aes(
       x = interaction(region, strat_var),
-      ymin = mean_value-sd_value,
+      ymin = pmax(mean_value - sd_value, 0),
       ymax = mean_value+sd_value,
       color = combined_label,
-      group = interaction(scn_label, approach, spp, regime)
+      group = combined_label
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -1051,16 +1066,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_value,
       fill = combined_label,
-      group = interaction(scn_label, approach, spp, regime),
+      group = combined_label,
       shape = combined_label
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = expression(widehat(CV)), x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_warm_cold,
     labels = labels_warm_cold,
@@ -1094,8 +1109,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -1136,7 +1151,7 @@ p <-
     )
   
 #save plot
-ragg::agg_png(paste0('./figures slope/est_cv_warmcold.png'),  width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/est_cv_warmcold.png'),  width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -1177,13 +1192,13 @@ ggplot(na.omit(df_summary_clean)) +
       shape = combined_label1,
       group = interaction(approach, regime1)
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = expression(widehat(CV)), x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -1217,8 +1232,8 @@ ggplot(na.omit(df_summary_clean)) +
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -1259,7 +1274,7 @@ ggplot(na.omit(df_summary_clean)) +
   )
   
 #save plot
-ragg::agg_png(paste0('./figures slope/est_cv.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/est_cv.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p1
 dev.off()
@@ -1358,7 +1373,7 @@ y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
 y_scale$region    <- "EBS"
-y_scale$strat_var <- "Depth"
+y_scale$strat_var <- "depth"
 
 
 #plot rrmse of index static-adaptive
@@ -1368,10 +1383,10 @@ p <-
     data = df_rb_rrmse1,
     aes(
       x = interaction(region, strat_var),
-      ymin = mean_rrmse - sd_rrmse,
+      ymin = pmax(mean_rrmse - sd_rrmse,0),
       ymax = mean_rrmse + sd_rrmse,
       color = combined_label1,
-      group = interaction(approach, regime1)
+      group = combined_label1,
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -1384,16 +1399,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_rrmse,
       fill = combined_label1,
-      group = interaction(approach, regime1),
+      group = combined_label1,
       shape = combined_label1
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of abundance estimates", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -1426,8 +1441,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -1464,7 +1479,7 @@ p <-
   coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('./figures slope/RRMSE_index.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_index.png'), width = 10, height = 6, units = "in", res = 300)
 p
 dev.off()
   
@@ -1523,7 +1538,7 @@ p <-
         ymin = mean_rrmse - sd_rrmse,
         ymax = mean_rrmse + sd_rrmse,
         color = combined_label,
-        group = interaction(scenario, approach, spp, regime)),
+        group = combined_label),
     width = 0.3,
     position = position_dodge(width = 0.9),
     size = 1,
@@ -1533,15 +1548,15 @@ p <-
     aes(x = interaction(region, strat_var),
         y = mean_rrmse,
         fill = combined_label,
-        group = interaction(scenario, approach, spp, regime),
+        group = combined_label,
         shape = combined_label),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of abundance estimates", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
   scale_fill_manual(
     values = colors_warm_cold,
@@ -1567,8 +1582,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -1608,7 +1623,7 @@ p <-
   coord_cartesian(clip = "off")
   
 
-ragg::agg_png(paste0('./figures slope/RRMSE_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_index_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -1644,7 +1659,7 @@ p <-
       ymin = mean_rel_bias - sd_rel_bias,
       ymax = mean_rel_bias + sd_rel_bias,
       color = combined_label1,
-      group = interaction(approach, regime1)
+      group = combined_label1
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -1657,16 +1672,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_rel_bias,
       fill = combined_label1,
-      group = interaction(approach, regime1),
+      group = combined_label1,
       shape = combined_label1
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RBIAS of abundance estimates (%)", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -1696,8 +1711,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -1736,7 +1751,7 @@ p <-
 # save
 ragg::agg_png(
   './figures slope/RBIAS_index.png',
-  width = 18, height = 12, units = "in", res = 300
+  width = 10, height = 6, units = "in", res = 300
 )
 p
 dev.off()
@@ -1764,15 +1779,15 @@ p<-
   ggplot(na.omit(df_rb_rrmse2)) +
   #geom_hline(yintercept = 0, alpha = 0.5, linetype = 'dotted') +
   geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_rel_bias - sd_rel_bias, ymax = mean_rel_bias + sd_rel_bias, color = combined_label,
-                    group = interaction(scenario, approach, spp, regime)),
+                    group = combined_label),
                 width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
   geom_point(aes(x = interaction(region,strat_var), y = mean_rel_bias, fill = combined_label, 
-                 group = interaction(scenario, approach, spp, regime), 
+                 group = combined_label, 
                  shape = combined_label), 
-             size = 2, position = position_dodge(width = 0.9), color = "black") + 
+             size = 3, position = position_dodge(width = 0.9), color = "black") + 
   labs(y = 'RBIAS of abundance estimates (%)', x = '') +
   theme_bw() + 
-  facet_wrap(~common, scales = 'free_y', nrow = 5, dir = 'h') +
+  facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
   scale_fill_manual(
     values = colors_warm_cold,
@@ -1798,8 +1813,8 @@ p<-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.key.width = unit(1, "lines"),
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.title = element_text(size = 12,hjust = 0.5),
     legend.spacing.y = unit(0.3, "cm"),
     legend.spacing = unit(0.3, "cm"),
@@ -1860,7 +1875,7 @@ p<-
   coord_cartesian(clip = "off")
 
 
-ragg::agg_png(paste0('./figures slope/RBIAS_index_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RBIAS_index_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -1951,7 +1966,7 @@ y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
 y_scale$region    <- "EBS"
-y_scale$strat_var <- "Depth"
+y_scale$strat_var <- "depth"
 
 #plot rrmse of index static-adaptive
 p <-
@@ -1963,7 +1978,7 @@ p <-
       ymin = mean_rrmse - sd_rrmse,
       ymax = mean_rrmse + sd_rrmse,
       color = combined_label1,
-      group = interaction(approach, regime1)
+      group = combined_label1
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -1976,16 +1991,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_rrmse,
       fill = combined_label1,
-      group = interaction(approach, regime1),
+      group = combined_label1,
       shape = combined_label1
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of abundance estimates", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -2018,8 +2033,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -2056,7 +2071,7 @@ p <-
   coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('./figures slope/RRMSE_index_total.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_index_total.png'), width = 10, height = 6, units = "in", res = 300)
 p
 dev.off()
 
@@ -2109,13 +2124,13 @@ y_scale$strat_var <- "depth"
 
 #plot rrmse index warm-cold
 p <- 
-  ggplot(na.omit(df_rb_rrmse2)) +
+  ggplot(df_rb_rrmse2) +
   geom_errorbar(
     aes(x = interaction(region, strat_var),
-        ymin = mean_rrmse - sd_rrmse,
+        ymin = pmax(mean_rrmse - sd_rrmse,0),
         ymax = mean_rrmse + sd_rrmse,
         color = combined_label,
-        group = interaction(scenario, approach, spp, regime)),
+        group = combined_label),
     width = 0.3,
     position = position_dodge(width = 0.9),
     size = 1,
@@ -2125,15 +2140,15 @@ p <-
     aes(x = interaction(region, strat_var),
         y = mean_rrmse,
         fill = combined_label,
-        group = interaction(scenario, approach, spp, regime),
+        group = combined_label,
         shape = combined_label),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of abundance estimates", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
   scale_fill_manual(
     values = colors_warm_cold,
@@ -2159,8 +2174,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -2200,7 +2215,7 @@ p <-
   coord_cartesian(clip = "off")
 
 
-ragg::agg_png(paste0('./figures slope/RRMSE_index_warmcold_total.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_index_warmcold_total.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2347,7 +2362,7 @@ y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
 y_scale$region    <- "EBS"
-y_scale$strat_var <- "Depth"
+y_scale$strat_var <- "depth"
 
 #plot rrmse of cv static-adaptive
 p <-
@@ -2359,7 +2374,7 @@ p <-
       ymin = mean_rrmse - sd_rrmse,
       ymax = mean_rrmse + sd_rrmse,
       color = combined_label1,
-      group = interaction(approach, regime1)
+      group = combined_label1
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -2372,16 +2387,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_rrmse,
       fill = combined_label1,
-      group = interaction(approach, regime1),
+      group = combined_label1,
       shape = combined_label1
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of CV", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -2414,8 +2429,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -2452,7 +2467,7 @@ p <-
   coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('./figures slope/RRMSE_cv.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_cv.png'), width = 10, height = 6, units = "in", res = 300)
 p
 dev.off()
 
@@ -2505,13 +2520,13 @@ y_scale$strat_var <- "depth"
 
 #plot rrmse cv warm-cold
 p <- 
-  ggplot(na.omit(df_rb_rrmse2)) +
+  ggplot(df_rb_rrmse2) +
   geom_errorbar(
     aes(x = interaction(region, strat_var),
         ymin = mean_rrmse - sd_rrmse,
         ymax = mean_rrmse + sd_rrmse,
         color = combined_label,
-        group = interaction(scenario, approach, spp, regime)),
+        group = combined_label),
     width = 0.3,
     position = position_dodge(width = 0.9),
     size = 1,
@@ -2521,15 +2536,15 @@ p <-
     aes(x = interaction(region, strat_var),
         y = mean_rrmse,
         fill = combined_label,
-        group = interaction(scenario, approach, spp, regime),
+        group = combined_label,
         shape = combined_label),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RRMSE of CV", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
   scale_fill_manual(
     values = colors_warm_cold,
@@ -2555,8 +2570,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -2595,7 +2610,7 @@ p <-
   )+
   coord_cartesian(clip = "off")
 
-ragg::agg_png(paste0('./figures slope/RRMSE_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RRMSE_cv_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2613,7 +2628,6 @@ y_scale$scale <- ifelse(
 )
 y_scale$text <- y_scale$scale
 # manual override
-y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -2632,7 +2646,7 @@ p <-
       ymin = mean_rel_bias - sd_rel_bias,
       ymax = mean_rel_bias + sd_rel_bias,
       color = combined_label1,
-      group = interaction(approach, regime1)
+      group = combined_label1
     ),
     width = 0.3,
     position = position_dodge(width = 0.9),
@@ -2645,16 +2659,16 @@ p <-
       x = interaction(region, strat_var),
       y = mean_rel_bias,
       fill = combined_label1,
-      group = interaction(approach, regime1),
+      group = combined_label1,
       shape = combined_label1
     ),
-    size = 2,
+    size = 3,
     position = position_dodge(width = 0.9),
     color = "black"
   ) +
   labs(y = "RBIAS of CV (%)", x = "") +
   theme_bw() +
-  facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+  facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
   scale_fill_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
@@ -2687,8 +2701,8 @@ p <-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.spacing = unit(0.3, "cm"),
     legend.title = element_text(size = 12, hjust = 0.5),
     strip.background = element_blank(),
@@ -2727,7 +2741,7 @@ p <-
 # save
 ragg::agg_png(
   './figures slope/RBIAS_cv.png',
-  width = 18, height = 12, units = "in", res = 300
+  width = 10, height = 6, units = "in", res = 300
 )
 p
 dev.off()
@@ -2742,7 +2756,6 @@ y_scale$scale <- ifelse(
 )
 y_scale$text <- y_scale$scale
 # manual override
-y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -2752,18 +2765,18 @@ y_scale$strat_var <- "depth"
 
 #plot rbias warm-cold 
 p<-
-  ggplot(na.omit(df_rb_rrmse2)) +
+  ggplot(df_rb_rrmse2) +
   #geom_hline(yintercept = 0, alpha = 0.5, linetype = 'dotted') +
   geom_errorbar(aes(x = interaction(region,strat_var), ymin = mean_rel_bias - sd_rel_bias, ymax = mean_rel_bias + sd_rel_bias, color = combined_label,
-                    group = interaction(scenario, approach, spp, regime)),
+                    group = combined_label),
                 width = 0.3, position = position_dodge(width = 0.9),size=1,alpha=0.8) + 
   geom_point(aes(x = interaction(region,strat_var), y = mean_rel_bias, fill = combined_label, 
-                 group = interaction(scenario, approach, spp, regime), 
+                 group = combined_label, 
                  shape = combined_label), 
-             size = 2, position = position_dodge(width = 0.9), color = "black") + 
+             size = 3, position = position_dodge(width = 0.9), color = "black") + 
   labs(y = 'RBIAS of CV (%)', x = '') +
   theme_bw() + 
-  facet_wrap(~common, scales = 'free_y', nrow = 5, dir = 'h') +
+  facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
   scale_fill_manual(
     values = colors_warm_cold,
@@ -2789,8 +2802,8 @@ p<-
     panel.grid.minor = element_line(linetype = 2, color = "grey90"),
     legend.position = "bottom",
     legend.key.width = unit(1, "lines"),
-    legend.key.size = unit(30, "points"),
-    legend.text = element_text(size = 11),
+    legend.key.size = unit(20, "points"),
+    legend.text = element_text(size = 10),
     legend.title = element_text(size = 12,hjust = 0.5),
     legend.spacing.y = unit(0.3, "cm"),
     legend.spacing = unit(0.3, "cm"),
@@ -2851,7 +2864,7 @@ p<-
   coord_cartesian(clip = "off")
 
 
-ragg::agg_png(paste0('./figures slope/RBIAS_cv_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/RBIAS_cv_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -2944,7 +2957,7 @@ df_summary$combined_label<-factor(df_summary$combined_label,levels=c('rand - all
 #remove EBS 
 df_summary<-subset(df_summary,df_summary$region!='EBS')
 
-#for geom_blank(0 and adjust scale)
+  #for geom_blank(0 and adjust scale)
 y_scale <- aggregate((mean_ratio + q90) ~ common, df_summary, max)
 y_scale$scale <- y_scale$`(mean_ratio + q90)` * 1.10
 y_scale$text  <- y_scale$`(mean_ratio + q90)` * 1.10
@@ -2981,12 +2994,11 @@ p<-
                  fill = combined_label,
                  shape = combined_label,
                  group = combined_label), 
-             size = 2, position = position_dodge(width = 0.8), color = "black") + 
+             size = 3, position = position_dodge(width = 0.8), color = "black") + 
   labs(y = expression(log(widehat(CV)/widehat(CV)[EBS])), x = '') +   
   theme_bw() + 
-  facet_wrap(~species , nrow = 5, dir = 'h') +
     theme_bw() + 
-    facet_wrap(~common, scales = 'free_y', nrow = 5, dir = 'h') +
+    facet_wrap(~common, scales = 'free_y', nrow = 2, dir = 'h') +
     scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
     scale_fill_manual(
       values = colors_warm_cold,
@@ -3012,8 +3024,8 @@ p<-
       panel.grid.minor = element_line(linetype = 2, color = "grey90"),
       legend.position = "bottom",
       legend.key.width = unit(1, "lines"),
-      legend.key.size = unit(30, "points"),
-      legend.text = element_text(size = 11),
+      legend.key.size = unit(20, "points"),
+      legend.text = element_text(size = 10),
       legend.title = element_text(size = 12,hjust = 0.5),
       legend.spacing.y = unit(0.3, "cm"),
       legend.spacing = unit(0.3, "cm"),
@@ -3071,7 +3083,7 @@ p<-
     coord_cartesian(clip = "off")
 
 #save plot
-ragg::agg_png(paste0('./figures slope/logcvratio_warmcold.png'), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0('./figures slope/logcvratio_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
 #ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
@@ -3112,7 +3124,7 @@ y_scale$strat_var <- "depth"
 
 #plot static adaptive
 p1 <-
-    ggplot(subset(df_summary_clean, region != 'EBS')) +
+    ggplot(df_summary_clean) +
   geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_errorbar(
     aes(
@@ -3135,15 +3147,15 @@ p1 <-
       group = combined_label1,
       shape = combined_label1
     ),
-    size = 2.5,
+    size = 3,
     position = position_dodge(width = 0.8),
     color = "black"
   ) +
   labs(y = expression(log(widehat(CV) / widehat(CV)[EBS])), x = "") +
   theme_bw() +
-  facet_wrap(~common, nrow = 5, dir = "h") +
+  facet_wrap(~common, nrow = 2, dir = "h") +
     theme_bw() +
-    facet_wrap(~ common, scales = "free_y", nrow = 5, dir = "h") +
+    facet_wrap(~ common, scales = "free_y", nrow = 2, dir = "h") +
     scale_fill_manual(
       values = colors_static_adaptive,
       labels = labels_static_adaptive,
@@ -3176,8 +3188,8 @@ p1 <-
       panel.grid.minor = element_line(linetype = 2, color = "grey90"),
       legend.position = "bottom",
       legend.direction = "horizontal",
-      legend.key.size = unit(30, "points"),
-      legend.text = element_text(size = 11),
+      legend.key.size = unit(20, "points"),
+      legend.text = element_text(size = 10),
       legend.spacing = unit(0.3, "cm"),
       legend.title = element_text(size = 12, hjust = 0.5),
       strip.background = element_blank(),
@@ -3213,6 +3225,6 @@ p1 <-
     )+
     coord_cartesian(clip = "off")
 
-ragg::agg_png(paste0("./figures slope/logcvratio.png"), width = 18, height = 12, units = "in", res = 300)
+ragg::agg_png(paste0("./figures slope/logcvratio.png"), width = 10, height = 6, units = "in", res = 300)
 p1
 dev.off()
