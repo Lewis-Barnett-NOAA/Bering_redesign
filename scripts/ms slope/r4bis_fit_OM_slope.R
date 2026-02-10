@@ -39,10 +39,10 @@ species_list <- subset(x = species_list,
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# for (ispp in nrow(x = species_list)-1 ) {
-for (ispp in 1:nrow(x = species_list)) {
+for (ispp in 11:1 ) {
+# for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[2]) {
+  for (iregion in c("bs_slope", "bs_shelf")[1]) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -79,7 +79,8 @@ for (ispp in 1:nrow(x = species_list)) {
                                        "bs_shelf" = c("EBS", "NBS"))[[iregion]] 
              & Year %in% seq(from = list("bs_slope" = 2002,
                                          "bs_shelf" = 1982)[[iregion]],
-                             to = 2022,
+                             to = list("bs_slope" = 2016,
+                                       "bs_shelf" = 2022)[[iregion]],
                              by = 1) ,
              select = names(cpue_data))
     
@@ -200,7 +201,7 @@ for (ispp in 1:nrow(x = species_list)) {
     ##  Initial fitted model with just the observed stations, 
     ##  i.e., records where pred_TF == 0
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    initial_fit <- 
+    initial_fit <-
       VAST::fit_model(
         settings = settings,
         Lat_i = data_geostat_w_grid$Lat[data_geostat_w_grid$pred_TF == 0],
@@ -217,11 +218,14 @@ for (ispp in 1:nrow(x = species_list)) {
         newtonsteps = steps,
         working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
       )
-    
+
     ## Save Fit
-    saveRDS(object = initial_fit, 
-            file = paste0("output/", iregion, "/vast/", 
+    saveRDS(object = initial_fit,
+            file = paste0("output/", iregion, "/vast/",
                           species_name, "/initial_fit.RDS"))
+    
+    # load(paste0("output/", iregion, "/vast/", 
+    #             species_name, "/parameter_estimates.RData"))
     
     ## Refit the model with the prediction grid in the input data. The 
     ## PredTF_i argument tells the model not to include the prediction grids 
