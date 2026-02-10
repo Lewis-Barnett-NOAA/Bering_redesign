@@ -49,10 +49,17 @@ if (!('VAST' %in% installed.packages())) {
 p_load(pack_cran,character.only = TRUE)
 
 # Set the root directory for knitting to a work directory
+<<<<<<< HEAD:Scripts/ms slope/figures_simulated_data_distributions.R
+dir <- '/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/'
+
+#setwd
+setwd(dir)
+=======
 # dir <- '/Users/daniel/Work/Adapting Monitoring to a Changing Seascape/'
 # 
 # #setwd
 # setwd(dir)
+>>>>>>> main:scripts/ms slope/figures_simulated_data_distributions.R
 
 #selected species
 sel_sp<-c("Gadus chalcogrammus", #Alaskan pollock
