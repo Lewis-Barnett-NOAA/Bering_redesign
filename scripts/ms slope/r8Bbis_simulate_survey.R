@@ -950,6 +950,7 @@ library(reshape2)
 all_sim_dfs <- list()
 
 for (i in 1:100) {
+  
   cat(paste0("### Simulation ", i, " ###\n"))
   
   file_path <- paste0('output/slope/ms_sim_survey_hist/sim',
@@ -962,12 +963,21 @@ for (i in 1:100) {
   # Rename columns using dimnames
   colnames(df) <- c("species", "metric", "year", "approach", "replicate", "scenario", "regime", "value")
   
+  df1<-
+  df %>%
+    filter(is.na(value))
+  
+  unique(df1$species)
+  
   # Spread the metrics (STRS_mean, STRS_var, CV_sim) to separate columns
   df <- df %>% 
     tidyr::pivot_wider(names_from = metric, values_from = value)
   
   # Add simulation ID
   df$sim <- i
+
+  #because there are combinations for all given scn2 which is not possible (because it was in an array)
+  df<-na.omit(df)
   
   all_sim_dfs[[i]] <- df
 }
@@ -994,9 +1004,7 @@ dim(combined_sim_df)
 
 
 # Save
+#write.csv(combined_sim_df, "./data processed/index_dens_all.csv", row.names = FALSE)
+# Save as RDS
+save(combined_sim_df, file = "./data processed/index_dens_all.RData")
 write.csv(combined_sim_df, "data/data_processed/index_dens_all.csv", row.names = FALSE)
-
-
-
-
-
