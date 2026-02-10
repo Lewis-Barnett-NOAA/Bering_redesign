@@ -248,11 +248,9 @@ region_samples <- data.frame(
   Area_km2 = c(ebs_area, sbs_area, nbs_area),
   samples = c(ebs_samples, sbs_samples, nbs_samples)
 )
-
 region_samples
 region_samples$samples <- round(region_samples$samples)
 region_samples
-
 n_EBS <- region_samples$samples[region_samples$region == "EBS"]
 n_SBS <- region_samples$samples[region_samples$region == "SBS"]
 n_NBS <- region_samples$samples[region_samples$region == "NBS"]
@@ -289,6 +287,7 @@ samp_df$scenario<-paste0(paste0('scn',1:nrow(samp_df)))
 
 # TRUE ABUNDANCE INDEX predicted ####
 # from predicted values from VAST
+# OUTPUT #true_ind: abundance indices from predicted densities from OMs
 
 #loop over OMs
 true_index_file <-"./output slope//model_based_EBSNBSBSS.RData"
@@ -442,10 +441,8 @@ if (!file.exists(true_index_file)) {
   
 }
 
-#true_ind
-
 # TRUE ABUNDANCE simulated #####
-# from each simulated 100 replicas 
+# OUTPUT #true_est: abundance estimates from simulated dataset (aka replicate) 
 
 #simulated densities
 load(file = paste0('./output slope/species/ms_sim_dens_all.RData'))  #sim_dens1
@@ -488,12 +485,14 @@ for (sim in 1:100) {
   
 }
 
-#save true ind
+#save true est
 save(true_est,file = paste0("./output slope/true_ind_hist.RData"))  
 #load(file = paste0("./output slope/true_ind_hist.RData"))  
 
-# ESTIMATED ABUNDANCE simulated #####
 
+
+# ESTIMATED ABUNDANCE simulated #####
+#OUTPUT est_ind: abundance estimates from survey designs (100 replicas * 100 survey)
 #store HIST simulated data
 load(file = paste0('./data processed/index_dens_all.RData'))  #combined_sim_df
 setDT(combined_sim_df)  # Convert ind2 to data.table if it's not already
@@ -528,7 +527,9 @@ est_ind <- combined_sim_df[
   )
 ]
 
-# PLOT ESTIMATED ABUNDANCE ESTIMATES ####
+# PLOT SAMPLING DESIGNS ABUNDANCE ESTIMATES ####
+#RELATIVE TO PREDICTED ABUNDANCE ESTIMATES FROM OM 
+
 true_est #simulated abundance estimate 
 true_ind #predicted abundance estimate 
 est_ind #sampling designs abundance estimate
@@ -1263,8 +1264,6 @@ ragg::agg_png(paste0('./figures slope/est_cv.png'), width = 18, height = 12, uni
 p1
 dev.off()
   
-  
-  
 #3 CALCULATION RRMSE of INDEX and RBIAS OF INDEX ####
 
 #true estimates
@@ -1275,7 +1274,6 @@ true_est1<-merge(true_est1,df_spp1,by='species')
 true_est1$year<-as.integer(true_est1$year)
 true_est1$replicate<-as.integer(true_est1$replicate)
 true_est1$dummy<-'true index'
-true_est1$true_est
 
 #estimated design estimates
 #get the mean abundance estimate across replicates
@@ -1619,17 +1617,23 @@ dev.off()
 
 #for geom_blank(0 and adjust scale)
 # y-scale and artificial rows for geom_blank and facet labels
-y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common, df_rb_rrmse1, max)
-y_scale$scale <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale$text  <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale[which((y_scale$common=='Shortspine thornyhead')),'text']<-20
+y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common,
+                     df_rb_rrmse1, max)
+y_scale$scale <- ifelse(
+  y_scale$`(mean_rel_bias + sd_rel_bias)` >= 0,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 0.90
+)
+y_scale$text <- y_scale$scale
+# manual override
+y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
 y_scale$region    <- "EBS"
 y_scale$strat_var <- "depth"
-  
+
 #plot rbias index static-adaptive
 p <-
   ggplot() +
@@ -1736,11 +1740,18 @@ ragg::agg_png(
 )
 p
 dev.off()
-  
-#scale for plotting
-y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common, df_rb_rrmse2, max)
-y_scale$scale <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale$text  <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
+
+#scale text  
+y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common,
+                     df_rb_rrmse2, max)
+y_scale$scale <- ifelse(
+  y_scale$`(mean_rel_bias + sd_rel_bias)` >= 0,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 0.90
+)
+y_scale$text <- y_scale$scale
+# manual override
+y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -1898,10 +1909,6 @@ est_ind1$est_mean<-est_ind1$est_mean/10
 #merge estimated index and true index
 rrmse_ind1<-merge(est_ind1,true_est_whole,by=c('species','year','replicate','common'))
 
-
-
-
-
 # Compute relative bias
 rrmse_ind1[, rel_bias := 100*((est_mean - true_est) / true_est)]
 rrmse_ind1[, rel_log_bias := log10(est_mean / true_est) ]
@@ -1934,7 +1941,6 @@ df_rb_rrmse1$regime1<-ifelse(df_rb_rrmse1$regime=='all','all','dyn')
 df_rb_rrmse1$combined_label1<-paste0(df_rb_rrmse1$approach," - ",df_rb_rrmse1$regime1)
 df_rb_rrmse1$combined_label1<-factor(df_rb_rrmse1$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
 df_rb_rrmse1<-merge(df_rb_rrmse1,df_spp,by='species')
-
 
 # for geom_blank and adjust scale
 # y_scale <- aggregate((mean_rrmse + sd_rrmse) ~ common, subset(df_rb_rrmse1, spp %in% sel_spp), max)
@@ -2598,16 +2604,23 @@ dev.off()
 #4.1 PLOT RBIAS OF CV ####
 #for geom_blank(0 and adjust scale)
 # y-scale and artificial rows for geom_blank and facet labels
-y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common, df_rb_rrmse1, max)
-y_scale$scale <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale$text  <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale[which((y_scale$common=='Shortspine thornyhead')),'text']<-20
+y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common,
+                     df_rb_rrmse1, max)
+y_scale$scale <- ifelse(
+  y_scale$`(mean_rel_bias + sd_rel_bias)` >= 0,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 0.90
+)
+y_scale$text <- y_scale$scale
+# manual override
+y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
 y_scale$region    <- "EBS"
 y_scale$strat_var <- "depth"
+
 
 #plot rbias index static-adaptive
 p <-
@@ -2647,16 +2660,19 @@ p <-
     labels = labels_static_adaptive,
     name = legend_title_static_adaptive
   ) +
+  
   scale_color_manual(
     values = colors_static_adaptive,
     labels = labels_static_adaptive,
     name = legend_title_static_adaptive
   ) +
+  
   scale_shape_manual(
     values = shapes_static_adaptive,
     labels = labels_static_adaptive,
     name = legend_title_static_adaptive
   ) +
+  
   scale_linetype_manual(
     values = linetype_static_adaptive,
     labels = labels_static_adaptive,
@@ -2717,9 +2733,16 @@ p
 dev.off()
 
 #scale for plotting
-y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common, df_rb_rrmse2, max)
-y_scale$scale <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
-y_scale$text  <- y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10
+y_scale <- aggregate((mean_rel_bias + sd_rel_bias) ~ common,
+                     df_rb_rrmse2, max)
+y_scale$scale <- ifelse(
+  y_scale$`(mean_rel_bias + sd_rel_bias)` >= 0,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 1.10,
+  y_scale$`(mean_rel_bias + sd_rel_bias)` * 0.90
+)
+y_scale$text <- y_scale$scale
+# manual override
+y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -2895,20 +2918,19 @@ cv31[, combined_label := factor(
 )]
 
 #LOG CV RATIO
-cv31$ratio<-log(x$cv_sim/cv31$cv_ebs)
+cv31$ratio<-log(cv31$cv_sim/cv31$cv_ebs)
 
 # Compute mean and standard deviation while keeping 'common' and 'strat_var'
 df_summary <- cv31[, .(
   mean_ratio = mean(ratio, na.rm = TRUE),
   q90 = quantile(ratio,probs=0.90, na.rm = TRUE),
   q10 = quantile(ratio,probs=0.10, na.rm = TRUE)
-), by = .(region, approach, species, scenario, regime, strat_var,common)]
+), by = .(region, approach, species, scenario, regime, strat_var,common,combined_label)]
 #unique(df_summary[, .(scn, region)])
 
 df_summary$region1<-gsub('+','\n',df_summary$region)
 #label scn
 df_summary$scn_label<-paste0(df_summary$region,'\n',df_summary$strat_var)
-df_summary$common <- df_spp$common[match(df_summary$species, df_spp$species)]
 #df_summary$mean_sd<-df_summary$mean_ratio+df_summary$sd_ratio
 # Create a new combined variable in your dat
 df_summary$combined_label <- paste(df_summary$approach, df_summary$regime, sep = " - ")
@@ -2919,6 +2941,8 @@ df_summary$combined_label<-factor(df_summary$combined_label,levels=c('rand - all
                                                        'sb - cold' ,
                                                        'rand - warm' ,
                                                        'sb - warm' ) )
+#remove EBS 
+df_summary<-subset(df_summary,df_summary$region!='EBS')
 
 #for geom_blank(0 and adjust scale)
 y_scale <- aggregate((mean_ratio + q90) ~ common, df_summary, max)
@@ -2929,20 +2953,34 @@ y_scale[which((y_scale$common=='Shortspine thornyhead')),'text']<-20
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
 y_scale$year      <- 2022
-y_scale$region    <- "EBS"
+y_scale$region    <- "EBS+BSS"
 y_scale$strat_var <- "depth"
 
+# enforce fixed order
+df_summary$combined_label <- factor(
+  df_summary$combined_label,
+  levels = c(
+    "rand - all",
+    "sb - all",
+    "rand - cold",
+    "sb - cold",
+    "rand - warm",
+    "sb - warm"
+  )
+)
 
+#plot warm/cold
 p<-
-  ggplot(subset(df_summary,  region !='EBS')) +
-    
+  ggplot(df_summary) +
     geom_hline(yintercept = 0,linetype='dashed')+
-  geom_errorbar(aes(x = interaction(region,strat_var), ymin = q10, ymax = q90, color = combined_label, 
-                    group = interaction(approach, spp, regime)),
+  geom_errorbar(aes(x = interaction(region,strat_var), ymin = q10, ymax = q90,  
+                    color = combined_label,
+                    group = combined_label),
                 width = 0.3, position = position_dodge(width = 0.8),size=1,alpha=0.8) + 
-  geom_point(aes(x = interaction(region,strat_var), y = mean_ratio, fill = combined_label, 
-                 group = interaction(approach, spp, regime), 
-                 shape = combined_label), 
+  geom_point(aes(x = interaction(region,strat_var), y = mean_ratio, 
+                 fill = combined_label,
+                 shape = combined_label,
+                 group = combined_label), 
              size = 2, position = position_dodge(width = 0.8), color = "black") + 
   labs(y = expression(log(widehat(CV)/widehat(CV)[EBS])), x = '') +   
   theme_bw() + 
@@ -3038,24 +3076,24 @@ ragg::agg_png(paste0('./figures slope/logcvratio_warmcold.png'), width = 18, hei
 p
 dev.off()
 
+#get by static or adaptive
+df_summary$regime1<-ifelse(df_summary$regime=='all','all','dyn')
+df_summary$combined_label1<-paste0(df_summary$approach," - ",df_summary$regime1)
+df_summary$combined_label1<-factor(df_summary$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
+
+
 # Keep only necessary simulations (e.g., sim 1) or average across sims if desired
 df_summary_clean <- df_summary[, .(
   mean_ratio = mean(mean_ratio, na.rm = TRUE),
   q10 = mean(q10, na.rm = TRUE),  # or another logic
   q90 = mean(q90, na.rm = TRUE)  # or another logic
-), by = .(species, scenario, approach,regime1)]
+), by = .(species, scenario, approach,region,common,combined_label1,regime1)]
 
 # Join with scenario-level metadata if needed
 # Assuming samp_df contains mapping of scn to region, strat_var, approach, regime1, etc.
-df_summary_clean<-merge(df_summary_clean,samp_df,by=c('scenario'))
+df_summary_clean<-merge(df_summary_clean,samp_df,by=c('scenario','region'))
 # Replace '+' with '\n' in 'region'
 df_summary_clean[, region1 := gsub("\\+", "\n", region)]
-
-#df_rb_rrmse2$regime<-ifelse(df_rb_rrmse2$type=='static','all','dyn')
-df_summary_clean$combined_label<-paste0(df_summary_clean$approach," - ",df_summary_clean$regime)
-df_summary_clean$combined_label1<-paste0(df_summary_clean$approach," - ",df_summary_clean$regime1)
-df_summary_clean$combined_label1<-factor(df_summary_clean$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
-df_summary_clean<-merge(df_summary_clean,df_spp,by='species')
 
 #remove infinitive values
 df_summary_clean <- df_summary_clean[
@@ -3072,9 +3110,9 @@ y_scale$year      <- 2022
 #y_scale$region    <- "EBS"
 y_scale$strat_var <- "depth"
 
-
+#plot static adaptive
 p1 <-
-    ggplot(na.omit(subset(df_summary_clean, region != 'EBS'))) +
+    ggplot(subset(df_summary_clean, region != 'EBS')) +
   geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_errorbar(
     aes(
