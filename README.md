@@ -18,7 +18,7 @@ In the second project we optimized designs that included the upper continental s
 The species and stocks set included in the first manuscript are 10 groundfish and 4 crab species (6 stocks) of the eastern Bering Sea:
 
 | Stock | Scientific Name | Common Name |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | arrowtooth flounder | *Atheresthes stomias* | arrowtooth flounder |
 | Arctic cod | *Boreogadus saida* | Arctic cod |
 | Tanner crab | *Chionoecetes bairdi* | Tanner crab |
@@ -69,7 +69,7 @@ The second analysis expanded to 19 groundfish and 4 crab species of the eastern 
 Stratification scheme and station allocation information for each sampling design. The “optimized” stratification schemes represent the multispecies optimal design. All sampling designs consist of 15 strata in the first analysis, 10 in the second analysis, and 520 samples in the first analysis, 376 in the second analysis. The second analysis focused on optimized designs with depth and variance of sea bottom temperature stratification factors alone.
 
 | Stratification scheme | Stratification factors | Sampling allocation |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | existing | depth and geographical subregion | fixed |
 | existing | depth and geographical subregion | balanced random |
 | existing | depth and geographical subregion | random |
@@ -88,14 +88,14 @@ Stratification scheme and station allocation information for each sampling desig
 The analysis is coded into 12 scripts and can be found in Bering_redesign/Scripts/ms sampling designs/ for manuscript 1, with similar structure for manuscript 2 in Bering_redesign/Scripts/ms slope/ that incorporates the continental slope operating models (and including additional scripts appended by \_wslope for slope models, as opposed to shelf models):
 
 -   r0. Creates figures of the study area, sampling stations, and existing sampling design.
--   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models. (r1 is combined into r2 for project 2)
+-   r1. Converts raw bottom-trawl data into the input data frame for the species distribution models.
 -   r2. Exports SBT data from Bering 10K ROMS into the dataset.
 -   r3. Prepares data for projecting models into the future (project 1) or performs calibration between gears (project 2).
--   r4. Fits operating models (OMs). Project 2 includes separate files for for shelf (EBS_NBS) OMs, and for slope OMs.
+-   r4. Fits operating models (OMs). Project 2 includes separate files for shelf (EBS_NBS) OMs, and for slope OMs.
 -   r5. Simulates data from OM.
 -   r6. Retrieves true indices from the OM, and prepares data for optimization.
 -   r7A. Runs sampling optimization based on predicted densities from VAST OM and calculates stratification boundaries and sample allocations for each sampling design.
--   r7B. Plots stratification maps and comparisons. (combined into single r7 script in project 2)
+-   r7B. Plots stratification maps and comparisons. (combined into a single r7 script in project 2).
 -   r8A. Simulates station allocations for each sampling design.
 -   r8B. Simulates data and surveys for historical and projected years and prepares estimates to compute design-based indices for groundfish and crab species.
 -   r9. Compares and plots design estimates versus true estimates.
