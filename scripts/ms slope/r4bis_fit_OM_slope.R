@@ -133,19 +133,23 @@ for (ispp in 11:1 ) {
                     no = 1)
     
     ## Spatial and Spatiotemporal Field Configurations
+    beta_field = 0# "IID" for estimating year intercepts
+    beta_rho = 0# 2 for random walk
+    
     if (species_name %in% 
         c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
           "Hippoglossoides elassodon", "Sebastes alutus",
           "Sebastolobus alascanus") 
         & iregion == "bs_slope") {
-      fieldconfig <- matrix(c(0, "IID", 0, "Identity", 0, "IID", 0, "Identity"),
+      fieldconfig <- matrix(c(0, "IID", beta_field, "Identity", 
+                              0, "IID", beta_field, "Identity"),
                             ncol = 2, nrow = 4,
                             dimnames = list(c("Omega", "Epsilon", "Beta",
                                               "Epsilon_year"),
                                             c("Component_1", "Component_2")))
     } else {
-      fieldconfig <- matrix(c("IID", "IID", 0, "Identity",
-                              "IID", "IID", 0, "Identity"),
+      fieldconfig <- matrix(c("IID", "IID", beta_field, "Identity",
+                              "IID", "IID", beta_field, "Identity"),
                             ncol = 2, nrow = 4,
                             dimnames = list(c("Omega", "Epsilon", "Beta",
                                               "Epsilon_year"),
@@ -154,11 +158,19 @@ for (ispp in 11:1 ) {
     
     
     ## Rho configurations
-    rhoconfig <- c("Beta1" = 2, "Beta2" = 2,
+    rhoconfig <- c("Beta1" = beta_rho, "Beta2" = beta_rho,
                    "Epsilon1" = 4, "Epsilon2" = 4)
     
+    # Need different link for species with 100% encounters if have betas as fixed effects
+    mins <- data_geostat_w_grid |> dplyr::group_by(Year) |> dplyr::summarize(min = min(Weight_kg))
+    if(sum(mins$min) != 0 & beta_rho == 0 & beta_field != 0){
+      link = 4
+    } else {
+      link = 1
+    }
+    
     ## Observation model
-    ObsModel <- c(2, 1)
+    ObsModel <- c(2, link)
     
     ## Error Distributions, number of knots, and 
     # different specifications that aided convergence in prior runs(?)
@@ -169,7 +181,7 @@ for (ispp in 11:1 ) {
     ) {
       knots <- 300  
       rhoconfig["Epsilon1"] <- 2
-      ObsModel <- c(1, 1)
+      ObsModel <- c(1, link)
     } 
     
     ## Set up VAST model settings
