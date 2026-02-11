@@ -561,8 +561,12 @@ fit <- tryCatch( {fit_model(settings=settings,
 # check the slope model that converged
 #####################
 
-#fitfiles<-list.files('./slope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
-#spp<-gsub('/fit.RData','',fitfiles)
+#idir<-"/Volumes/Elements/UW/data_LB/Redesign survey LB/Redesign survey LB/"
+out_dit<-idir
+fitfiles<-list.files(paste0(idir,'/OM EBS-NBS/'),recursive = TRUE,pattern = 'fit.RData')
+#fitfiles<-list.files('/eslope EBS VAST/',recursive = TRUE,pattern = 'fit.RData')
+
+spp<-gsub('/fit.RData','',fitfiles)
 df_conv<-data.frame(spp=c(spp))
 
 #prepare dataframe optimization
@@ -570,18 +574,20 @@ df_conv<-data.frame(spp=c(spp))
 df_conv$slope_st<-NA
 df_conv$EBS_NBS<-NA
 
+#loop over species and models
 for (sp in spp) {
   
-  #sp<-spp[7]
+  #sp<-spp[1]
   
   cat(paste0('#####  ',sp,'  #######\n'))
   
+  #conv for SBS
   #f<-fitfiles[1]
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
-    load(paste0('./slope EBS VAST/',sp,'/fit_st.RData'))
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0(idir,'/OM SBS/',sp,'/fit_st.RData'))
   }
   
-  if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))==0) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
   } else if (is.null(fit)) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
@@ -591,39 +597,24 @@ for (sp in spp) {
     df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
   }
   
-  #non ST if nonconvergence in st
-  # if ( df_conv[which(df_conv$spp==sp),'slope']!='There is no evidence that the model is not converged') {
-  
-  # if (length(list.files(paste0('./slope EBS VAST/',sp,'/'),pattern = 'fit.RData'))!=0) {
-  #   load(paste0('./slope EBS VAST/',sp,'/fit.RData'))
-  # }
-  # 
-  # #EBS+NBS fit
-  # if (file.exists(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))) {
-  #   
-  #   #load fit file
-  #   load(paste0('./shelf EBS NBS VAST//',sp,'/fit.RData'))
-  #   
-  #   #dimensions and check fit
-  #   #dim(fit$Report$D_gct) #53464
-  #   #check_fit(fit$parameter_estimates)
-  #   
-  #   if (is.null(fit)) {
-  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
-  #   } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
-  #   }else{
-  #     df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
-  #   }
-  #   
-  # } else {
-  #   
-  #   df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
-    
+  #conv for EBS+NBS
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))!=0) {
+    load(paste0(idir,'/OM EBS-NBS/',sp,'/fit.RData'))
   }
+
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
+  }
+
   
-
-
+}
+  
 #sort table by sci name
 df_conv<-df_conv[order(df_conv$spp),]
 

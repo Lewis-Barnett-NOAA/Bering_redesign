@@ -516,7 +516,7 @@ combined_sim_df <- combined_sim_df[!(regime == "warm" & year %in% 2006:2013)]
 #selecting species and removing sampling design depth_dummy 
 true_est #simulated abundance estimate 
 true_ind #predicted abundance estimate 
-est_ind #sampling designs abundance estimate
+#est_ind #sampling designs abundance estimate
 
 #sel_spp
 class(true_est);dimnames(true_est)
@@ -1884,6 +1884,24 @@ dev.off()
 
 # Get true index of EBS+NBS+BSS
 true_est_whole<-subset(x = true_est1,region=='EBS+NBS+BSS')
+true_est_whole$replicate<-as.integer(true_est_whole$replicate)
+true_est_whole$region<-NULL
+#Get est EBS+NBS+BSS
+est_ind <- combined_sim_df[
+  ,
+  .(
+    est_mean = mean(STRS_mean, na.rm = TRUE)
+  ),
+  by = .(
+    species,
+    year,
+    approach,
+    replicate,
+    scenario,
+    regime,
+    region
+  )
+]
 
 #estimated design estimates
 #get the mean abundance estimate across replicates
