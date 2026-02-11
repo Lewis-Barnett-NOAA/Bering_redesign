@@ -15,6 +15,10 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Install packages
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#install pacman to use p_load function
+if (!('pacman' %in% installed.packages())) {
+  install.packages("pacman")}
+
 pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', "FNN"), 
                character.only = TRUE)
 channel <- gapindex::get_connected(check_access = FALSE)
