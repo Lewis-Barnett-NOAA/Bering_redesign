@@ -1,6 +1,6 @@
 # Adapting monitoring to a changing seascape: increasing the efficiency, flexibility, and continuity of bottom trawl surveys in the Bering Sea and beyond
 
-## Description
+## Description 
 
 This repository provides the code used for two interrelated projects:
 
