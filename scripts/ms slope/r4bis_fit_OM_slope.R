@@ -358,3 +358,69 @@ for (ispp in 1:nrow(x = species_list)) {
     cat(iregion, species_name , "\n")  
   }
 }
+
+
+# check the slope model that converged
+out_dit<-idir
+fitfiles<-list.files(paste0(idir,'/OM EBS-NBS/'),recursive = TRUE,pattern = 'fit.RData')
+
+#get species name
+spp<-gsub('/fit.RData','',fitfiles)
+df_conv<-data.frame(spp=c(spp))
+
+#prepare dataframe optimization
+df_conv$slope_st<-NA
+df_conv$EBS_NBS<-NA
+
+#loop over species and models
+for (sp in spp) {
+  
+  #sp<-spp[1]
+  
+  cat(paste0('#####  ',sp,'  #######\n'))
+  
+  #conv for SBS
+  #f<-fitfiles[1]
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0(idir,'/OM SBS/',sp,'/fit_st.RData'))
+  }
+  
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
+  }
+  
+  #conv for EBS+NBS
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))!=0) {
+    load(paste0(idir,'/OM EBS-NBS/',sp,'/fit.RData'))
+  }
+  
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
+    #sort table by sci name
+  }
+}
+
+df_conv<-df_conv[order(df_conv$spp),]
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x == "There is no evidence that the model is not converged", 
+                                                "convergence", x))
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x %in% c("The model is likely not converged",'Model is not converged'), 
+                                                "non-convergence", x))
+
+#save csv table
+write.csv(df_conv,file=('./tables/slope_conv.csv'))
