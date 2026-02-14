@@ -133,19 +133,23 @@ for (ispp in 11:1 ) {
                     no = 1)
     
     ## Spatial and Spatiotemporal Field Configurations
+    beta_field = 0# "IID" for estimating year intercepts
+    beta_rho = 0# 2 for random walk
+    
     if (species_name %in% 
         c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
           "Hippoglossoides elassodon", "Sebastes alutus",
           "Sebastolobus alascanus") 
         & iregion == "bs_slope") {
-      fieldconfig <- matrix(c(0, "IID", 0, "Identity", 0, "IID", 0, "Identity"),
+      fieldconfig <- matrix(c(0, "IID", beta_field, "Identity", 
+                              0, "IID", beta_field, "Identity"),
                             ncol = 2, nrow = 4,
                             dimnames = list(c("Omega", "Epsilon", "Beta",
                                               "Epsilon_year"),
                                             c("Component_1", "Component_2")))
     } else {
-      fieldconfig <- matrix(c("IID", "IID", 0, "Identity",
-                              "IID", "IID", 0, "Identity"),
+      fieldconfig <- matrix(c("IID", "IID", beta_field, "Identity",
+                              "IID", "IID", beta_field, "Identity"),
                             ncol = 2, nrow = 4,
                             dimnames = list(c("Omega", "Epsilon", "Beta",
                                               "Epsilon_year"),
@@ -154,11 +158,19 @@ for (ispp in 11:1 ) {
     
     
     ## Rho configurations
-    rhoconfig <- c("Beta1" = 2, "Beta2" = 2,
+    rhoconfig <- c("Beta1" = beta_rho, "Beta2" = beta_rho,
                    "Epsilon1" = 4, "Epsilon2" = 4)
     
+    # Need different link for species with 100% encounters if have betas as fixed effects
+    mins <- data_geostat_w_grid |> dplyr::group_by(Year) |> dplyr::summarize(min = min(Weight_kg))
+    if(sum(mins$min) != 0 & beta_rho == 0 & beta_field != 0){
+      link = 4
+    } else {
+      link = 1
+    }
+    
     ## Observation model
-    ObsModel <- c(2, 1)
+    ObsModel <- c(2, link)
     
     ## Error Distributions, number of knots, and 
     # different specifications that aided convergence in prior runs(?)
@@ -169,7 +181,7 @@ for (ispp in 11:1 ) {
     ) {
       knots <- 300  
       rhoconfig["Epsilon1"] <- 2
-      ObsModel <- c(1, 1)
+      ObsModel <- c(1, link)
     } 
     
     ## Set up VAST model settings
@@ -346,3 +358,69 @@ for (ispp in 1:nrow(x = species_list)) {
     cat(iregion, species_name , "\n")  
   }
 }
+
+
+# check the slope model that converged
+out_dit<-idir
+fitfiles<-list.files(paste0(idir,'/OM EBS-NBS/'),recursive = TRUE,pattern = 'fit.RData')
+
+#get species name
+spp<-gsub('/fit.RData','',fitfiles)
+df_conv<-data.frame(spp=c(spp))
+
+#prepare dataframe optimization
+df_conv$slope_st<-NA
+df_conv$EBS_NBS<-NA
+
+#loop over species and models
+for (sp in spp) {
+  
+  #sp<-spp[1]
+  
+  cat(paste0('#####  ',sp,'  #######\n'))
+  
+  #conv for SBS
+  #f<-fitfiles[1]
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
+    load(paste0(idir,'/OM SBS/',sp,'/fit_st.RData'))
+  }
+  
+  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
+  }
+  
+  #conv for EBS+NBS
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))!=0) {
+    load(paste0(idir,'/OM EBS-NBS/',sp,'/fit.RData'))
+  }
+  
+  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))==0) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
+  } else if (is.null(fit)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
+  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
+  }else{
+    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
+    #sort table by sci name
+  }
+}
+
+df_conv<-df_conv[order(df_conv$spp),]
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x == "There is no evidence that the model is not converged", 
+                                                "convergence", x))
+
+# Replace specific values across all columns using ifelse
+df_conv[] <- lapply(df_conv, function(x) ifelse(x %in% c("The model is likely not converged",'Model is not converged'), 
+                                                "non-convergence", x))
+
+#save csv table
+write.csv(df_conv,file=('./tables/slope_conv.csv'))
