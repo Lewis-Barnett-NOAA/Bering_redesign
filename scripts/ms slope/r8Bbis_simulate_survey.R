@@ -304,6 +304,9 @@ df_summary[cols] <- lapply(df_summary[cols], function(x) {
   gsub("SBS", "BSS", x)
 })
 
+#remove depth dummy designs
+df_summary<-subset(df_summary,df_summary$strat_var=='depth')
+
 #plot 2slope
 pBSS2<-
 ggplot(data = df_summary) +
@@ -538,6 +541,9 @@ df_summary[cols] <- lapply(df_summary[cols], function(x) {
   gsub("SBS", "BSS", x)
 })
 
+#remove depth dummy designs
+df_summary<-subset(df_summary,df_summary$strat_var=='depth')
+
 pnbs2 <- 
 ggplot(data = df_summary) +
   
@@ -686,7 +692,7 @@ cowplot::plot_grid(
   rel_widths = c(0.8, 0.3) # Adjust the width ratio for the plots and the legend
 )
 
-ragg::agg_png(paste0('figures/slope/sampling_effort_area_dens_wdummy.png'), width = 7, height = 5.5, units = "in", res = 300)
+ragg::agg_png(paste0('figures/slope/sampling_effort_area_dens.png'), width = 7, height = 5.5, units = "in", res = 300)
 final_plot
 dev.off()
 
