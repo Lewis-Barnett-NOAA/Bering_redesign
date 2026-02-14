@@ -15,11 +15,7 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Install packages
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#install pacman to use p_load function
-if (!('pacman' %in% installed.packages())) {
-  install.packages("pacman")}
-
-pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', "FNN"), 
+pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', "FNN", "sp"), 
                character.only = TRUE)
 channel <- gapindex::get_connected(check_access = FALSE)
 
@@ -57,8 +53,8 @@ for (iregion in c("BSS", "NBS", "EBS")) { ## loop over regions -- start
   ## Extract month and year from haul data START_TIME
   temp_cpue$month <- lubridate::month(as.POSIXlt(temp_cpue$START_TIME, 
                                                  format="%d/%m/%Y"))
-  temp_cpue$year <- lubridate::year(as.POSIXlt(temp_cpue$START_TIME, 
-                                               format="%d/%m/%Y"))
+  # temp_cpue$year <- lubridate::year(as.POSIXlt(temp_cpue$START_TIME, 
+  #                                              format="%d/%m/%Y"))
   
   ## Lower case the field names in temp_cpue 
   names(x = temp_cpue) <- tolower(x = names(x = temp_cpue))
@@ -116,6 +112,10 @@ aggregate(Area_km2 ~ Region, grid_bs, FUN = sum)
 
 saveRDS(object = grid_bs,
         file = "data/data_processed/grid_bs.RDS")
+
+write.csv(x = grid_bs,
+          file = "data/data_processed/grid_bs.csv",
+          row.names = FALSE)
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Add GEBCO depth (downloaded on August 2022, https://download.gebco.net/)
@@ -258,6 +258,9 @@ for (y in start_year:end_year) {
 
 #save grid Bering Sea with SBT and depth as dataframe
 saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs_year.RDS')
+write.csv(x = grid_bs_year,
+          file = "data/data_processed/grid_bs_year.csv",
+          row.names = FALSE)
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  For each species, extract sea bottom temperature to observed data 
@@ -367,3 +370,11 @@ for (y in sort(x = unique(x = cpue_data$year))) {
 ## save data_geostat file for all species
 saveRDS(object = cpue_data_with_sbt, 
         file = "data/data_processed/cpue_bs_allspp.RDS")
+
+write.csv(x = cpue_data_with_sbt,
+          file = "data/data_processed/cpue_bs_allspp.csv",
+          row.names = FALSE)
+
+## Metadata for 
+
+names(x = cpue_data_with_sbt)
