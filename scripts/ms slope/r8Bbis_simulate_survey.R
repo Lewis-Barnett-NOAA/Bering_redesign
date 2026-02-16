@@ -1,15 +1,11 @@
-####################################################################
-####################################################################
 ##    
-##    simulate data and survey for historical and projected years
+##    simulate data and survey for historical  years
 ##    prepare estimates to compute design-based indices
-##    danielvilasgonzalez@gmail.com/dvilasg@uw.edu
+##    danielvilasgonzalez@gmail.com
 ##    
-##     spatially balanced / random
 ##
-####################################################################
-####################################################################
 
+#Settings ####
 #clear all objects
 rm(list = ls(all.names = TRUE)) 
 
@@ -20,7 +16,7 @@ gc()
 set.seed(6)
 
 #libraries from cran to call or install/load
-pack_cran<-c('ggplot2','units','splines','raster','sp','Spbsampling','sf','doParallel','foreach')
+pack_cran<-c('ggplot2','units','splines','raster','sp','Spbsampling','sf','doParallel','foreach','dplyr','reshape2')
 
 #install pacman to use p_load function - call library and if not installed, then install
 if (!('pacman' %in% installed.packages())) {
@@ -69,10 +65,7 @@ spp<-c('Limanda aspera',
 #yrs
 #yrs<-setdiff(1982:2022,2020)
 
-
-###################################
-# LOAD GRID EBS (remember to keep the same order as in fit_model if multiple grids)
-###################################
+# Load grid ####
 
 #load grid of NBS and EBS
 northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
@@ -99,9 +92,7 @@ x5<-x5[,c('y','x','z','col','row')]
 colnames(x5)<-c('Lat','Lon','cell','col','row')
 grid<-x5[,c('Lat','Lon','cell','col','row')]
 
-###################################
-# YEARS AND BASELINE
-###################################
+# Years and baseline ####
 
 #load grid
 load('data/data_processed/grid_EBS_NBS.RData')
@@ -143,9 +134,7 @@ dim(grid_slp[which(grid_slp$DepthGEBCO<=400),])
 ok_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO<=400)])
 rem_slp_cells<-as.numeric(row.names(grid_slp)[which(grid_slp$DepthGEBCO>400)])
 
-###################################
-# Get SAMPLES DENSITY for the EBS and find for BSS and NBS
-###################################
+# Get samples applying same sampling effort as in EBS  ####
 
 # EBS
 ebs_samples <- 376
@@ -160,16 +149,14 @@ sbs_samples <- sbs_area * ebs_dens
 # NBS
 nbs_area <- sum(northern_bering_sea_grid[,'Area_in_survey_km2'])
 nbs_samples <- nbs_area * ebs_dens
-###################################
-# Sampling designs (from script #11) 
-###################################
+
+# Sampling designs (from script #11) ####
+
 
 #load table that relate survey design (here scn) to variables
 load(file='output/tables/samp_df_dens.RData') #samp_df
 
-################
-# SAMPLES PER REGION
-################
+# count number of samples across region for sampling design ####
 
 n_sur<-100
 
@@ -181,12 +168,8 @@ for (s in 1:nrow(samp_df)) { #nrow(samp_df)
   #s<-1
   
   if (samp_df[s,'type']=='static') {
-    #load multispecies data
-    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
     regime<-c('all')
   } else {
-    #load multispecies data
-    #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
     regime<-c('cold','warm')
   }
   
@@ -280,7 +263,7 @@ df_summary$value <- NULL  # Remove old column
 
 df_summary$region1<-gsub('+','\n',df_summary$region)
 #levels(df_summary$strat_var)[1:2]<-c('varSBT','depth')
-df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','varSBT'))
+df_summary$strat_var<-factor(df_summary$strat_var,levels = c('depth','depth_dummy'))
 
 # # Define the nesting
 # region_ranges<-
@@ -293,9 +276,6 @@ regions <- unique(df_summary$region)
 
 # Convert to a list of element_text
 levels_text_list <- lapply(regions, function(x) element_text())
-
-#convert all NAs into depth_dummy for strat_var
-df_summary$strat_var = ifelse(is.na(df_summary$strat_var), "depth_dummy", df_summary$strat_var)
 
 #change all SBS to BSS
 cols <- c("region", "combined_label", "region1")
@@ -735,11 +715,7 @@ for (sim in 1:n_sim_hist) {
   #create folder
   dir.create(paste0('output/slope/ms_sim_survey_hist/sim',sim_fol))
   
-  #array to store
-  # index_hist<-array(NA,
-  #                   dim=list(length(spp)+length(crabs),3,length(yrs),3,n_sur,nrow(samp_df)),
-  #                   dimnames=list(c(spp,crabs),c('STRS_mean','STRS_var','CV_sim'),paste0('y',yrs),c('sys','rand','sb'),1:n_sur,samp_df$samp_scn))
-  
+  #array to store outputs - mean abundamce, variance and estimated cv over sampling designs
   index_hist<-array(NA,
                     dim=list(length(spp),3,length(yrs),2,n_sur,nrow(samp_df),3),
                     dimnames=list(c(spp),
@@ -758,16 +734,7 @@ for (sim in 1:n_sim_hist) {
       #number of sampling design
       s<-match(samp,samp_df$samp_scn)
       
-      if (samp_df[s,'type']=='static') {
-        #load multispecies data
-        #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_st.RData')) #df
-        regime<-c('all')
-      } else {
-        #load multispecies data
-        #load(paste0('output/slope/multisp_optimization_static_data_ebsnbs_slope_dyn.RData')) #df
-        regime<-c('cold','warm')
-      }
-      
+      #select grid based on region
       if (samp_df[s,'region']=='EBS') {
         grid3<-subset(grid2,region %in% c('EBS'))
       } else if (samp_df[s,'region']=='EBS+NBS') {
@@ -778,6 +745,7 @@ for (sim in 1:n_sim_hist) {
         grid3<-grid2
       }
       
+      #loop over regimes (static, warm or cold)
       for (r in regime) {
         
         #r<-'all'
@@ -801,17 +769,13 @@ for (sim in 1:n_sim_hist) {
         #weight of strata for each
         survey_detail$Wh <- survey_detail$Nh / sum(survey_detail$Nh)
         survey_detail$wh <- with(survey_detail, nh/Nh)
-        
-      
-      #sum(strata_areas$Area_in_survey_km2)
-      
+
       #array to store simulated densities/CPUE
       alloc<-samp_df$n_samples[s]
       
       #load survey allocations by sampling design
         load(file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
-        #scn_allocations
-      #dimnames(scn_allocations)[[3]]<-c('rand','sb')
+
       
         #array to store results  
         sim_survey <- array(NA,
@@ -944,17 +908,16 @@ for (sim in 1:n_sim_hist) {
 
 }
 
+#checks
+#load(file = paste0('output/slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
+#index_hist[,,'y2003','rand',1,'scn4','cold']
 
-load(file = paste0('output/slope/ms_sim_survey_hist/sim001/index_hist_dens.RData'))   #index_hist
-index_hist[,,'y2003','rand',1,'scn4','cold']
-#samp_df
 
-library(dplyr)
-library(dplyr)
-library(reshape2)
-
+#list to store outputs
 all_sim_dfs <- list()
 
+#join simulated sampling designs outputs ####
+#loop over simulations
 for (i in 1:100) {
   
   cat(paste0("### Simulation ", i, " ###\n"))
