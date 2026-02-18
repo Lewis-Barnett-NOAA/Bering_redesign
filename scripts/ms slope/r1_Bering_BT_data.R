@@ -123,6 +123,7 @@ grid_bs$depth_m <-
 
 ## Constrain grid to those between 0 and 400 m and 
 grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 & depth_m >= 1  )
+grid_bs$cell <- 1:nrow(x = grid_bs)
 
 ## Save interpolation grid
 saveRDS(object = grid_bs,
