@@ -6,43 +6,37 @@
 ##    Lukas DeFilippo, Andre Punt
 ####################################################################
 ####################################################################
-
-# clear all objects
 rm(list = ls())
 
+## Import libraries
 library(VAST)
 library(splines)
 
-out_dir <- getwd()
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Import data
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# version VAST (cpp)
-version <- "VAST_v14_0_1"
-
-# folder region - only slope
-fol_region <- "output/slope/vast"
-if (!dir.exists(paths = fol_region)) 
-  dir.create(path = fol_region, recursive = TRUE)
-
-## 
+## Catch and Effort Data
 cpue_bs_allspp <- readRDS(file = "data/data_processed/cpue_bs_allspp.RDS")
 
-# load grid per year for all Bering Sea
+## Interpolation Grid
 grid_bs <- readRDS(file = "data/data_processed/grid_bs.RDS")
+
+## Prediction Grid: interpolation grid for each year
 grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 
-species_list <- read.csv(file = "data/species_list.csv")
-species_list <- subset(x = species_list,
-                       subset = SPECIES_CODE %in% 
-                         unique(x = sort(x = species_list$GROUP_CODE)))
+## Species List
+species_list <- read.csv(file = "data/species_list.csv") |>
+  subset(subset = SPECIES_CODE %in% 
+           unique(x = sort(x = GROUP_CODE)))
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (ispp in 11:1 ) {
-# for (ispp in 1:nrow(x = species_list)) {
+for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+  for (iregion in c("bs_slope", "bs_shelf")) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -134,7 +128,7 @@ for (ispp in 11:1 ) {
     
     ## Spatial and Spatiotemporal Field Configurations
     beta_field = 0# "IID" for estimating year intercepts
-    beta_rho = 0# 2 for random walk
+    beta_rho = 2 ## for random walk
     
     if (species_name %in% 
         c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
@@ -155,7 +149,6 @@ for (ispp in 11:1 ) {
                                               "Epsilon_year"),
                                             c("Component_1", "Component_2")))
     }
-    
     
     ## Rho configurations
     rhoconfig <- c("Beta1" = beta_rho, "Beta2" = beta_rho,
@@ -194,7 +187,7 @@ for (ispp in 11:1 ) {
                     use_anisotropy = aniso,
                     FieldConfig = fieldconfig,
                     RhoConfig = rhoconfig,
-                    Version = version,
+                    Version = "VAST_v14_0_1",
                     ObsModel = ObsModel,
                     max_cells = Inf,
                     mesh_package = "fmesher",
@@ -230,7 +223,7 @@ for (ispp in 11:1 ) {
         newtonsteps = steps,
         working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
       )
-
+    
     ## Save Fit
     saveRDS(object = initial_fit,
             file = paste0("output/", iregion, "/vast/",
@@ -252,8 +245,7 @@ for (ispp in 11:1 ) {
                       b_i = data_geostat_w_grid$Weight_kg,
                       a_i = data_geostat_w_grid$Area_km2,
                       input_grid = interpolation_grid,
-                      getJointPrecision = TRUE,
-                      test_fit = FALSE,
+                      run_model =  FALSE,
                       covariate_data = covariate_data,
                       X1_formula = formula,
                       X2_formula = formula,
@@ -269,7 +261,6 @@ for (ispp in 11:1 ) {
                           species_name, "/fit_w_preds.RDS"))
   }
 }
-
 
 # Sim1 <- VAST::simulate_data(fit = fit,
 #                             type = 1)
@@ -347,80 +338,34 @@ for (ispp in 11:1 ) {
 # save(sim_dens1, file = "output/slope/species/ms_sim_dens_slope.RData")
 
 
-for (ispp in 1:nrow(x = species_list)) {
-  species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Collate convergence of each model
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+df_conv <- data.frame(species_name = sort(species_list$SCIENTIFIC_NAME),
+                      bs_shelf = NA, 
+                      bs_slope = NA)
+
+for (iregion in c("bs_slope", "bs_shelf")) { ## Loop over regions -- start
+  for (ispp in 1:nrow(x = df_conv)) { ## Loop over species -- start
     
-    ## Skip Bering slope model run if it's not included in the slope analysis 
-    if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
+    fit_filename <- paste0("output/", iregion, "/vast/",  
+                           df_conv$species_name[ispp], 
+                           "/parameter_estimates.RData")
     
+    if (file.exists(fit_filename)) {
+      load(fit_filename)
+      max_grad <- parameter_estimates$max_gradient
+      
+      df_conv[ispp, iregion] <-
+        ifelse(test = is.null(x = max_grad),
+               yes = "did not converge",
+               no = ifelse(test = max_grad < 0.01,
+                           yes = "converged", 
+                           no = "did not converge"))
+    } else (df_conv[ispp, iregion] <- "model not fitted")
     
-    cat(iregion, species_name , "\n")  
-  }
-}
+  } ## Loop over species -- end
+} ## Loop over regions -- end
 
-
-# check the slope model that converged
-out_dit<-idir
-fitfiles<-list.files(paste0(idir,'/OM EBS-NBS/'),recursive = TRUE,pattern = 'fit.RData')
-
-#get species name
-spp<-gsub('/fit.RData','',fitfiles)
-df_conv<-data.frame(spp=c(spp))
-
-#prepare dataframe optimization
-df_conv$slope_st<-NA
-df_conv$EBS_NBS<-NA
-
-#loop over species and models
-for (sp in spp) {
-  
-  #sp<-spp[1]
-  
-  cat(paste0('#####  ',sp,'  #######\n'))
-  
-  #conv for SBS
-  #f<-fitfiles[1]
-  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))!=0) {
-    load(paste0(idir,'/OM SBS/',sp,'/fit_st.RData'))
-  }
-  
-  if (length(list.files(paste0(idir,'/OM SBS/',sp,'/'),pattern = 'fit_st.RData'))==0) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-'no model'
-  } else if (is.null(fit)) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-'non convergence'
-  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$Report
-  }else{
-    df_conv[which(df_conv$spp==sp),'slope_st']<-fit$parameter_estimates$Convergence_check
-  }
-  
-  #conv for EBS+NBS
-  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))!=0) {
-    load(paste0(idir,'/OM EBS-NBS/',sp,'/fit.RData'))
-  }
-  
-  if (length(list.files(paste0(idir,'/OM EBS-NBS/',sp,'/'),pattern = 'fit.RData'))==0) {
-    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'no model'
-  } else if (is.null(fit)) {
-    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-'non convergence'
-  } else if (is.null(fit$parameter_estimates$Convergence_check)) {
-    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$Report
-  }else{
-    df_conv[which(df_conv$spp==sp),'EBS_NBS']<-fit$parameter_estimates$Convergence_check
-    #sort table by sci name
-  }
-}
-
-df_conv<-df_conv[order(df_conv$spp),]
-
-# Replace specific values across all columns using ifelse
-df_conv[] <- lapply(df_conv, function(x) ifelse(x == "There is no evidence that the model is not converged", 
-                                                "convergence", x))
-
-# Replace specific values across all columns using ifelse
-df_conv[] <- lapply(df_conv, function(x) ifelse(x %in% c("The model is likely not converged",'Model is not converged'), 
-                                                "non-convergence", x))
-
-#save csv table
-write.csv(df_conv,file=('./tables/slope_conv.csv'))
+saveRDS(object = df_conv, file = "output/df_conv.RDS")
+write.csv(x = df_conv, file = "output/df_conv.csv", row.names = F)

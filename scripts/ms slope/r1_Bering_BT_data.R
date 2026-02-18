@@ -107,16 +107,6 @@ grid_bs <- rbind(
 ) |>
   setNames(nm = c("Lat", "Lon", "Area_km2", "Stratum", "Region"))
 
-#check km2 per region (grid data)
-aggregate(Area_km2 ~ Region, grid_bs, FUN = sum)
-
-saveRDS(object = grid_bs,
-        file = "data/data_processed/grid_bs.RDS")
-
-write.csv(x = grid_bs,
-          file = "data/data_processed/grid_bs.csv",
-          row.names = FALSE)
-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Add GEBCO depth (downloaded on August 2022, https://download.gebco.net/)
 ##  to the Bering Sea interpolation grid
@@ -132,7 +122,16 @@ grid_bs$depth_m <-
                                   crs = terra::crs(r)))$depth_raster
 
 ## Constrain grid to those between 0 and 400 m and 
-grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 & depth_m >= 1 )
+grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 & depth_m >= 1  )
+grid_bs$cell <- 1:nrow(x = grid_bs)
+
+## Save interpolation grid
+saveRDS(object = grid_bs,
+        file = "data/data_processed/grid_bs.RDS")
+
+write.csv(x = grid_bs,
+          file = "data/data_processed/grid_bs.csv",
+          row.names = FALSE)
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Append Bottom Temperature to Interpolation Grid via Bering 10K ROMS
@@ -374,7 +373,3 @@ saveRDS(object = cpue_data_with_sbt,
 write.csv(x = cpue_data_with_sbt,
           file = "data/data_processed/cpue_bs_allspp.csv",
           row.names = FALSE)
-
-## Metadata for 
-
-names(x = cpue_data_with_sbt)
