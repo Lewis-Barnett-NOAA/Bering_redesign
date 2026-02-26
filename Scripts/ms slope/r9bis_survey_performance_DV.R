@@ -267,20 +267,20 @@ samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
                      region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
                      strat_var=c('depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
                      target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=NA, #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
+                     n_samples=376, #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
                      n_strata=c(10),
                      domain=1) #c(5,10,15)
 
-# assign n_samples based on region
-samp_df$n_samples <- n_samples_vec[samp_df$region]
-samp_df
-
-#samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("SBS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
-
-#add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
+# # assign n_samples based on region
+# samp_df$n_samples <- n_samples_vec[samp_df$region]
+# samp_df
+# 
+# #samples slope to add dummy approach
+# samp_slope <- subset(samp_df, grepl("SBS", region))
+# samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
+# 
+# #add with dummy approach
+# samp_df<-rbind(samp_df,samp_slope)
 
 #add scenario number
 samp_df$scenario<-paste0(paste0('scn',1:nrow(samp_df)))
@@ -441,7 +441,7 @@ if (!file.exists(true_index_file)) {
   
 }
 
-# TRUE ABUNDANCE simulated #####
+# TRUE ABUNDANCE simulated - PRED IND MLE #####
 # OUTPUT #true_est: abundance estimates from simulated dataset (aka replicate) 
 
 #simulated densities
@@ -494,7 +494,13 @@ save(true_est,file = paste0("./output slope/true_ind_hist.RData"))
 # ESTIMATED ABUNDANCE simulated #####
 #OUTPUT est_ind: abundance estimates from survey designs (100 replicas * 100 survey)
 #store HIST simulated data
-load(file = paste0('./data processed/index_dens_all.RData'))  #combined_sim_df
+load(file = paste0('./data processed/index_all.RData'))  #combined_sim_df #rows 79198889
+
+#"./data processed/index_all.RData"
+#save(combined_sim_df, file = "./data processed/index_all.RData")
+
+
+
 setDT(combined_sim_df)  # Convert ind2 to data.table if it's not already
 
 #rename region for merging
@@ -509,8 +515,8 @@ combined_sim_df$year<-gsub('y','',combined_sim_df$year)
 combined_sim_df <- combined_sim_df[!(regime == "cold" & year %in% c(2002:2005,2014:2016))]
 combined_sim_df <- combined_sim_df[!(regime == "warm" & year %in% 2006:2013)]
 #summary(combined_sim_df$STRS_var)
-
-
+dim(combined_sim_df)
+#after removing warm estimates from non warm years and same with cold rows52799511
 
 # FILTER SPECIES AND STRAT_VAR ####
 #selecting species and removing sampling design depth_dummy 
@@ -568,7 +574,7 @@ true_est1$value<-true_est1$true_est
 
 #true_ind true ind for area
 #arrange true index data
-true_ind1 <- melt(true_ind, varnames = c("year", "region", "species"), value.name = "value")
+true_ind1 <- reshape2::melt(true_ind, varnames = c("year", "region", "species"), value.name = "value")
 true_ind1<-subset(true_ind1,region!='year')
 true_ind1<-true_ind1[which(true_ind1$species %in% df_spp1$species),]
 true_ind1<-merge(true_ind1,df_spp1,by='species')
@@ -581,7 +587,8 @@ df<-as.data.table(est_ind)
 #merge to spp common
 # merge to add the common name
 df <- merge(df, df_spp, by = "species", all.x = TRUE)
-df <- merge(df, samp_df[,c("type","region","strat_var","scenario")],by=c('scenario','region'),all.x=TRUE)
+df <- merge(df, samp_df[,c("region","strat_var","scenario")],by=c('scenario','region'),all.x=TRUE)
+df$type<-ifelse(df$regime=='all','static','dynamic')
 #sort approach (station allocation)
 df$approach <- factor(df$approach, levels = c("sb", "rand"))
 df$year<-as.integer(df$year)
@@ -591,11 +598,9 @@ df$value<-df$est_mean/1000
 y_scale<-aggregate(value ~ common, df,max)
 y_scale$scale<-y_scale$value+y_scale$value*0.25
 y_scale$text<-y_scale$value+y_scale$value*0.20
-y_scale$apr<-'sys'
+y_scale$apr<-'rand'
 y_scale$year<-2010
 y_scale$scn<-'scn1'
-y_scale[11,'text']<-77000
-y_scale[11,'scale']<-80000
 
 #plot abundance index for each sampling design
 p<-
@@ -632,7 +637,7 @@ p<-
       theme(
         legend.box = 'horizontal',  # Stack legends on top of each other
         legend.direction = 'vertical',  # Each legend’s elements are horizontal
-        legend.position = c(0.8, 0.075),  # Justify the legend to the right
+        legend.position = 'bottom',c(0.8, 0.075),  # Justify the legend to the right
         legend.justification = 'center',  # Ensure it’s centered vertically
         legend.title = element_text(size = 11, hjust = 0.5),  # Title font size and centering
         legend.text = element_text(size = 10, color = "black"),  # Text size and color
@@ -652,7 +657,7 @@ p<-
         fill = guide_legend(order = 2, title.position = "top", override.aes = list(size = 3))
       )+
     geom_blank(data=y_scale, aes(x=year, y=scale/1000000, fill=scn, group=interaction(scn, apr))) +
-    facet_wrap(~common, scales='free_y', dir='h', nrow = 5)
+    facet_wrap(~common, scales='free_y', dir='h', nrow = 2)
 
 #save index plot
 ragg::agg_png(paste0('./figures slope/ms_ind_EBSNBSBSS.png'), width = 14, height = 8, units = "in", res = 300)
@@ -859,13 +864,14 @@ dev.off()
 #get summary based on static and adaptive
 df_summary$regime1<-ifelse(df_summary$regime=='all','all','dyn')
 df_summary$combined_label1<-paste0(df_summary$approach," - ",df_summary$regime1)
-df_summary_clean <- df_summary %>%
-  group_by(region, approach,strat_var, combined_label1, region1, regime1, common) %>%
-  summarise(
+df_summary_clean <- df_summary[
+  , .(
     mean_value = mean(mean_value, na.rm = TRUE),
-    sd_value = mean(sd_value, na.rm = TRUE),  # or another logic
-    .groups = "drop"
-  )
+    sd_value   = mean(sd_value, na.rm = TRUE)
+  ),
+  by = .(region, approach, strat_var, combined_label1, 
+         region1, regime1, common)
+]
 df_summary_clean$combined_label1<-factor(df_summary_clean$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
 
 #plot true cv static - adaptive
@@ -1159,13 +1165,14 @@ dev.off()
 #get summary based on static and adaptive
 df_summary$regime1<-ifelse(df_summary$regime=='all','all','dyn')
 df_summary$combined_label1<-paste0(df_summary$approach," - ",df_summary$regime1)
-df_summary_clean <- df_summary %>%
-  group_by(region, approach,strat_var, combined_label1, region1, regime1, common) %>%
-  summarise(
+df_summary_clean <- df_summary[
+  , .(
     mean_value = mean(mean_value, na.rm = TRUE),
-    sd_value = mean(sd_value, na.rm = TRUE),  # or another logic
-    .groups = "drop"
-  )
+    sd_value   = mean(sd_value, na.rm = TRUE)
+  ),
+  by = .(region, approach, strat_var, combined_label1, 
+         region1, regime1, common)
+]
 df_summary_clean$combined_label1<-factor(df_summary_clean$combined_label1,c("rand - all",'sb - all',"rand - dyn",'sb - dyn'))
   
 # PLOT WITH static vs adaptive
@@ -1300,6 +1307,7 @@ est_ind <- combined_sim_df[
   by = .(
     species,
     year,
+    sim,
     approach,
     replicate,
     scenario,
@@ -1326,28 +1334,28 @@ est_ind1$year<-as.integer(est_ind1$year)
 #to adjust units
 est_ind1$est_mean<-est_ind1$est_mean/10
 
-#merge estimated index and true index
-rrmse_ind1<-merge(est_ind1,true_est1,by=c('species','region','year','replicate','common'))
+# Merge estimated and true index
+rrmse_ind1 <- merge(est_ind1, true_est1, 
+                    by = c('species','region','year','replicate','common'))
 
-# Compute relative bias
-rrmse_ind1[, rel_bias := 100*((est_mean - true_est) / true_est)]
-rrmse_ind1[, rel_log_bias := log10(est_mean / true_est) ]
+# Compute relative bias and log bias
+rrmse_ind1[, rel_bias := 100 * ((est_mean - true_est) / true_est)]
+rrmse_ind1[, rel_log_bias := log10(est_mean / true_est)]
 
-# Compute mean relative bias and RRMSE by spp, year, and scenario
+# Compute mean relative bias and RRMSE per species × year × scenario × approach × regime
 rel_bias_rrmse_dt <- rrmse_ind1[, .(
-  rel_bias = mean(rel_bias, na.rm = TRUE),
-  rel_log_bias = mean(rel_bias, na.rm = TRUE),
-  rrmse = sqrt(mean((est_mean - true_est)^2, na.rm = TRUE)) / mean(true_est, na.rm = TRUE)
-), by = .(species, year, scenario, approach, regime)]
+  rel_bias     = mean(rel_bias, na.rm = TRUE),
+  rel_log_bias = mean(rel_log_bias, na.rm = TRUE),
+  rrmse        = sqrt(mean((est_mean - true_est)^2, na.rm = TRUE)) / mean(true_est, na.rm = TRUE)
+), by = .(species, year, scenario, approach, regime,replicate)]
 
-# Keep only necessary simulations (e.g., sim 1) or average across sims if desired
+# Aggregate across years if desired
 df_rb_rrmse <- rel_bias_rrmse_dt[, .(
   mean_rel_bias = mean(rel_bias, na.rm = TRUE),
   sd_rel_bias   = sd(rel_bias, na.rm = TRUE),
   mean_rrmse    = mean(rrmse, na.rm = TRUE),
   sd_rrmse      = sd(rrmse, na.rm = TRUE)
-), by = .(species, scenario, approach)]
-
+), by = .(species, scenario,approach)]
 # Join with scenario-level metadata if needed
 # Assuming samp_df contains mapping of scn to region, strat_var, approach, regime1, etc.
 df_rb_rrmse1<-merge(df_rb_rrmse,samp_df,by='scenario')
@@ -1641,7 +1649,7 @@ y_scale$scale <- ifelse(
 )
 y_scale$text <- y_scale$scale
 # manual override
-y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
+#y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -1766,7 +1774,7 @@ y_scale$scale <- ifelse(
 )
 y_scale$text <- y_scale$scale
 # manual override
-y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
+#y_scale[y_scale$common == "Shortspine thornyhead", "text"] <- 20
 # artificial columns so geom_blank has valid x aesthetics
 y_scale$apr       <- "sb"
 y_scale$scn       <- "scn1"
@@ -1887,6 +1895,7 @@ true_est_whole<-subset(x = true_est1,region=='EBS+NBS+BSS')
 true_est_whole$replicate<-as.integer(true_est_whole$replicate)
 true_est_whole$region<-NULL
 #Get est EBS+NBS+BSS
+#get est whole
 est_ind <- combined_sim_df[
   ,
   .(
@@ -1895,6 +1904,7 @@ est_ind <- combined_sim_df[
   by = .(
     species,
     year,
+    sim,
     approach,
     replicate,
     scenario,
@@ -1913,6 +1923,7 @@ est_ind <- combined_sim_df[
   by = .(
     species,
     year,
+    sim,
     approach,
     replicate,
     scenario,
@@ -1939,19 +1950,20 @@ est_ind1$year<-as.integer(est_ind1$year)
 #to adjust units
 est_ind1$est_mean<-est_ind1$est_mean/10
 
-#merge estimated index and true index
-rrmse_ind1<-merge(est_ind1,true_est_whole,by=c('species','year','replicate','common'))
+# Merge estimated and true index
+rrmse_ind1 <- merge(est_ind1, true_est_whole, 
+                    by = c('species','year','replicate','common'))
 
-# Compute relative bias
-rrmse_ind1[, rel_bias := 100*((est_mean - true_est) / true_est)]
-rrmse_ind1[, rel_log_bias := log10(est_mean / true_est) ]
+# Compute relative bias and log bias
+rrmse_ind1[, rel_bias := 100 * ((est_mean - true_est) / true_est)]
+rrmse_ind1[, rel_log_bias := log10(est_mean / true_est)]
 
-# Compute mean relative bias and RRMSE by spp, year, and scenario
+# Compute mean relative bias and RRMSE per species × year × scenario × approach × regime
 rel_bias_rrmse_dt <- rrmse_ind1[, .(
-  rel_bias = mean(rel_bias, na.rm = TRUE),
-  rel_log_bias = mean(rel_bias, na.rm = TRUE),
-  rrmse = sqrt(mean((est_mean - true_est)^2, na.rm = TRUE)) / mean(true_est, na.rm = TRUE)
-), by = .(species, year, scenario, approach, regime)]
+  rel_bias     = mean(rel_bias, na.rm = TRUE),
+  rel_log_bias = mean(rel_log_bias, na.rm = TRUE),
+  rrmse        = sqrt(mean((est_mean - true_est)^2, na.rm = TRUE)) / mean(true_est, na.rm = TRUE)
+), by = .(species, year, scenario, approach, regime,replicate)]
 
 # Keep only necessary simulations (e.g., sim 1) or average across sims if desired
 df_rb_rrmse <- rel_bias_rrmse_dt[, .(
@@ -2250,6 +2262,7 @@ sd_est_ind <- combined_sim_df[
   by = .(
     species,
     year,
+    sim,
     approach,
     replicate,
     scenario,
@@ -2304,6 +2317,7 @@ cv2 <- combined_sim_df[
   by = .(
     species,
     year,
+    sim,
     approach,
     replicate,
     scenario,
@@ -2342,10 +2356,14 @@ rrmse_cv <- merge(
 
 # Calculate relative bias and squared error
 rrmse_cv[, rel_bias := 100*((cv_sim - true_cv) / true_cv)]
-rrmse_cv[, sqrtdiff := (cv_sim - true_cv)^2]
+rrmse_cv[, rel_log_bias := log10(cv_sim / true_cv)]
 
-# Calculate RRMSE
-rrmse_cv[, rrmse := sqrt(sqrtdiff) / true_cv]
+# Compute mean relative bias and RRMSE per species × year × scenario × approach × regime
+rrmse_cv <- rrmse_cv[, .(
+  rel_bias     = mean(rel_bias, na.rm = TRUE),
+  rel_log_bias = mean(rel_log_bias, na.rm = TRUE),
+  rrmse        = sqrt(mean((cv_sim - true_cv)^2, na.rm = TRUE)) / mean(true_cv, na.rm = TRUE)
+), by = .(species, year, scenario, approach,replicate, regime)]
 
 # Keep only necessary simulations (e.g., sim 1) or average across sims if desired
 df_rb_rrmse <- rrmse_cv[, .(
@@ -2490,12 +2508,13 @@ p
 dev.off()
 
 # Keep only necessary simulations (e.g., sim 1) or average across sims if desired
-df_rb_rrmse2 <- rel_bias_rrmse_dt[, .(
+df_rb_rrmse2 <- rrmse_cv[, .(
   mean_rel_bias = mean(rel_bias, na.rm = TRUE),
   sd_rel_bias   = sd(rel_bias, na.rm = TRUE),
   mean_rrmse    = mean(rrmse, na.rm = TRUE),
   sd_rrmse      = sd(rrmse, na.rm = TRUE)
 ), by = .(species, scenario, approach,regime)]
+
 
 # Join with scenario-level metadata if needed
 # Assuming samp_df contains mapping of scn to region, strat_var, approach, regime1, etc.
