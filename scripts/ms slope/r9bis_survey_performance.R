@@ -408,7 +408,7 @@ if (!file.exists(true_index_file)) {
   
   df_wide <- do.call(rbind, df_list)
   write.csv(df_wide, file = paste0("output/slope/model_based_EBSNBSBSS.csv"),
-            rownames = FALSE)
+            row.names = FALSE)
   
 } else {
   # code to run when the file is missing
