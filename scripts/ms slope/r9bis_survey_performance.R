@@ -396,7 +396,19 @@ if (!file.exists(true_index_file)) {
   true_ind[c(9,15),,'Sebastes melanostictus']<-NA
   
   #save true ind
-  save(true_ind,file = paste0("output/slope//model_based_EBSNBSBSS.RData"))  
+  save(true_ind,file = paste0("output/slope/model_based_EBSNBSBSS.RData"))  
+  
+  # reshape into dataframe
+  df_list <- lapply(dimnames(true_ind)[[3]], function(sp) {
+    df_tmp <- as.data.frame(true_ind[, , sp])
+    df_tmp$year <- as.numeric(rownames(df_tmp))
+    df_tmp$species <- sp
+    df_tmp
+  })
+  
+  df_wide <- do.call(rbind, df_list)
+  write.csv(df_wide, file = paste0("output/slope/model_based_EBSNBSBSS.csv"),
+            rownames = FALSE)
   
 } else {
   # code to run when the file is missing
@@ -409,7 +421,7 @@ if (!file.exists(true_index_file)) {
 
 #arrange true index data
 true_ind1<-reshape2::melt(true_ind,id.vars='year')
-true_ind1 <- melt(true_ind, varnames = c("year", "region", "spp"), value.name = "value")
+true_ind1 <- reshape2::melt(true_ind, varnames = c("year", "region", "spp"), value.name = "value")
 true_ind1<-subset(true_ind1,region!='year')
 true_ind1<-true_ind1[which(true_ind1$spp %in% df_spp1$spp),]
 true_ind1<-merge(true_ind1,df_spp1,by='spp')
@@ -445,8 +457,9 @@ df<-merge(df,samp_df[,c("type","region","strat_var","samp_scn")],by.x='scn',by.y
 #df<-subset(df,scn %in% paste0('scn',1:16))
 
 #save true ind
-save(df,file = paste0("output/slope//design_based_EBSNBSBSS.RData"))  
-load(file = paste0("output/slope//design_based_EBSNBSBSS.RData"))  
+save(df,file = paste0("output/slope/design_based_EBSNBSBSS.RData"))
+write.csv(df, file = "output/slope/design_based_EBSNBSBSS.csv", row.names = FALSE)
+#load(file = paste0("output/slope/design_based_EBSNBSBSS.RData"))  
 
 levels(df$region)<-c("EBS","EBS+NBS","EBS+BSS","EBS+NBS+BSS")
 
