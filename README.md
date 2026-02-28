@@ -107,7 +107,7 @@ Project 2 also includes the following visualization scripts
 
 ## Data
 
--   data via axiom (including .csv versions)
+-   data via data one (including .csv versions), and in latest release files
 
 ## Archived output
 
