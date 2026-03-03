@@ -53,7 +53,6 @@ pacman::p_load(pack_cran,character.only = TRUE)
 #setwd - depends on computer using
 #out_dir<-'C:/Users/Daniel.Vilas/Work/Adapting Monitoring to a Changing Seascape/' #NOAA laptop  
 #out_dir<-'/Users/daniel/Work/UW-NOAA/Adapting Monitoring to a Changing Seascape/' #mac
-#out_dir<-'/Users/daniel/Work/VM' #VM
 #setwd(out_dir)
 
 #version VAST (cpp)
@@ -295,28 +294,28 @@ samp_df<-expand.grid(type=c('static','dynamic'),#c('all','cold','warm'),
                      region=c('EBS','EBS+NBS','EBS+SBS','EBS+NBS+SBS'),
                      strat_var=c('Depth'), #,'varTemp_forced','Depth_forced' #LonE and combinations
                      target_var=c('sumDensity'), #,'sqsumDensity'
-                     n_samples=NA, #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
+                     n_samples=376, #c(300,500) 520 (EBS+NBS+CRAB);26 (CRAB); 350 (EBS-CRAB); 494 (NBS-CRAB)
                      n_strata=c(10),
                      domain=1) #c(5,10,15)
 
-
+# assign same level of sampling effort
 # assign n_samples based on region
-samp_df$n_samples <- n_samples_vec[samp_df$region]
+#samp_df$n_samples <- n_samples_vec[samp_df$region]
 samp_df
 
-
+# forcing depth sampling designs
 #samples slope to add dummy approach
-samp_slope <- subset(samp_df, grepl("SBS", region))
-samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
+#samp_slope <- subset(samp_df, grepl("SBS", region))
+#samp_slope$strat_var<-paste0(samp_slope$strat_var,'_dummy')
 
 #add with dummy approach
-samp_df<-rbind(samp_df,samp_slope)
+#samp_df<-rbind(samp_df,samp_slope)
 
 #add scenario number
 samp_df$samp_scn<-paste0(paste0('scn',1:nrow(samp_df)))
 
 #save table that relate survey design (here scn) to variables
-save(samp_df,file='output/tables/samp_df_dens.RData')
+save(samp_df,file='output/tables/samp_df.RData')
 
 #########################
 # loop over optimized sampling designs
@@ -891,7 +890,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
       
       #save list
         save(all,
-             file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData"))
+             file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData"))
         
         #strata to plot
         dd<-all$result_list$solution$framenew
@@ -1041,7 +1040,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
     
     #save list
     load(
-         file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #all
+         file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #all
     
     #strata to plot
     dd<-all$result_list$solution$framenew
@@ -1291,7 +1290,7 @@ for (s in c(1:nrow(samp_df))) { #nrow(samp_df)
 # cowplot::ggdraw(legend)
 
 #plots
-agg_png(paste0('figures/slope/sampling intensity survey designs_dens.png'), width = 9, height = 13, units = "in", res = 300)
+agg_png(paste0('figures/slope/sampling intensity survey designs.png'), width = 9, height = 13, units = "in", res = 300)
 plot_grid(plotlist = plot_list[13:24],nrow = 4)
 dev.off()
 1
@@ -1299,9 +1298,9 @@ dev.off()
 
 #check
 samp_df
-load(file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_scn1_alldens.RData"))
+load(file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_scn1_all.RData"))
 all$cv #ebs
-load(file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_scn3_alldens.RData"))
+load(file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_scn3_all.RData"))
 all$cv #with nbs
 load(file = paste0("output/slope/ms_optim_allocations_ebsnbs_slope_scn5_all.RData"))
 all$cv #with slope
