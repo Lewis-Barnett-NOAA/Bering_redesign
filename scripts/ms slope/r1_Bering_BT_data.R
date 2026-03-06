@@ -13,7 +13,7 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Import packages, connect to Oracle
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra'), 
+pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', 'sdmTMB'), 
                character.only = TRUE)
 channel <- gapindex::get_connected(check_access = FALSE)
 
@@ -234,10 +234,26 @@ for (y in 2002:2016) {
     terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326") |>
     terra::project("EPSG:3338")
   
+  
   ## For each bs_grid_obj cell, extract the ROMS mean summer temperature value 
   ## of the nearest point in the ROMS spatial object
   grid_bs_obj$roms_sbt_c <- roms_obj$temp[terra::nearest(x = grid_bs_obj, 
                                                          y = roms_obj)$to_id]
+  
+  ## Add coordinates in lat/lon and utms
+  grid_bs_obj[, c("lon", "lat")] <-
+    grid_bs_obj |> 
+    terra::project("EPSG:4326") |> 
+    terra::crds() |> 
+    as.data.frame() |> setNames(nm = c("lon", "lat"))
+  
+  grid_bs_obj <-
+    sdmTMB::add_utm_columns(
+      dat = grid_bs_obj,
+      ll_names = c("lon", "lat"),
+      utm_names = c("x_utm_km", "y_utm_km"),
+      units = "km"
+    )
   
   ## Plot
   ggplot() +
@@ -254,6 +270,7 @@ for (y in 2002:2016) {
   grid_bs_year <- rbind(grid_bs_year, 
                         as.data.frame(grid_bs_obj) |>
                           subset(select = c(cell, year, region, stratum, 
+                                            lon, lat, x_utm_km, y_utm_km,
                                             area_km2, depth_m, roms_sbt_c)) )
 }
 
@@ -338,11 +355,21 @@ for (y in sort(x = unique(x = cpue_data$year))) {
     ## of the nearest point in the ROMS spatial object
     temp_cpue_obj$roms_sbt_c <- roms_obj$temp[terra::nearest(x = temp_cpue_obj,
                                                              y = roms_obj)$to_id]
+    
+    ## Add coordinates in lat/lon and utms
     temp_cpue_obj[, c("lon", "lat")] <-
       temp_cpue_obj |> 
       terra::project("EPSG:4326") |> 
       terra::crds() |> 
       as.data.frame() |> setNames(nm = c("lon", "lat"))
+    
+    temp_cpue_obj <- 
+      sdmTMB::add_utm_columns(
+        dat = temp_cpue_obj,
+        ll_names = c("lon", "lat"),
+        utm_names = c("x_utm_km", "y_utm_km"),
+        units = "km"
+      )
     
     ## Save sbt temperature monthly average map
     ggplot() +
@@ -357,8 +384,14 @@ for (y in sort(x = unique(x = cpue_data$year))) {
            width = 5, height = 5, units = "in")
     
     ## Append to cpue_data_with_sbt 
-    cpue_data_with_sbt <- rbind(cpue_data_with_sbt,
-                                as.data.frame(temp_cpue_obj))
+    cpue_data_with_sbt <- 
+      rbind(cpue_data_with_sbt,
+            as.data.frame(temp_cpue_obj) |>
+              subset(select = c(hauljoin, survey, start_time, year, month, 
+                                lon, lat, x_utm_km, y_utm_km, area_swept_km2, 
+                                depth_m, sbt_c, roms_sbt_c, 
+                                species_code, scientific_name, 
+                                weight_kg, cpue_kgkm2)))
   } ## Loop over months -- end
 }
 
@@ -384,3 +417,20 @@ text(13, 0,
                                 cpue_data_with_sbt$sbt_c,
                                 use = "complete.obs") |> round(2) ))
 dev.off()
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Mesh for slope and shelf models
+##  Shelf models have 300 spatial knots, slope models have 200 spatial knots
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if (!dir.exists(paths = "data/data_processed/sdmtmb_mesh/"))
+  dir.create(path = "data/data_processed/sdmtmb_mesh/")
+
+cpue_data_with_sbt |>
+  subset(subset = species_code == 21740 & survey %in% c("EBS", "NBS")) |>
+  sdmTMB::make_mesh(xy_cols = c("x_utm_km", "y_utm_km"), n_knots = 300) |>
+  saveRDS(file  = "data/data_processed/sdmtmb_mesh/bs_shelf_mesh.RDS")
+
+cpue_data_with_sbt |>
+  subset(subset = species_code == 30020 & survey %in% c("BSS")) |>
+  sdmTMB::make_mesh(xy_cols = c("x_utm_km", "y_utm_km"), n_knots = 200)|>
+  saveRDS(file = "data/data_processed/sdmtmb_mesh/bs_slope_mesh.RDS")
