@@ -120,9 +120,9 @@ n_yrs<-length(yrs)
 
 # GRIDS #####
 #load grid of NBS and EBS
-load('./extrapolation grids/northern_bering_sea_grid.rda')
-load('./extrapolation grids/eastern_bering_sea_grid.rda')
-load('./extrapolation grids/bering_sea_slope_grid.rda')
+northern_bering_sea_grid <- FishStatsUtils::northern_bering_sea_grid
+eastern_bering_sea_grid <- FishStatsUtils::eastern_bering_sea_grid
+bering_sea_slope_grid <- FishStatsUtils::bering_sea_slope_grid
 colnames(bering_sea_slope_grid)[4]<-'Stratum'
 bering_sea_slope_grid$Stratum<-NA
 grid<-as.data.frame(rbind(data.frame(northern_bering_sea_grid,region='NBS'),
@@ -225,7 +225,6 @@ linetype_static_adaptive <- c(
 
 legend_title_static_adaptive <- "sampling allocation and design approach"
 
-
 # Sampling designs #####
 # Get SAMPLES DENSITY for the EBS and find for BSS and NBS
 # EBS
@@ -300,9 +299,9 @@ if (!file.exists(true_index_file)) {
   dens_index_hist_OM<-list()
   
   #loop over spp
-  for (sp in slp_conv) {
+  for (sp in spp) {
     
-    #sp<-spp[5] #20
+    #sp<-spp[1] #20
     
     cat(paste(sp,'\n'))
     
@@ -310,6 +309,11 @@ if (!file.exists(true_index_file)) {
     
     #get list of fit data
     ff<-list.files(paste0('./slope EBS VAST/',sp),mod1,recursive = TRUE)
+    
+    if (length(ff)==0) {
+      message("No file to load for species '", sp, "'. No model available, skipping.")
+      next  # jumps to the next iteration in a loop
+    }
     
     #load fit file
     load(paste0('./slope EBS VAST/',sp,'/',ff)) #fit
@@ -432,6 +436,18 @@ if (!file.exists(true_index_file)) {
   #save true ind
   save(true_ind,file = paste0("./output slope//model_based_EBSNBSBSS.RData"))  
   
+  # reshape into dataframe
+  df_list <- lapply(dimnames(true_ind)[[3]], function(sp) {
+    df_tmp <- as.data.frame(true_ind[, , sp])
+    df_tmp$year <- as.numeric(rownames(df_tmp))
+    df_tmp$species <- sp
+    df_tmp
+  })
+  
+  df_wide <- do.call(rbind, df_list)
+  write.csv(df_wide, file = paste0("./output slope/model_based_EBSNBSBSS.csv"),
+            row.names = FALSE)
+  
 } else {
   # code to run when the file is missing
   message("File present, loading...")
@@ -490,7 +506,6 @@ save(true_est,file = paste0("./output slope/true_ind_hist.RData"))
 #load(file = paste0("./output slope/true_ind_hist.RData"))  
 
 
-
 # ESTIMATED ABUNDANCE simulated #####
 #OUTPUT est_ind: abundance estimates from survey designs (100 replicas * 100 survey)
 #store HIST simulated data
@@ -498,8 +513,6 @@ load(file = paste0('./data processed/index_all.RData'))  #combined_sim_df #rows 
 
 #"./data processed/index_all.RData"
 #save(combined_sim_df, file = "./data processed/index_all.RData")
-
-
 
 setDT(combined_sim_df)  # Convert ind2 to data.table if it's not already
 
@@ -1882,9 +1895,7 @@ p<-
   )+
   coord_cartesian(clip = "off")
 
-
 ragg::agg_png(paste0('./figures slope/RBIAS_index_warmcold.png'), width = 10, height = 6, units = "in", res = 300)
-#ragg::agg_png(paste0('./figures/ms_hist_indices_cv_box_EBSNBS_suppl.png'), width = 13, height = 8, units = "in", res = 300)
 p
 dev.off()
 
