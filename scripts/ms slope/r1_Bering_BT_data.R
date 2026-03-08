@@ -13,8 +13,9 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Import packages, connect to Oracle
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra', 'sdmTMB'), 
-               character.only = TRUE)
+library(gapindex); library(sdmTMB); library(tidyterra)
+library(ncdf4); library(terra); library(lubridate)
+
 channel <- gapindex::get_connected(check_access = FALSE)
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,67 +23,69 @@ channel <- gapindex::get_connected(check_access = FALSE)
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 start_year <- 1982; end_year <- 2022
 species_list <- read.csv(file = "data/species_list.csv")
-cpue_data <- data.frame()
 
-for (iregion in c("bs_slope", "bs_shelf")) { ## loop over regions -- start
-  
-  ## Initial data pull
-  temp_data <- 
-    gapindex::get_data(year_set = start_year:end_year, 
-                       survey_set = list("bs_slope" = "BSS",
-                                         "bs_shelf" = c("NBS", "EBS"))[[iregion]], 
-                       spp_codes = species_list,
-                       channel = channel, 
-                       taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION") 
-  temp_cpue <- 
-    ## Calculate cpue
-    gapindex::calc_cpue(gapdata = temp_data) |>
-    ## Select relevant fields
-    subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
-                      "DEPTH_M", "BOTTOM_TEMPERATURE_C",
-                      "LATITUDE_DD_START", "LONGITUDE_DD_START",
-                      "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
-                      "CPUE_KGKM2")) |>
-    ## Merge START_TIME from the haul data into the cpue df
-    merge(x = temp_data$haul[, c("HAULJOIN", "START_TIME")],
-          by = "HAULJOIN") |>
-    ## Merge species name to cpue df
-    merge(y = temp_data$species |> 
-            subset(select = c("SPECIES_CODE", "SCIENTIFIC_NAME")),
-          by = "SPECIES_CODE")
-  
+## Pull data from gapindex across all regions
+gp_data <- 
+  gapindex::get_data(year_set = start_year:end_year, 
+                     survey_set = c("EBS", "NBS", "BSS"), 
+                     spp_codes = species_list,
+                     channel = channel, 
+                     taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION") 
+
+cpue_data <- 
+  ## Calculate cpue
+  gapindex::calc_cpue(gapdata = gp_data) |>
+  ## Select relevant fields
+  subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
+                    "DEPTH_M", "BOTTOM_TEMPERATURE_C",
+                    "LATITUDE_DD_START", "LONGITUDE_DD_START",
+                    "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
+                    "CPUE_KGKM2")) |>
+  ## Merge START_TIME from the haul data into the cpue df
+  merge(x = gp_data$haul[, c("HAULJOIN", "START_TIME")],
+        by = "HAULJOIN") |>
+  ## Merge species name to cpue df
+  merge(y = gp_data$species |> 
+          subset(select = c("SPECIES_CODE", "SCIENTIFIC_NAME")),
+        by = "SPECIES_CODE") |>
+  ## add eastings and northings in km
+  sdmTMB::add_utm_columns(ll_names = c("LONGITUDE_DD_START", 
+                                       "LATITUDE_DD_START"),
+                          utm_names = c("x_utm_km", "y_utm_km"), 
+                          units = "km") |>
   ## Extract month and year from haul data START_TIME
-  temp_cpue$MONTH <- lubridate::month(as.POSIXlt(temp_cpue$START_TIME, 
-                                                 format="%d/%m/%Y"))
-  
-  ## Lower case the field names in temp_cpue 
-  names(x = temp_cpue) <- tolower(x = names(x = temp_cpue))
-  names(x = temp_cpue)[names(x = temp_cpue) == "latitude_dd_start"] <-
-    "lat"
-  names(x = temp_cpue)[names(x = temp_cpue) == "longitude_dd_start"] <-
-    "lon"
-  names(x = temp_cpue)[names(x = temp_cpue) == "bottom_temperature_c"] <-
-    "sbt_c"
-  
-  ## Shorten name for REBS complex
-  temp_cpue$scientific_name[
-    temp_cpue$scientific_name == "rougheye and blackspotted rockfish unid."
-  ] <- "REBS rockfishes"
-  
-  ## Remove ATF (10110) and Kams (10112) records prior to 1992
-  temp_cpue <- subset(x = temp_cpue,
-                      subset = !(species_code %in% c(10110, 10112) 
-                                 & year < 1992))
-  
-  ## Remove Aleutian (472) and AK (471) skate records prior to 1999
-  temp_cpue <- subset(x = temp_cpue,
-                      subset = !(species_code %in% c(471, 472) 
-                                 & year < 1999))
-  
-  ## rbind to cpue_data
-  cpue_data <- rbind( cpue_data, temp_cpue )
-  
-} ## loop over regions -- end
+  transform(MONTH = lubridate::month(as.POSIXlt(x = START_TIME, 
+                                                format="%d/%m/%Y"))) |>
+  ## Treat year and region as factor. Merge NBS and EBS as "bs_shelf"
+  transform(f_year = factor(YEAR),
+            f_region = ifelse(test = SURVEY %in% c("EBS", "NBS"), 
+                              yes = "bs_shelf",
+                              no = "bs_slope") |> as.factor())
+
+## Lower case the field names in cpue_data 
+names(x = cpue_data) <- tolower(x = names(x = cpue_data))
+names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_start"] <-
+  "lat"
+names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_start"] <-
+  "lon"
+names(x = cpue_data)[names(x = cpue_data) == "bottom_temperature_c"] <-
+  "sbt_c"
+
+## Shorten name for REBS complex
+cpue_data$scientific_name[
+  cpue_data$scientific_name == "rougheye and blackspotted rockfish unid."
+] <- "REBS rockfishes"
+
+## Remove ATF (10110) and Kams (10112) records prior to 1992
+cpue_data <- subset(x = cpue_data,
+                    subset = !(species_code %in% c(10110, 10112) 
+                               & year < 1992))
+
+## Remove Aleutian (472) and AK (471) skate records prior to 1999
+cpue_data <- subset(x = cpue_data,
+                    subset = !(species_code %in% c(471, 472) 
+                               & year < 1999))
+
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Compile interpolation grid
@@ -170,7 +173,8 @@ if (!dir.exists(paths = "data/data_processed/grid_bs_temp_plots/"))
   dir.create(path = "data/data_processed/grid_bs_temp_plots/")
 
 grid_bs_year <- data.frame()
-#loop over years to incorporate values into the Bering Sea grid
+
+#loop over prediction years to incorporate values into the Bering Sea grid
 for (y in 2002:2016) {
   
   #print year to check progress
@@ -231,29 +235,16 @@ for (y in 2002:2016) {
   grid_bs_obj <- 
     grid_bs |>
     transform(year = y) |>
-    terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326") |>
-    terra::project("EPSG:3338")
-  
+    terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326", keepgeom = TRUE) |>
+    terra::project("EPSG:3338") |>
+    sdmTMB::add_utm_columns(ll_names = c("lon", "lat"),
+                            utm_names = c("x_utm_km", "y_utm_km"), 
+                            units = "km")
   
   ## For each bs_grid_obj cell, extract the ROMS mean summer temperature value 
   ## of the nearest point in the ROMS spatial object
   grid_bs_obj$roms_sbt_c <- roms_obj$temp[terra::nearest(x = grid_bs_obj, 
                                                          y = roms_obj)$to_id]
-  
-  ## Add coordinates in lat/lon and utms
-  grid_bs_obj[, c("lon", "lat")] <-
-    grid_bs_obj |> 
-    terra::project("EPSG:4326") |> 
-    terra::crds() |> 
-    as.data.frame() |> setNames(nm = c("lon", "lat"))
-  
-  grid_bs_obj <-
-    sdmTMB::add_utm_columns(
-      dat = grid_bs_obj,
-      ll_names = c("lon", "lat"),
-      utm_names = c("x_utm_km", "y_utm_km"),
-      units = "km"
-    )
   
   ## Plot
   ggplot() +
@@ -267,11 +258,11 @@ for (y in 2002:2016) {
          width = 5, height = 5, units = "in")
   
   ## rbind to grid_bs_year
-  grid_bs_year <- rbind(grid_bs_year, 
-                        as.data.frame(grid_bs_obj) |>
-                          subset(select = c(cell, year, region, stratum, 
-                                            lon, lat, x_utm_km, y_utm_km,
-                                            area_km2, depth_m, roms_sbt_c)) )
+  grid_bs_year <- 
+    rbind(grid_bs_year, 
+          as.data.frame(grid_bs_obj) |>
+            subset(select = c(cell, year, region, lon, lat, x_utm_km, y_utm_km,
+                              stratum, area_km2, depth_m, roms_sbt_c)))
 }
 
 #save grid Bering Sea with SBT and depth as dataframe
@@ -356,21 +347,6 @@ for (y in sort(x = unique(x = cpue_data$year))) {
     temp_cpue_obj$roms_sbt_c <- roms_obj$temp[terra::nearest(x = temp_cpue_obj,
                                                              y = roms_obj)$to_id]
     
-    ## Add coordinates in lat/lon and utms
-    temp_cpue_obj[, c("lon", "lat")] <-
-      temp_cpue_obj |> 
-      terra::project("EPSG:4326") |> 
-      terra::crds() |> 
-      as.data.frame() |> setNames(nm = c("lon", "lat"))
-    
-    temp_cpue_obj <- 
-      sdmTMB::add_utm_columns(
-        dat = temp_cpue_obj,
-        ll_names = c("lon", "lat"),
-        utm_names = c("x_utm_km", "y_utm_km"),
-        units = "km"
-      )
-    
     ## Save sbt temperature monthly average map
     ggplot() +
       geom_spatvector(data = roms_obj, aes(color = temp), size = 3) +
@@ -384,14 +360,8 @@ for (y in sort(x = unique(x = cpue_data$year))) {
            width = 5, height = 5, units = "in")
     
     ## Append to cpue_data_with_sbt 
-    cpue_data_with_sbt <- 
-      rbind(cpue_data_with_sbt,
-            as.data.frame(temp_cpue_obj) |>
-              subset(select = c(hauljoin, survey, start_time, year, month, 
-                                lon, lat, x_utm_km, y_utm_km, area_swept_km2, 
-                                depth_m, sbt_c, roms_sbt_c, 
-                                species_code, scientific_name, 
-                                weight_kg, cpue_kgkm2)))
+    cpue_data_with_sbt <- rbind(cpue_data_with_sbt,
+                                as.data.frame(temp_cpue_obj))
   } ## Loop over months -- end
 }
 
@@ -417,20 +387,3 @@ text(13, 0,
                                 cpue_data_with_sbt$sbt_c,
                                 use = "complete.obs") |> round(2) ))
 dev.off()
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-##  Mesh for slope and shelf models
-##  Shelf models have 300 spatial knots, slope models have 200 spatial knots
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if (!dir.exists(paths = "data/data_processed/sdmtmb_mesh/"))
-  dir.create(path = "data/data_processed/sdmtmb_mesh/")
-
-cpue_data_with_sbt |>
-  subset(subset = species_code == 21740 & survey %in% c("EBS", "NBS")) |>
-  sdmTMB::make_mesh(xy_cols = c("x_utm_km", "y_utm_km"), n_knots = 300) |>
-  saveRDS(file  = "data/data_processed/sdmtmb_mesh/bs_shelf_mesh.RDS")
-
-cpue_data_with_sbt |>
-  subset(subset = species_code == 30020 & survey %in% c("BSS")) |>
-  sdmTMB::make_mesh(xy_cols = c("x_utm_km", "y_utm_km"), n_knots = 200)|>
-  saveRDS(file = "data/data_processed/sdmtmb_mesh/bs_slope_mesh.RDS")
