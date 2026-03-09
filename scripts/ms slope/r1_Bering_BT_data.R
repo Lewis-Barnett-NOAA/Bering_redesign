@@ -1,8 +1,11 @@
 ####################################################################
 ##
 ##    Script #1 
-##    Get catch and effort data from bottom trawl survey EBS, NBS and slope
-##    for VAST model estimation
+##    Import catch and effort data from Eastern Bering Sea, Northern Bering Sea,
+##    Bering Sea Slope bottom trawl surveys for sdmTMB spatiotemporal models
+##    
+##    Import bathymetry and Bering Sea 10K ROMS sea bottom temperature data 
+##    Collate interpolation grid for the three regions, 2002-2016
 ##
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, 
@@ -13,7 +16,7 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Import packages, connect to Oracle
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-library(gapindex); library(sdmTMB); library(tidyterra)
+library(gapindex); library(sdmTMB); library(tidyterra); library(VAST)
 library(ncdf4); library(terra); library(lubridate)
 
 channel <- gapindex::get_connected(check_access = FALSE)
@@ -25,15 +28,17 @@ start_year <- 1982; end_year <- 2022
 species_list <- read.csv(file = "data/species_list.csv")
 
 ## Pull data from gapindex across all regions
-gp_data <- 
-  gapindex::get_data(year_set = start_year:end_year, 
-                     survey_set = c("EBS", "NBS", "BSS"), 
-                     spp_codes = species_list,
-                     channel = channel, 
-                     taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION") 
+gp_data <- gapindex::get_data(
+  year_set = start_year:end_year, 
+  survey_set = c("EBS", "NBS", "BSS"), 
+  spp_codes = species_list,
+  channel = channel, 
+  taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION"
+) 
 
+## Prepare catch and effort dataset
 cpue_data <- 
-  ## Calculate cpue
+  ## Zero-fill and calculate weight CPUE
   gapindex::calc_cpue(gapdata = gp_data) |>
   ## Select relevant fields
   subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
@@ -41,54 +46,44 @@ cpue_data <-
                     "LATITUDE_DD_START", "LONGITUDE_DD_START",
                     "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
                     "CPUE_KGKM2")) |>
-  ## Merge START_TIME from the haul data into the cpue df
+  ## Merge START_TIME from the haul data into the cpue df ...
   merge(x = gp_data$haul[, c("HAULJOIN", "START_TIME")],
         by = "HAULJOIN") |>
-  ## Merge species name to cpue df
+  ## ... to extract month of haul
+  transform(MONTH = lubridate::month(x = as.POSIXlt(x = START_TIME, 
+                                                    format="%d/%m/%Y"))) |>
+  ## Merge species name to cpue df from gp_data$species
   merge(y = gp_data$species |> 
           subset(select = c("SPECIES_CODE", "SCIENTIFIC_NAME")),
         by = "SPECIES_CODE") |>
-  ## add eastings and northings in km
+  ## Add Eastings and Northings in km
   sdmTMB::add_utm_columns(ll_names = c("LONGITUDE_DD_START", 
                                        "LATITUDE_DD_START"),
                           utm_names = c("x_utm_km", "y_utm_km"), 
                           units = "km") |>
-  ## Extract month and year from haul data START_TIME
-  transform(MONTH = lubridate::month(as.POSIXlt(x = START_TIME, 
-                                                format="%d/%m/%Y"))) |>
-  ## Treat year and region as factor. Merge NBS and EBS as "bs_shelf"
-  transform(f_year = factor(YEAR),
-            f_region = ifelse(test = SURVEY %in% c("EBS", "NBS"), 
-                              yes = "bs_shelf",
-                              no = "bs_slope") |> as.factor())
+  ## Covariates: treat year and region as factor. Merge NBS+EBS as "bs_shelf"
+  transform(f_year = factor(x = YEAR),
+            f_region = factor(x = ifelse(test = SURVEY %in% c("EBS", "NBS"), 
+                                         yes = "bs_shelf",
+                                         no = "bs_slope"))) |>
+  ## Remove ATF (10110) and Kams (10112) records prior to 1992
+  subset(subset = !(SPECIES_CODE %in% c(10110, 10112) & YEAR < 1992)) |>
+  ## Remove Aleutian (472) and AK (471) skate records prior to 1999
+  subset(subset = !(SPECIES_CODE %in% c(471, 472) & YEAR < 1999))
 
 ## Lower case the field names in cpue_data 
 names(x = cpue_data) <- tolower(x = names(x = cpue_data))
-names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_start"] <-
-  "lat"
-names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_start"] <-
-  "lon"
-names(x = cpue_data)[names(x = cpue_data) == "bottom_temperature_c"] <-
-  "sbt_c"
+names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_start"] <- "lat"
+names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_start"] <-"lon"
+names(x = cpue_data)[names(x = cpue_data) == "bottom_temperature_c"] <- "sbt_c"
 
-## Shorten name for REBS complex
+## Shorten species name for REBS complex
 cpue_data$scientific_name[
   cpue_data$scientific_name == "rougheye and blackspotted rockfish unid."
 ] <- "REBS rockfishes"
 
-## Remove ATF (10110) and Kams (10112) records prior to 1992
-cpue_data <- subset(x = cpue_data,
-                    subset = !(species_code %in% c(10110, 10112) 
-                               & year < 1992))
-
-## Remove Aleutian (472) and AK (471) skate records prior to 1999
-cpue_data <- subset(x = cpue_data,
-                    subset = !(species_code %in% c(471, 472) 
-                               & year < 1999))
-
-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-##  Compile interpolation grid
+##  Compile interpolation grids from VAST R package
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 utils::data(bering_sea_slope_grid, package = "VAST")
 utils::data(northern_bering_sea_grid, package = "VAST")
@@ -209,12 +204,10 @@ for (y in 2002:2016) {
   time_axis <-
     time_axis[format(x = time_axis, format = "%m") |> as.integer() %in% 5:8]
   
-  
   #get weekly temp slices from specific year y
   nc_y <- ncvar_get(nc, "temp")[,,which(grepl(paste0(y,'-'),time_axis))]
   
-  #get mean matrix for this year. ##SHOULD WE FURTHER SUBSET TO JUST 
-  #SUMMER MONTHS?
+  #Calculate mean summer sbt across the domain of the ROMS spatial footprint
   mean_nc <- apply(X = nc_y, MARGIN = c(1, 2), FUN = mean, na.rm = TRUE)
   
   #Create spatial object from ROMS data
@@ -222,21 +215,28 @@ for (y in 2002:2016) {
     data.frame(lat = as.vector(lats),
                lon = as.vector(lons),
                temp = as.vector(mean_nc)) |>
+    ## subset to Alaska region
     subset(subset = lon >= 180 & !is.na(x = temp)) |>
     transform(lon = lon - 360) |>
     subset(subset = lat >= min(grid_bs$lat) 
            & lat <= max(grid_bs$lat) 
            & lon >= min(grid_bs$lon) 
            & lon <= max(grid_bs$lon)) |>
+    ## Convert to spatial object projected on EPSG:3338
     terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326") |>
     terra::project("EPSG:3338")
   
   ## create spatial object from bs_grid
   grid_bs_obj <- 
     grid_bs |>
-    transform(year = y) |>
+    ## Add year and factor for region (shelf v slope)
+    transform(year = y,
+              f_region = factor(x = ifelse(test = region %in% c("EBS", "NBS"), 
+                                           yes = "bs_shelf",
+                                           no = "bs_slope"))) |>
     terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326", keepgeom = TRUE) |>
     terra::project("EPSG:3338") |>
+    ## Add eastings and northings (utm)
     sdmTMB::add_utm_columns(ll_names = c("lon", "lat"),
                             utm_names = c("x_utm_km", "y_utm_km"), 
                             units = "km")
@@ -261,9 +261,13 @@ for (y in 2002:2016) {
   grid_bs_year <- 
     rbind(grid_bs_year, 
           as.data.frame(grid_bs_obj) |>
-            subset(select = c(cell, year, region, lon, lat, x_utm_km, y_utm_km,
+            subset(select = c(cell, year, region, f_region, 
+                              lon, lat, x_utm_km, y_utm_km,
                               stratum, area_km2, depth_m, roms_sbt_c)))
 }
+
+## Create a factored version of year
+grid_bs_year$f_year <- factor(x = grid_bs_year$year)
 
 #save grid Bering Sea with SBT and depth as dataframe
 saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs_year.RDS')
