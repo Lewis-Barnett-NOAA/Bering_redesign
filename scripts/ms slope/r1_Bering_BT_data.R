@@ -1,8 +1,11 @@
 ####################################################################
 ##
 ##    Script #1 
-##    Get catch and effort data from bottom trawl survey EBS, NBS and slope
-##    for VAST model estimation
+##    Import catch and effort data from Eastern Bering Sea, Northern Bering Sea,
+##    Bering Sea Slope bottom trawl surveys for sdmTMB spatiotemporal models
+##    
+##    Import bathymetry and Bering Sea 10K ROMS sea bottom temperature data 
+##    Collate interpolation grid for the three regions, 2002-2016
 ##
 ##    Daniel Vilas (danielvilasgonzalez@gmail.com)
 ##    Lewis Barnett, Stan Kotwicki, Zack Oyafuso, Megsie Siple, Leah Zacher, 
@@ -13,8 +16,9 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Import packages, connect to Oracle
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pacman::p_load(c("lubridate", "gapindex", 'ncdf4', 'terra'), 
-               character.only = TRUE)
+library(gapindex); library(sdmTMB); library(tidyterra); library(VAST)
+library(ncdf4); library(terra); library(lubridate)
+
 channel <- gapindex::get_connected(check_access = FALSE)
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,70 +26,64 @@ channel <- gapindex::get_connected(check_access = FALSE)
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 start_year <- 1982; end_year <- 2022
 species_list <- read.csv(file = "data/species_list.csv")
-cpue_data <- data.frame()
 
-for (iregion in c("bs_slope", "bs_shelf")) { ## loop over regions -- start
-  
-  ## Initial data pull
-  temp_data <- 
-    gapindex::get_data(year_set = start_year:end_year, 
-                       survey_set = list("bs_slope" = "BSS",
-                                         "bs_shelf" = c("NBS", "EBS"))[[iregion]], 
-                       spp_codes = species_list,
-                       channel = channel, 
-                       taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION") 
-  temp_cpue <- 
-    ## Calculate cpue
-    gapindex::calc_cpue(gapdata = temp_data) |>
-    ## Select relevant fields
-    subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
-                      "DEPTH_M", "BOTTOM_TEMPERATURE_C",
-                      "LATITUDE_DD_START", "LONGITUDE_DD_START",
-                      "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
-                      "CPUE_KGKM2")) |>
-    ## Merge START_TIME from the haul data into the cpue df
-    merge(x = temp_data$haul[, c("HAULJOIN", "START_TIME")],
-          by = "HAULJOIN") |>
-    ## Merge species name to cpue df
-    merge(y = temp_data$species |> 
-            subset(select = c("SPECIES_CODE", "SCIENTIFIC_NAME")),
-          by = "SPECIES_CODE")
-  
-  ## Extract month and year from haul data START_TIME
-  temp_cpue$MONTH <- lubridate::month(as.POSIXlt(temp_cpue$START_TIME, 
-                                                 format="%d/%m/%Y"))
-  
-  ## Lower case the field names in temp_cpue 
-  names(x = temp_cpue) <- tolower(x = names(x = temp_cpue))
-  names(x = temp_cpue)[names(x = temp_cpue) == "latitude_dd_start"] <-
-    "lat"
-  names(x = temp_cpue)[names(x = temp_cpue) == "longitude_dd_start"] <-
-    "lon"
-  names(x = temp_cpue)[names(x = temp_cpue) == "bottom_temperature_c"] <-
-    "sbt_c"
-  
-  ## Shorten name for REBS complex
-  temp_cpue$scientific_name[
-    temp_cpue$scientific_name == "rougheye and blackspotted rockfish unid."
-  ] <- "REBS rockfishes"
-  
+## Pull data from gapindex across all regions
+gp_data <- gapindex::get_data(
+  year_set = start_year:end_year, 
+  survey_set = c("EBS", "NBS", "BSS"), 
+  spp_codes = species_list,
+  channel = channel, 
+  taxonomic_source = "GAP_PRODUCTS.TAXONOMIC_CLASSIFICATION"
+) 
+
+## Prepare catch and effort dataset
+cpue_data <- 
+  ## Zero-fill and calculate weight CPUE
+  gapindex::calc_cpue(gapdata = gp_data) |>
+  ## Select relevant fields
+  subset(select = c("HAULJOIN", "SURVEY", "YEAR", 
+                    "DEPTH_M", "BOTTOM_TEMPERATURE_C",
+                    "LATITUDE_DD_START", "LONGITUDE_DD_START",
+                    "SPECIES_CODE", "WEIGHT_KG", "AREA_SWEPT_KM2",
+                    "CPUE_KGKM2")) |>
+  ## Merge START_TIME from the haul data into the cpue df ...
+  merge(x = gp_data$haul[, c("HAULJOIN", "START_TIME")],
+        by = "HAULJOIN") |>
+  ## ... to extract month of haul
+  transform(MONTH = lubridate::month(x = as.POSIXlt(x = START_TIME, 
+                                                    format="%d/%m/%Y"))) |>
+  ## Merge species name to cpue df from gp_data$species
+  merge(y = gp_data$species |> 
+          subset(select = c("SPECIES_CODE", "SCIENTIFIC_NAME")),
+        by = "SPECIES_CODE") |>
+  ## Add Eastings and Northings in km
+  sdmTMB::add_utm_columns(ll_names = c("LONGITUDE_DD_START", 
+                                       "LATITUDE_DD_START"),
+                          utm_names = c("x_utm_km", "y_utm_km"), 
+                          units = "km") |>
+  ## Covariates: treat year and region as factor. Merge NBS+EBS as "bs_shelf"
+  transform(f_year = factor(x = YEAR),
+            f_region = factor(x = ifelse(test = SURVEY %in% c("EBS", "NBS"), 
+                                         yes = "bs_shelf",
+                                         no = "bs_slope"))) |>
   ## Remove ATF (10110) and Kams (10112) records prior to 1992
-  temp_cpue <- subset(x = temp_cpue,
-                      subset = !(species_code %in% c(10110, 10112) 
-                                 & year < 1992))
-  
+  subset(subset = !(SPECIES_CODE %in% c(10110, 10112) & YEAR < 1992)) |>
   ## Remove Aleutian (472) and AK (471) skate records prior to 1999
-  temp_cpue <- subset(x = temp_cpue,
-                      subset = !(species_code %in% c(471, 472) 
-                                 & year < 1999))
-  
-  ## rbind to cpue_data
-  cpue_data <- rbind( cpue_data, temp_cpue )
-  
-} ## loop over regions -- end
+  subset(subset = !(SPECIES_CODE %in% c(471, 472) & YEAR < 1999))
+
+## Lower case the field names in cpue_data 
+names(x = cpue_data) <- tolower(x = names(x = cpue_data))
+names(x = cpue_data)[names(x = cpue_data) == "latitude_dd_start"] <- "lat"
+names(x = cpue_data)[names(x = cpue_data) == "longitude_dd_start"] <-"lon"
+names(x = cpue_data)[names(x = cpue_data) == "bottom_temperature_c"] <- "sbt_c"
+
+## Shorten species name for REBS complex
+cpue_data$scientific_name[
+  cpue_data$scientific_name == "rougheye and blackspotted rockfish unid."
+] <- "REBS rockfishes"
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-##  Compile interpolation grid
+##  Compile interpolation grids from VAST R package
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 utils::data(bering_sea_slope_grid, package = "VAST")
 utils::data(northern_bering_sea_grid, package = "VAST")
@@ -170,7 +168,8 @@ if (!dir.exists(paths = "data/data_processed/grid_bs_temp_plots/"))
   dir.create(path = "data/data_processed/grid_bs_temp_plots/")
 
 grid_bs_year <- data.frame()
-#loop over years to incorporate values into the Bering Sea grid
+
+#loop over prediction years to incorporate values into the Bering Sea grid
 for (y in 2002:2016) {
   
   #print year to check progress
@@ -205,12 +204,10 @@ for (y in 2002:2016) {
   time_axis <-
     time_axis[format(x = time_axis, format = "%m") |> as.integer() %in% 5:8]
   
-  
   #get weekly temp slices from specific year y
   nc_y <- ncvar_get(nc, "temp")[,,which(grepl(paste0(y,'-'),time_axis))]
   
-  #get mean matrix for this year. ##SHOULD WE FURTHER SUBSET TO JUST 
-  #SUMMER MONTHS?
+  #Calculate mean summer sbt across the domain of the ROMS spatial footprint
   mean_nc <- apply(X = nc_y, MARGIN = c(1, 2), FUN = mean, na.rm = TRUE)
   
   #Create spatial object from ROMS data
@@ -218,21 +215,31 @@ for (y in 2002:2016) {
     data.frame(lat = as.vector(lats),
                lon = as.vector(lons),
                temp = as.vector(mean_nc)) |>
+    ## subset to Alaska region
     subset(subset = lon >= 180 & !is.na(x = temp)) |>
     transform(lon = lon - 360) |>
     subset(subset = lat >= min(grid_bs$lat) 
            & lat <= max(grid_bs$lat) 
            & lon >= min(grid_bs$lon) 
            & lon <= max(grid_bs$lon)) |>
+    ## Convert to spatial object projected on EPSG:3338
     terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326") |>
     terra::project("EPSG:3338")
   
   ## create spatial object from bs_grid
   grid_bs_obj <- 
     grid_bs |>
-    transform(year = y) |>
-    terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326") |>
-    terra::project("EPSG:3338")
+    ## Add year and factor for region (shelf v slope)
+    transform(year = y,
+              f_region = factor(x = ifelse(test = region %in% c("EBS", "NBS"), 
+                                           yes = "bs_shelf",
+                                           no = "bs_slope"))) |>
+    terra::vect(geom = c("lon", "lat"), crs = "EPSG:4326", keepgeom = TRUE) |>
+    terra::project("EPSG:3338") |>
+    ## Add eastings and northings (utm)
+    sdmTMB::add_utm_columns(ll_names = c("lon", "lat"),
+                            utm_names = c("x_utm_km", "y_utm_km"), 
+                            units = "km")
   
   ## For each bs_grid_obj cell, extract the ROMS mean summer temperature value 
   ## of the nearest point in the ROMS spatial object
@@ -251,11 +258,16 @@ for (y in 2002:2016) {
          width = 5, height = 5, units = "in")
   
   ## rbind to grid_bs_year
-  grid_bs_year <- rbind(grid_bs_year, 
-                        as.data.frame(grid_bs_obj) |>
-                          subset(select = c(cell, year, region, stratum, 
-                                            area_km2, depth_m, roms_sbt_c)) )
+  grid_bs_year <- 
+    rbind(grid_bs_year, 
+          as.data.frame(grid_bs_obj) |>
+            subset(select = c(cell, year, region, f_region, 
+                              lon, lat, x_utm_km, y_utm_km,
+                              stratum, area_km2, depth_m, roms_sbt_c)))
 }
+
+## Create a factored version of year
+grid_bs_year$f_year <- factor(x = grid_bs_year$year)
 
 #save grid Bering Sea with SBT and depth as dataframe
 saveRDS(object = grid_bs_year, file = 'data/data_processed/grid_bs_year.RDS')
@@ -338,11 +350,6 @@ for (y in sort(x = unique(x = cpue_data$year))) {
     ## of the nearest point in the ROMS spatial object
     temp_cpue_obj$roms_sbt_c <- roms_obj$temp[terra::nearest(x = temp_cpue_obj,
                                                              y = roms_obj)$to_id]
-    temp_cpue_obj[, c("lon", "lat")] <-
-      temp_cpue_obj |> 
-      terra::project("EPSG:4326") |> 
-      terra::crds() |> 
-      as.data.frame() |> setNames(nm = c("lon", "lat"))
     
     ## Save sbt temperature monthly average map
     ggplot() +
