@@ -68,18 +68,18 @@ grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 ## "cp_d_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(scaled_depth, k = 3) + s(roms_sbt_c, k = 3))
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (species_name in species_list$SCIENTIFIC_NAME[c(4)]) { ## Loop over species -- start
+for (species_name in species_list$SCIENTIFIC_NAME[c(8)]) { ## Loop over species -- start
   
   output_dir <- paste0("output/om/bs_all/", species_name, "/")
   if (!dir.exists(paths = output_dir))
     dir.create(path = output_dir, recursive = TRUE)
   
   # Create new directory in google drive
-  # new_folder <- drive_mkdir(
-  #   name = species_name,
-  #   path = "https://drive.google.com/drive/folders/1nxcqG-hPjOyg6grfxL-bzio1ZKIBJ22T", 
-  #   overwrite = TRUE
-  # )
+  new_folder <- drive_mkdir(
+    name = species_name,
+    path = "https://drive.google.com/drive/folders/1nxcqG-hPjOyg6grfxL-bzio1ZKIBJ22T",
+    overwrite = TRUE
+  )
   
   ## Filter cpue to species and region, create a factor for year
   cpue_data <- subset(x = cpue_bs_allspp, 
@@ -107,7 +107,7 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(4)]) { ## Loop over species 
   
   cpue_data <- merge(x = cpue_data, y = cp_index, by = "year")
   
-  for (model_type in c("cp", "cp_d", "cp_sbt", "cp_d_sbt")[1]) { ## Loop over model types -- start
+  for (model_type in c("cp", "cp_d", "cp_sbt", "cp_d_sbt")[4]) { ## Loop over model types -- start
     
     ## Specify model formula for covariates (all have cold pool as a spatially 
     ## varying coefficient)
@@ -157,7 +157,7 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(4)]) { ## Loop over species 
     
     ## Create dharma residual diagnostics
     dharma_resids <- sdmTMB::dharma_residuals(simulated_response = sim_res, 
-                                              object = initial_fit, 
+                                              object = fit, 
                                               return_DHARMa = TRUE)
     saveRDS(object = dharma_resids, 
             file = paste0(output_dir, "dharma_resids_", model_type, ".RDS"))
@@ -169,9 +169,9 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(4)]) { ## Loop over species 
     dev.off()
     
     ## Loop over files and upload to Google Drive
-    for (ifile in c(paste0(c("fit_", "sim_res_", "dharma_res_"), 
+    for (ifile in c(paste0(c("fit_", "sim_res_", "dharma_resids_"), 
                            model_type, ".RDS"),
-                    paste0("dharma_resids_", model_type, ".jpeg"))) {
+                    paste0("dharma_resids_", model_type, ".jpeg")) ) {
       googledrive::drive_upload(
         media = paste0(output_dir, ifile),
         path = paste0("Bering_redesign/om/bs_all/", species_name, "/"),
