@@ -61,14 +61,10 @@ googledrive::drive_download(
 grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-##  Fit Models - four types of covariate settings:
-## "cp" = formula(x = cpue_kgkm2 ~ 0 + f_year),
-## "cp_d" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(scaled_depth, k = 3)),
-## "cp_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(roms_sbt_c, k = 3)),
-## "cp_d_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(scaled_depth, k = 3) + s(roms_sbt_c, k = 3))
+##  Fit Models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## Loop over species -- start
+for (species_name in species_list$SCIENTIFIC_NAME[c(8)]) { ## Loop over species -- start
   
   output_dir <- paste0("output/om/bs_all/", species_name, "/")
   if (!dir.exists(paths = output_dir))
@@ -77,7 +73,7 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## 
   # Create new directory in google drive
   new_folder <- drive_mkdir(
     name = species_name,
-    path = "https://drive.google.com/drive/folders/1nxcqG-hPjOyg6grfxL-bzio1ZKIBJ22T", 
+    path = "https://drive.google.com/drive/folders/1nxcqG-hPjOyg6grfxL-bzio1ZKIBJ22T",
     overwrite = TRUE
   )
   
@@ -85,13 +81,10 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## 
   cpue_data <- subset(x = cpue_bs_allspp, 
                       subset = scientific_name == species_name) 
   
-  ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ##  sdmTMB settings
-  ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
   ## Spatial mesh
-  mesh <- cpue_data |> sdmTMB::make_mesh(xy_cols = c("x_utm_km", "y_utm_km"), 
-                                         n_knots = 300)
+  mesh <- sdmTMB::make_mesh(data = cpue_data,
+                            xy_cols = c("x_utm_km", "y_utm_km"), 
+                            n_knots = 300)
   
   ## Cold pool as a spatially varying coefficient
   cp_df <- coldpool::cold_pool_index
@@ -99,23 +92,29 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## 
                     env = scale(coldpool::cold_pool_index$AREA_LTE2_KM2)) |>
     transform(year = as.integer(x = YEAR)) |>
     subset(select = c(year, env))
+  cpue_data <- merge(x = cpue_data, y = cp_index, by = "year")
   
+  ## Log depth and scale 
   mean_logdepth <- mean(x = log(x = cpue_data$depth_m))
   sd_logdepth <- sd(x = log(x = cpue_data$depth_m))
   cpue_data$scaled_depth <- 
     (log(x = cpue_data$depth_m) - mean_logdepth) / sd_logdepth
   
-  cpue_data <- merge(x = cpue_data, y = cp_index, by = "year")
+  ## Scale roms-sbt
+  mean_roms_sbt <- mean(x = cpue_data$roms_sbt_c)
+  sd_roms_sbt <- sd(x = cpue_data$roms_sbt_c)
+  cpue_data$scaled_roms_sbt <- 
+    (cpue_data$roms_sbt_c - mean_roms_sbt) / sd_roms_sbt
   
-  for (model_type in c("cp", "cp_d", "cp_sbt", "cp_d_sbt")) { ## Loop over model types -- start
+  ## Loop over covariate scenarios
+  
+  for (model_type in c("cp", "cp_d_sbt")) { ## Loop over model types -- start
     
     ## Specify model formula for covariates (all have cold pool as a spatially 
     ## varying coefficient)
     model_formula <- list(
       "cp" = formula(x = cpue_kgkm2 ~ 0 + f_year),
-      "cp_d" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(scaled_depth, k = 3)),
-      "cp_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(roms_sbt_c, k = 3)),
-      "cp_d_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + s(scaled_depth, k = 3) + s(roms_sbt_c, k = 3))
+      "cp_d_sbt" = formula(x = cpue_kgkm2 ~ 0 + f_year + poly(scaled_depth, degree = 2) + poly(scaled_roms_sbt, degree = 2))
     )[[model_type]]
     
     ## Compile sdmtmb settings
@@ -141,27 +140,15 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## 
     cat("Finished with", species_name, model_type, ". Time elapse:", 
         duration, attributes(duration)$units, "\n")
     
-    ## Output sanity() output
-    sink(paste0("sdmtmb_sanity_", model_type, ".txt"))
-    print(sanity(fit))
-    sink()
-    
-    ## Predict over interpolation grid
-    p <- predict(object = fit,
-                 newdata = grid_bs_year |>
-                   transform(scaled_depth = (log(x = depth_m) - mean_logdepth) / 
-                               sd_logdepth),
-                 return_tmb_object = TRUE)
-    saveRDS(object = p, 
-            file = paste0(output_dir, "preds_", model_type, ".RDS"))
-    
     ## Simulate densities for dharma residuals and future survey simulations
     sim_res <- simulate(fit, nsim = 500, type = "mle-mvn", model = NA)
     saveRDS(object = sim_res, 
             file = paste0(output_dir, "sim_res_", model_type, ".RDS"))
     
     ## Create dharma residual diagnostics
-    dharma_res <- sdmTMB::dharma_residuals(sim_res, initial_fit, return_DHARMa = TRUE)
+    dharma_resids <- sdmTMB::dharma_residuals(simulated_response = sim_res, 
+                                              object = fit, 
+                                              return_DHARMa = TRUE)
     saveRDS(object = dharma_resids, 
             file = paste0(output_dir, "dharma_resids_", model_type, ".RDS"))
     
@@ -172,10 +159,9 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(10, 11, 8, 21, 2, 3)]) { ## 
     dev.off()
     
     ## Loop over files and upload to Google Drive
-    for (ifile in c(paste0(c("fit_", "preds_", "sim_res_", "dharma_res_"), 
+    for (ifile in c(paste0(c("fit_", "sim_res_", "dharma_resids_"), 
                            model_type, ".RDS"),
-                    paste0("dharma_resids_", model_type, ".jpeg"),
-                    paste0("sdmtmb_sanity_", model_type, ".txt"))) {
+                    paste0("dharma_resids_", model_type, ".jpeg")) ) {
       googledrive::drive_upload(
         media = paste0(output_dir, ifile),
         path = paste0("Bering_redesign/om/bs_all/", species_name, "/"),
