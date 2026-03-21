@@ -96,6 +96,7 @@ grid<-x5[,c('Lat','Lon','cell','col','row')]
 
 #load grid
 load('data/data_processed/grid_EBS_NBS.RData')
+#load('./output slope/grid_EBS_NBS.RData')
 yrs<-c(2002:2016)
 grid_ebs<-grid.ebs_year[which(grid.ebs_year$Year %in% yrs),]
 dim(grid_ebs)
@@ -154,7 +155,7 @@ nbs_samples <- nbs_area * ebs_dens
 
 
 #load table that relate survey design (here scn) to variables
-load(file='output/tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df.RData') #samp_df
 
 # count number of samples across region for sampling design ####
 
@@ -745,13 +746,19 @@ for (sim in 1:n_sim_hist) {
         grid3<-grid2
       }
       
+      if (samp_df[s,'type']=='static') {
+        regime<-c('all')
+      } else {
+        regime<-c('cold','warm')
+      }
+      
       #loop over regimes (static, warm or cold)
       for (r in regime) {
         
         #r<-'all'
         
         #load optimization results
-        load(file=paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,"dens.RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
+        load(file=paste0("output/slope/ms_optim_allocations_ebsnbs_slope_",samp_df[s,'samp_scn'],'_',r,".RData")) #list = c('result_list','ss_sample_allocations','ms_sample_allocations','samples_strata','cv_temp')
         
         #area
         area_cell<-merge(all$result_list$solution$indices, grid3, by.x='ID',by.y='cell')
@@ -774,7 +781,7 @@ for (sim in 1:n_sim_hist) {
       alloc<-samp_df$n_samples[s]
       
       #load survey allocations by sampling design
-        load(file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'dens.RData')) 
+        load(file = paste0('output/slope/survey_allocations_',samp_df[s,'samp_scn'],'_',r,'.RData')) 
 
       
         #array to store results  
@@ -904,7 +911,7 @@ for (sim in 1:n_sim_hist) {
       }
     }
   
-  save(index_hist, file = paste0('output/slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist_dens.RData'))  
+  save(index_hist, file = paste0('output/slope/ms_sim_survey_hist/sim',sim_fol,'/index_hist.RData'))  
 
 }
 
@@ -923,7 +930,7 @@ for (i in 1:100) {
   cat(paste0("### Simulation ", i, " ###\n"))
   
   file_path <- paste0('output/slope/ms_sim_survey_hist/sim',
-                      sprintf("%03d", i), '/index_hist_dens.RData')
+                      sprintf("%03d", i), '/index_hist.RData')
   load(file_path)  # creates 'index_hist'
   
   # Melt the 7D array into long-format
@@ -957,7 +964,7 @@ dim(combined_sim_df)
 
 
 #load table that relate survey design (here scn) to variables
-load(file='output/tables/samp_df_dens.RData') #samp_df
+load(file='output/tables/samp_df.RData') #samp_df
 
 # Make sure the column names match for joining
 samp_df_join <- samp_df %>%
