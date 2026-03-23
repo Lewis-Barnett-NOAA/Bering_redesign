@@ -962,6 +962,17 @@ for (i in 1:100) {
 combined_sim_df <- bind_rows(all_sim_dfs)
 dim(combined_sim_df)
 
+#filter by year cold 
+cyrs <- paste0("y", 2006:2013)
+wyrs <- paste0("y", c(2002:2005, 2014:2016))
+
+combined_sim_df <- combined_sim_df %>%
+  filter(
+    (regime == "all") |
+      (regime == "warm" & year %in% wyrs) |
+      (regime == "cold" & year %in% cyrs)
+  )
+
 
 #load table that relate survey design (here scn) to variables
 load(file='output/tables/samp_df.RData') #samp_df
