@@ -64,7 +64,7 @@ grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 ##  Fit Models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (species_name in species_list$SCIENTIFIC_NAME[c(8)]) { ## Loop over species -- start
+for (species_name in species_list$SCIENTIFIC_NAME[c(10:5)]) { ## Loop over species -- start
   
   output_dir <- paste0("output/om/bs_all/", species_name, "/")
   if (!dir.exists(paths = output_dir))
@@ -127,8 +127,10 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(8)]) { ## Loop over species 
       time = "year",
       spatial = "on",
       spatiotemporal = "ar1",
+      extra_time = 2020L,
       anisotropy = TRUE,
-      silent = FALSE
+      control = sdmTMBcontrol(profile = TRUE),
+      silent = FALSE      
     )
     
     ##  Fit model, save
@@ -141,7 +143,7 @@ for (species_name in species_list$SCIENTIFIC_NAME[c(8)]) { ## Loop over species 
         duration, attributes(duration)$units, "\n")
     
     ## Simulate densities for dharma residuals and future survey simulations
-    sim_res <- simulate(fit, nsim = 500, type = "mle-mvn", model = NA)
+    sim_res <- simulate(fit, nsim = 500, type = "mle-mvn", seed = 32, model = NA)
     saveRDS(object = sim_res, 
             file = paste0(output_dir, "sim_res_", model_type, ".RDS"))
     
