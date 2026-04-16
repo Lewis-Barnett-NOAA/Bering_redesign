@@ -64,8 +64,8 @@ grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 ##  Fit Models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# for (idx in which(species_list$FOOTPRINT == "bs_slope")[] ) { ## Loop over species -- start
-for (idx in 1:nrow(x = species_list) ) { ## Loop over species -- start  
+for (idx in which(species_list$FOOTPRINT == "bs_slope")[]) { ## Loop over species -- start
+  # for (idx in 1:nrow(x = species_list) ) { ## Loop over species -- start  
   ## Extract species and survey footprint to fit model
   species_name <- species_list$SCIENTIFIC_NAME[idx]
   footprint <- species_list$FOOTPRINT[idx]
@@ -234,10 +234,14 @@ for (idx in 1:nrow(x = species_list) ) { ## Loop over species -- start
                            ifelse(test = !is.null(x = cold_pool), 
                                   yes = "cp_", no = ""),
                            model_type, ".RDS"),
-                    paste0(c("sanity_", "summary_"),
+                    paste0("summary_",
                            ifelse(test = !is.null(x = cold_pool), 
                                   yes = "cp_", no = ""),
                            model_type, ".txt"),
+                    paste0("sanity_",
+                           ifelse(test = !is.null(x = cold_pool), 
+                                  yes = "cp_", no = ""),
+                           model_type, ".RDS"),
                     paste0("dharma_res_", 
                            ifelse(test = !is.null(x = cold_pool), 
                                   yes = "cp_", no = ""),
