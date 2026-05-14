@@ -64,7 +64,7 @@ grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 ##  Fit Models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (idx in which(species_list$FOOTPRINT == "bs_slope")[]) { ## Loop over species -- start
+for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over species -- start
   # for (idx in 1:nrow(x = species_list) ) { ## Loop over species -- start  
   ## Extract species and survey footprint to fit model
   species_name <- species_list$SCIENTIFIC_NAME[idx]
@@ -125,6 +125,26 @@ for (idx in which(species_list$FOOTPRINT == "bs_slope")[]) { ## Loop over specie
   cpue_data$scaled_roms_sbt <- 
     (cpue_data$roms_sbt_c - mean_roms_sbt) / sd_roms_sbt
   
+  # detect if any years have no occurrences and fix parameters as needed
+  maxs <- cpue_data %>% group_by(year) %>% summarize(max = max(cpue_kgkm2))
+  if(sum(maxs$max) == 0){
+    control = sdmTMBcontrol()
+  } else {
+    zero_yr <- as.integer(maxs %>% filter(max == 0) %>% select(year))
+    # set up map and fix value of p(occurrence) to slightly greater than 0:
+    yrs <- sort(unique(factor(cpue_data$year)))
+    .map <- seq_along(yrs)
+    .map[yrs %in% zero_yr] <- NA
+    .map <- factor(.map)
+    .start <- rep(0, length(yrs))
+    .start[yrs %in% zero_yr] <- -20
+    
+    control =  sdmTMBcontrol(
+      map = list(b_j = .map, b_j2 = .map),
+      start = list(b_j = .start, b_j2 = .start)
+    )
+  }
+  
   ## Subset covariate scenarios
   covariate_scenarios <- list("bs_slope" = c("base", "d", "sbt", "d_sbt"), 
                               "bs_shelf" = c("base", "d_sbt"), 
@@ -167,7 +187,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_slope")[]) { ## Loop over specie
       spatiotemporal = st_field,
       extra_time = extra_time,
       anisotropy = TRUE,
-      control = sdmTMBcontrol(profile = TRUE),
+      control = control,
       silent = FALSE      
     )
     
