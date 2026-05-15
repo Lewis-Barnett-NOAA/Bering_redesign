@@ -147,7 +147,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over specie
   
   ## Subset covariate scenarios
   covariate_scenarios <- list("bs_slope" = c("base", "d", "sbt", "d_sbt"), 
-                              "bs_shelf" = c("base", "d_sbt"), 
+                              "bs_shelf" = c("base", "sbt", "d_sbt"), 
                               "bs_all" = c("base", "d_sbt"))[[footprint]]
   cold_pool <- switch(footprint,
                       bs_all = formula("~ env"), 
