@@ -192,6 +192,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over specie
     )
     
     ##  Fit model, save
+    gc()
     fit <- do.call(what = sdmTMB, args = sdm_settings)
     saveRDS(object = fit, 
             file = paste0(output_dir, "fit_", 
@@ -216,6 +217,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over specie
     sink()
     
     ## Save cAIC
+    gc()
     saveRDS(object = sdmTMB::cAIC(object = fit),
             file = paste0(output_dir, "cAIC_", 
                           ifelse(test = !is.null(x = cold_pool), 
@@ -224,6 +226,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over specie
     
     
     ## Simulate densities for dharma residuals and future survey simulations
+    gc()
     sim_res <- simulate(fit, nsim = 500, type = "mle-mvn", seed = 32, model = NA)
     saveRDS(object = sim_res, 
             file = paste0(output_dir, "sim_res_", 
@@ -232,6 +235,7 @@ for (idx in which(species_list$FOOTPRINT == "bs_shelf")[]) { ## Loop over specie
                           model_type, ".RDS"))
     
     ## Create dharma residual diagnostics
+    gc()
     dharma_resids <- sdmTMB::dharma_residuals(simulated_response = sim_res, 
                                               object = fit, 
                                               return_DHARMa = TRUE)
