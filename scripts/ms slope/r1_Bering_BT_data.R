@@ -131,8 +131,9 @@ grid_bs$depth_m <-
                                   geom = c("Lon", "Lat"), 
                                   crs = terra::crs(r)))$depth_raster
 
-## Constrain grid to those between 0 and 400 m and 
+## Constrain grid to those between 0 and 400 m
 grid_bs <- subset(x = grid_bs, subset = depth_m <= 400 & depth_m >= 1 )
+#TODO: consider not removing deeper depths before fitting
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Append Bottom Temperature to Interpolation Grid via Bering 10K ROMS
