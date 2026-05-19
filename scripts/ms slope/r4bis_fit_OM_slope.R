@@ -6,34 +6,29 @@
 ##    Lukas DeFilippo, Andre Punt
 ####################################################################
 ####################################################################
-
-# clear all objects
 rm(list = ls())
 
+## Import libraries
 library(VAST)
 library(splines)
 
-out_dir <- getwd()
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Import data
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# version VAST (cpp)
-version <- "VAST_v14_0_1"
-
-# folder region - only slope
-fol_region <- "output/slope/vast"
-if (!dir.exists(paths = fol_region)) 
-  dir.create(path = fol_region, recursive = TRUE)
-
-## 
+## Catch and Effort Data
 cpue_bs_allspp <- readRDS(file = "data/data_processed/cpue_bs_allspp.RDS")
 
-# load grid per year for all Bering Sea
+## Interpolation Grid
 grid_bs <- readRDS(file = "data/data_processed/grid_bs.RDS")
+
+## Prediction Grid: interpolation grid for each year
 grid_bs_year <- readRDS(file = "data/data_processed/grid_bs_year.RDS")
 
-species_list <- read.csv(file = "data/species_list.csv")
-species_list <- subset(x = species_list,
-                       subset = SPECIES_CODE %in% 
-                         unique(x = sort(x = species_list$GROUP_CODE)))
+## Species List
+species_list <- read.csv(file = "data/species_list.csv") |>
+  subset(subset = SPECIES_CODE %in% 
+           unique(x = sort(x = GROUP_CODE)))
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##  Fit VAST models
@@ -130,7 +125,7 @@ for (ispp in 1:nrow(x = species_list)) {
                     no = 1)
     
     ## Spatial and Spatiotemporal Field Configurations
-    beta_field = "IID"# 0 is off, "IID" for estimating year intercepts
+    beta_field = 0# 0 is off, "IID" for estimating year intercepts
     beta_rho = 2# 0 is independent, 2 for random walk
     
     if (species_name %in% 
@@ -152,7 +147,6 @@ for (ispp in 1:nrow(x = species_list)) {
                                               "Epsilon_year"),
                                             c("Component_1", "Component_2")))
     }
-    
     
     ## Rho configurations
     rhoconfig <- c("Beta1" = beta_rho, "Beta2" = beta_rho,
@@ -191,7 +185,7 @@ for (ispp in 1:nrow(x = species_list)) {
                     use_anisotropy = aniso,
                     FieldConfig = fieldconfig,
                     RhoConfig = rhoconfig,
-                    Version = version,
+                    Version = "VAST_v14_0_1",
                     ObsModel = ObsModel,
                     max_cells = Inf,
                     mesh_package = "fmesher",
@@ -225,12 +219,12 @@ for (ispp in 1:nrow(x = species_list)) {
         X1_formula = formula,
         X2_formula = formula,
         newtonsteps = steps,
-        working_dir = paste0("output/", iregion, "/vast_rw/", species_name, "/")
+        working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
       )
-
+    
     ## Save Fit
     saveRDS(object = initial_fit,
-            file = paste0("output/", iregion, "/vast_rw/",
+            file = paste0("output/", iregion, "/vast/",
                           species_name, "/initial_fit.RDS"))
     
     # load(paste0("output/", iregion, "/vast/", 
@@ -249,24 +243,22 @@ for (ispp in 1:nrow(x = species_list)) {
                       b_i = data_geostat_w_grid$Weight_kg,
                       a_i = data_geostat_w_grid$Area_km2,
                       input_grid = interpolation_grid,
-                      getJointPrecision = TRUE,
-                      test_fit = FALSE,
+                      run_model =  FALSE,
                       covariate_data = covariate_data,
                       X1_formula = formula,
                       X2_formula = formula,
                       newtonsteps = steps,
                       PredTF_i = data_geostat_w_grid$pred_TF,
                       startpar = initial_fit$parameter_estimates$par,
-                      working_dir = paste0("output/", iregion, "/vast_rw/",
+                      working_dir = paste0("output/", iregion, "/vast/",
                                            species_name, "/"))
     
     ## Save Fit
     saveRDS(object = fit_w_preds, 
-            file = paste0("output/", iregion, "/vast_rw/",
+            file = paste0("output/", iregion, "/vast/",
                           species_name, "/fit_w_preds.RDS"))
   }
 }
-
 
 # Sim1 <- VAST::simulate_data(fit = fit,
 #                             type = 1)
@@ -342,3 +334,35 @@ for (ispp in 1:nrow(x = species_list)) {
 # 
 # stopCluster(cl)
 # save(sim_dens1, file = "output/slope/species/ms_sim_dens_slope.RData")
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##  Collate convergence of each model
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+df_conv <- data.frame(species_name = sort(species_list$SCIENTIFIC_NAME),
+                      bs_shelf = NA, 
+                      bs_slope = NA)
+
+for (iregion in c("bs_slope", "bs_shelf")) { ## Loop over regions -- start
+  for (ispp in 1:nrow(x = df_conv)) { ## Loop over species -- start
+    
+    fit_filename <- paste0("output/", iregion, "/vast/",  
+                           df_conv$species_name[ispp], 
+                           "/parameter_estimates.RData")
+    
+    if (file.exists(fit_filename)) {
+      load(fit_filename)
+      max_grad <- parameter_estimates$max_gradient
+      
+      df_conv[ispp, iregion] <-
+        ifelse(test = is.null(x = max_grad),
+               yes = "did not converge",
+               no = ifelse(test = max_grad < 0.01,
+                           yes = "converged", 
+                           no = "did not converge"))
+    } else (df_conv[ispp, iregion] <- "model not fitted")
+    
+  } ## Loop over species -- end
+} ## Loop over regions -- end
+
+saveRDS(object = df_conv, file = "output/df_conv.RDS")
+write.csv(x = df_conv, file = "output/df_conv.csv", row.names = F)

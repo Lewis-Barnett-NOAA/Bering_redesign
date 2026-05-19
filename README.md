@@ -1,6 +1,6 @@
 # Adapting monitoring to a changing seascape: increasing the efficiency, flexibility, and continuity of bottom trawl surveys in the Bering Sea and beyond
 
-## Description
+## Description 
 
 This repository provides the code used for two interrelated projects:
 
@@ -107,7 +107,7 @@ Project 2 also includes the following visualization scripts
 
 ## Data
 
--   data via axiom (including .csv versions)
+-   data via data one (including .csv versions), and in latest release files
 
 ## Archived output
 
