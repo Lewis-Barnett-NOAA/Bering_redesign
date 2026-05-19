@@ -39,10 +39,9 @@ species_list <- subset(x = species_list,
 ##  Fit VAST models
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (ispp in 11:1 ) {
-# for (ispp in 1:nrow(x = species_list)) {
+for (ispp in 1:nrow(x = species_list)) {
   species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
+  for (iregion in c("bs_slope", "bs_shelf")) {
     
     ## Skip Bering slope model run if it's not included in the slope analysis 
     if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
@@ -116,12 +115,10 @@ for (ispp in 11:1 ) {
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     ## Number of spatial knots for estimation
-    knots <- list("bs_shelf" = 500, "bs_slope" = 300)[[iregion]]
+    knots <- list("bs_shelf" = 300, "bs_slope" = 200)[[iregion]]
     
     ## Anisotropy
-    aniso <- ifelse(test = species_name %in% c("Anoplopoma fimbria", 
-                                               "Atheresthes stomias") 
-                    & iregion == "bs_slope",
+    aniso <- ifelse(test = iregion == "bs_slope",
                     yes = FALSE, 
                     no = TRUE)
     
@@ -133,8 +130,8 @@ for (ispp in 11:1 ) {
                     no = 1)
     
     ## Spatial and Spatiotemporal Field Configurations
-    beta_field = 0# "IID" for estimating year intercepts
-    beta_rho = 0# 2 for random walk
+    beta_field = "IID"# 0 is off, "IID" for estimating year intercepts
+    beta_rho = 2# 0 is independent, 2 for random walk
     
     if (species_name %in% 
         c("Reinhardtius hippoglossoides", "Bathyraja aleutica",
@@ -228,12 +225,12 @@ for (ispp in 11:1 ) {
         X1_formula = formula,
         X2_formula = formula,
         newtonsteps = steps,
-        working_dir = paste0("output/", iregion, "/vast/", species_name, "/")
+        working_dir = paste0("output/", iregion, "/vast_rw/", species_name, "/")
       )
 
     ## Save Fit
     saveRDS(object = initial_fit,
-            file = paste0("output/", iregion, "/vast/",
+            file = paste0("output/", iregion, "/vast_rw/",
                           species_name, "/initial_fit.RDS"))
     
     # load(paste0("output/", iregion, "/vast/", 
@@ -260,12 +257,12 @@ for (ispp in 11:1 ) {
                       newtonsteps = steps,
                       PredTF_i = data_geostat_w_grid$pred_TF,
                       startpar = initial_fit$parameter_estimates$par,
-                      working_dir = paste0("output/", iregion, "/vast/",
+                      working_dir = paste0("output/", iregion, "/vast_rw/",
                                            species_name, "/"))
     
     ## Save Fit
     saveRDS(object = fit_w_preds, 
-            file = paste0("output/", iregion, "/vast/",
+            file = paste0("output/", iregion, "/vast_rw/",
                           species_name, "/fit_w_preds.RDS"))
   }
 }
@@ -345,16 +342,3 @@ for (ispp in 11:1 ) {
 # 
 # stopCluster(cl)
 # save(sim_dens1, file = "output/slope/species/ms_sim_dens_slope.RData")
-
-
-for (ispp in 1:nrow(x = species_list)) {
-  species_name <- species_list$SCIENTIFIC_NAME[ispp]
-  for (iregion in c("bs_slope", "bs_shelf")[1]) {
-    
-    ## Skip Bering slope model run if it's not included in the slope analysis 
-    if (iregion == "bs_slope" & !species_list$SLOPE[ispp]) next 
-    
-    
-    cat(iregion, species_name , "\n")  
-  }
-}
